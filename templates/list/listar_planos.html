@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Meus Planos de Aula - Cortex{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight font-display">Planos de Aula</h1>
+            <p class="text-sm text-gray-500 mt-1">Biblioteca de conteúdos e planejamentos pedagógicos.</p>
+        </div>
+        
+        <a href="{{ url_for('planos.planejamentos') }}" 
+           class="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition-all shadow-sm ring-1 ring-emerald-700/10">
+            <i class="fas fa-plus text-xs"></i>
+            <span>Novo Planejamento</span>
+        </a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-semibold tracking-wider">
+                        <th class="px-6 py-4">Tema / Conteúdo</th>
+                        <th class="px-6 py-4">Turma</th>
+                        <th class="px-6 py-4">Data Prevista</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for plano in planos %}
+                    <tr class="hover:bg-gray-50 transition-colors group">
+                        <td class="px-6 py-4">
+                            <div class="flex flex-col">
+                                <a href="{{ url_for('planos.planejamento', id_turma=plano.id_turma) }}" class="font-medium text-gray-900 hover:text-emerald-600 transition-colors">
+                                    {{ plano.titulo }}
+                                </a>
+                                <span class="text-xs text-gray-500 mt-1 line-clamp-1">{{ plano.conteudo }}</span>
+                            </div>
+                        </td>
+
+                        <td class="px-6 py-4">
+                            {% if plano.turma %}
+                                <a href="{{ url_for('alunos.turma', id_turma=plano.turma.id) }}" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors">
+                                    {{ plano.turma.nome }}
+                                </a>
+                            {% else %}
+                                <span class="text-gray-400 text-xs">-</span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-6 py-4 text-sm text-gray-600">
+                            {{ plano.data_prevista.strftime('%d/%m/%Y') if plano.data_prevista else 'N/A' }}
+                        </td>
+
+                        <td class="px-6 py-4">
+                            {% if plano.status == 'Concluido' or plano.id_atividade_gerada %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-100">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                    Concluído
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-100">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    Planejado
+                                </span>
+                            {% endif %}
+                        </td>
+
+                        <td class="px-6 py-4 text-right">
+                            <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <a href="{{ url_for('planos.exportar_pdf', id_plano=plano.id) }}" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Baixar PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                                <a href="{{ url_for('planos.exportar_docx', id_plano=plano.id) }}" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Baixar DOCX">
+                                    <i class="fas fa-file-word"></i>
+                                </a>
+                                <a href="{{ url_for('planos.planejamento', id_turma=plano.id_turma) }}" class="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                                    <i class="fas fa-pen"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                            <p>Nenhum plano de aula encontrado.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

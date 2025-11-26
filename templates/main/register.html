@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="text-3xl font-bold mb-6 text-green-700">Registrar Nova Conta</h2>
+
+<div class="bg-white p-6 rounded-lg shadow-xl max-w-lg mx-auto">
+    <form method="POST">
+        {{ form.hidden_tag() }} 
+        
+        <div class="mb-4">
+            <label class="block mb-2 font-bold text-gray-700 text-lg" for="{{ form.username.id }}">{{ form.username.label }}<span class="text-red-500">*</span>:</label>
+            {{ form.username(class="border p-3 rounded w-full focus:ring-blue-500 focus:border-blue-500 text-lg", required=True) }}
+            {% for error in form.username.errors %}
+                <span class="text-red-500 text-sm block mt-1">{{ error }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="mb-4">
+            <label class="block mb-2 font-bold text-gray-700 text-lg" for="{{ form.password.id }}">{{ form.password.label }}<span class="text-red-500">*</span>:</label>
+            {{ form.password(class="border p-3 rounded w-full focus:ring-blue-500 focus:border-blue-500 text-lg", required=True) }}
+            {% for error in form.password.errors %}
+                <span class="text-red-500 text-sm block mt-1">{{ error }}</span>
+            {% endfor %}
+        </div>
+        
+        <div class="mb-6">
+            <label class="block mb-2 font-bold text-gray-700 text-lg" for="{{ form.confirm_password.id }}">{{ form.confirm_password.label }}<span class="text-red-500">*</span>:</label>
+            {{ form.confirm_password(class="border p-3 rounded w-full focus:ring-blue-500 focus:border-blue-500 text-lg", required=True) }}
+            {% for error in form.confirm_password.errors %}
+                <span class="text-red-500 text-sm block mt-1">{{ error }}</span>
+            {% endfor %}
+        </div>
+
+        <div class="flex items-center justify-between mt-6">
+            {{ form.submit(class="bg-green-600 text-white p-3 rounded-lg shadow-md hover:bg-green-700 transition duration-150 font-semibold cursor-pointer") }}
+            
+            <a href="{{ url_for('auth.login') }}" class="text-gray-600 hover:text-gray-800">
+                Já tem uma conta? Faça o login
+            </a>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

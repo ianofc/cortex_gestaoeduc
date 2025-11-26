@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-2xl font-semibold mb-4">Matriz de Lançamento - <span class="text-blue-600">{{ turma.nome }}</span></h2>
+
+{% if alunos %}
+    <p class="text-gray-600 mb-4">Alterações são salvas automaticamente ao sair do campo. (Amarelo = A salvar, Verde = Salvo, Vermelho = Erro)</p>
+
+    <div class="overflow-x-auto bg-white p-4 rounded-lg shadow-lg">
+        <table class="min-w-full divide-y divide-gray-200" id="gradebook-table">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky-col bg-gray-50">Aluno</th>
+                    {% for ativ in atividades %}
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" title="{{ ativ.data.strftime('%d/%m/%Y') if ativ.data else '' }}">
+                        {{ ativ.titulo }} (P: {{ ativ.peso }})
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for aluno in alunos %}
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky-col bg-white">{{ aluno.nome }}</td>
+                    
+                    {% for ativ in atividades %}
+                        {% set presenca = presencas_map.get((aluno.id, ativ.id)) %}
+                        <td class="px-2 py-2 whitespace-nowrap text-sm">
+                            <div class="grid grid-cols-2 gap-1 w-40">
+                                <input type="number" step="0.1" min="0" max="1.0" 
+                                       value="{{ presenca.nota if presenca and presenca.nota is not none else '' }}"
+                                       data-aluno-id="{{ aluno.id }}" 
+                                       data-atividade-id="{{ ativ.id }}" 
+                                       data-campo="nota"
+                                       class="border p-1 rounded w-full gradebook-input" placeholder="Nota (0.0)">
+                                
+                                <select data-aluno-id="{{ aluno.id }}" 
+                                        data-atividade-id="{{ ativ.id }}" 
+                                        data-campo="status"
+                                        class="border p-1 rounded w-full gradebook-input text-xs">
+                                    {% set status = presenca.status if presenca else 'Presente' %}
+                                    <option value="Presente" {% if status == 'Presente' %}selected{% endif %}>Presente</option>
+                                    <option value="Ausente" {% if status == 'Ausente' %}selected{% endif %}>Ausente</option>
+                                    <option value="Justificado" {% if status == 'Justificado' %}selected{% endif %}>Justificado</option>
+                                </select>
+                                
+                                <input type="number" step="1" min="0" max="100" 
+                                       value="{{ presenca.desempenho if presenca and presenca.desempenho is not none else '' }}"
+                                       data-aluno-id="{{ aluno.id }}" 
+                                       data-atividade-id="{{ ativ.id }}" 
+                                       data-campo="desempenho"
+                                       class="border p-1 rounded w-full gradebook-input" placeholder="Desem. (0)">
+                                       
+                                <select data-aluno-id="{{ aluno.id }}" 
+                                        data-atividade-id="{{ ativ.id }}" 
+                                        data-campo="situacao"
+                                        class="border p-1 rounded w-full gradebook-input text-xs">
+                                    {% set situacao = presenca.situacao if presenca else 'Bom' %}
+                                    <option value="Excelente" {% if situacao == 'Excelente' %}selected{% endif %}>Excelente</option>
+                                    <option value="Bom" {% if situacao == 'Bom' %}selected{% endif %}>Bom</option>
+                                    <option value="Reforço" {% if situacao == 'Reforço' %}selected{% endif %}>Reforço</option>
+                                    <option value="Insatisfatório" {% if situacao == 'Insatisfatório' %}selected{% endif %}>Insatisfatório</option>
+                                </select>
+                            </div>
+                        </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% else %}
+    <h3 class="text-xl font-semibold mb-2 text-yellow-700"><i class="fas fa-exclamation-triangle"></i> Nenhum Aluno Encontrado</h3>
+    <p class="text-gray-600 mb-4">A turma "{{ turma.nome }}" ainda não tem alunos. Adicione-os colando uma lista de nomes abaixo (um nome por linha) ou 
+        <a href="{{ url_for('add_aluno', id_turma=turma.id) }}" class="text-blue-600 hover:underline">adicione um por um</a>.
+    </p>
+    
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-lg">
+        <label for="bulk-add-alunos-list" class="block mb-2 font-bold text-gray-700">Lista de Nomes:</label>
+        <textarea id="bulk-add-alunos-list" rows="10" 
+                  class="border p-2 rounded w-full focus:ring-blue-500 focus:border-blue-500" 
+                  placeholder="Ana Silva
+Bruno Costa
+Carla Dias
+..."></textarea>
+        <button id="btn-salvar-lista-alunos" 
+                data-id-turma="{{ turma.id }}"
+                class="w-full bg-green-600 text-white p-3 rounded shadow hover:bg-green-700 font-semibold cursor-pointer mt-4">
+            <i class="fas fa-save"></i> Salvar Alunos e Recarregar Página
+        </button>
+    </div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="text-3xl font-bold mb-2 text-green-700">{{ aluno.nome }}</h2>
+
+<div class="flex flex-wrap space-x-6 mb-6 text-lg text-gray-700">
+    <p class="font-medium">Matrícula: {{ aluno.matricula | default("N/A", true) }}</p>
+    {% if aluno.turma %}
+        <p class="font-medium">Turma: <a href="{{ url_for('alunos.turma', id_turma=aluno.turma.id) }}" class="text-blue-600 hover:underline">{{ aluno.turma.nome }}</a></p>
+    {% else %}
+        <p class="font-medium text-red-500">Turma: Não Atribuída</p>
+    {% endif %}
+    
+    {% if media_final is not none %}
+        <p class="font-medium">Média Parcial: 
+            <span class="font-bold {% if media_final >= 6.0 %}text-blue-600{% elif media_final >= 4.0 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                {{ "%.1f"|format(media_final) }}
+            </span>
+        </p>
+    {% endif %}
+    
+    <p class="text-gray-500">Cadastro: {{ aluno.data_cadastro | default("N/A", true) }}</p>
+</div>
+
+<div class="flex space-x-4 mb-8">
+    <a href="{{ url_for('alunos.editar_aluno', id_aluno=aluno.id) }}" 
+       class="bg-yellow-600 text-white p-2 rounded shadow hover:bg-yellow-700 transition duration-150">
+        ✏️ Editar Dados do Aluno
+    </a>
+    
+    <form id="delete-form" action="{{ url_for('alunos.deletar_aluno', id_aluno=aluno.id) }}" method="POST" style="display:inline;">
+        <button type="submit" 
+                onclick="return confirmDelete(event, '{{ aluno.nome }}')" 
+                class="bg-red-600 text-white p-2 rounded shadow hover:bg-red-700 transition duration-150">
+            🗑️ Deletar Aluno
+        </button>
+    </form>
+</div>
+
+<!-- Botão e Área de Análise IA (NOVO) -->
+<div class="mb-8">
+    <button id="btn-analisar-aluno" data-id-aluno="{{ aluno.id }}" 
+            class="bg-purple-600 text-white px-4 py-2 rounded shadow hover:bg-purple-700 font-semibold flex items-center transition transform hover:scale-105">
+        <i class="fas fa-robot mr-2"></i> Analisar Desempenho com IA
+    </button>
+
+    <div id="resultado-analise-container" class="mt-4 hidden bg-purple-50 border border-purple-200 p-6 rounded-lg shadow-inner">
+        <div class="flex justify-between items-start">
+            <h3 class="text-lg font-bold text-purple-800 mb-2">🤖 Análise Pedagógica</h3>
+            <button onclick="document.getElementById('resultado-analise-container').classList.add('hidden')" class="text-purple-400 hover:text-purple-600">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div id="resultado-analise-content" class="text-gray-800 prose prose-purple max-w-none">
+            <!-- O conteúdo da IA será injetado aqui via JavaScript -->
+        </div>
+    </div>
+</div>
+
+<h3 class="text-2xl font-semibold mb-4 border-b pb-2">Histórico de Presenças e Avaliações</h3>
+
+<div class="bg-white p-4 rounded-lg shadow-lg overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Atividade</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participação</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nota</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Desempenho (%)</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Situação</th>
+            </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+        {% if aluno.presencas %}
+            {% for presenca in aluno.presencas %}
+                {% set atividade = presenca.atividade %}
+                
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ atividade.titulo if atividade else "N/A" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ atividade.data.strftime('%d/%m/%Y') if atividade and atividade.data else "N/A" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm 
+                        {% if presenca.status == 'Presente' %}text-green-600{% elif presenca.status == 'Ausente' %}text-red-600{% else %}text-yellow-600{% endif %}">
+                        {{ presenca.status }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ presenca.participacao | default("N/A", true) }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{{ "%.1f"|format(presenca.nota) if presenca.nota is not none else "N/A" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ presenca.desempenho if presenca.desempenho is not none else "N/A" }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ presenca.situacao | default("N/A", true) }}</td>
+                </tr>
+            {% endfor %}
+        {% else %}
+            <tr><td colspan="7" class="px-6 py-4 text-center text-gray-500">Nenhum registro de presença ou avaliação.</td></tr>
+        {% endif %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

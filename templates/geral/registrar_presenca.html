@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% set total_questoes_list = [] %}
+{% set is_prova = (atividade.tipo == 'Prova') %}
+{% if atividade.descricao %}
+    {% set lines = atividade.descricao.split('\n') %}
+    {% for line in lines %}
+        {% if line.strip().startswith("Nº de Questões:") and not total_questoes_list %}
+            {% set _ = total_questoes_list.append(line.split(':')[-1].strip()) %}
+        {% endif %}
+    {% endfor %}
+{% endif %}
+{% set total_questoes_str = total_questoes_list[0] if total_questoes_list else 'N/A' %}
+
+<h2 class="text-3xl font-bold mb-4 text-blue-700">
+    Registro de Presença e Nota
+</h2>
+
+<div class="mb-6 p-4 bg-gray-100 rounded-lg border border-gray-300">
+    <p class="text-xl font-semibold">Aluno: {{ aluno.nome }}</p>
+    <p class="text-lg">Turma: {{ aluno.turma.nome }}</p>
+    <p class="text-lg font-semibold mt-2 text-indigo-700">Atividade: {{ atividade.titulo }}</p>
+    <p class="text-md text-gray-700">Tipo: {{ atividade.tipo }} | Valor Máximo: <span class="font-bold text-green-700">{{ "{:.1f}".format(atividade.peso) }} pontos</span></p>
+    
+    {% if total_questoes_str != 'N/A' %}
+        <p class="text-md text-gray-700 font-semibold">Total de Questões na Prova: <span class="font-bold {% if is_prova %}text-red-600{% else %}text-gray-500{% endif %}">{{ total_questoes_str }}</span></p>
+    {% endif %}
+</div>
+
+<form method="POST" class="bg-white p-6 rounded-lg shadow-xl border border-gray-100">
+    {{ form.hidden_tag() }}
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div>
+            <label class="block mb-2 font-bold text-gray-700">{{ form.status.label }}:</label>
+            {{ form.status(class="border p-2 rounded w-full") }}
+            {% for error in form.status.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+        </div>
+        <div>
+            <label class="block mb-2 font-bold text-gray-700">{{ form.participacao.label }}:</label>
+            {{ form.participacao(class="border p-2 rounded w-full") }}
+            {% for error in form.participacao.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+        </div>
+    </div>
+    
+    <h3 class="text-xl font-semibold mb-4 border-b pb-2">Pontuação e Desempenho</h3>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        
+        <div class="p-4 bg-green-50 rounded-lg border border-green-300" id="acertos_container">
+            <h4 class="font-bold text-green-700 mb-2">Cálculo Automático (Provas)</h4>
+            
+            <label class="block mb-2 font-bold text-green-700">{{ form.acertos.label }}:</label>
+            <p class="text-xs text-gray-600 mb-2">Se preenchido, a Nota Manual será ignorada.</p>
+            {{ form.acertos(class="border p-2 rounded w-full", id="id_acertos", type="number", min="0") }}
+            {% for error in form.acertos.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
+        </div>
+
+        <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-300">
+            <h4 class="font-bold text-yellow-700 mb-2">Nota Manual (Outras Atividades)</h4>
+            
+            <label class="block mb-2 font-bold text-gray-700">{{ form.nota.label }}:</label>
+            <p class="text-xs text-gray-600 mb-2">Será usado se o campo Acertos estiver vazio.</p>
+            {{ form.nota(class="border p-2 rounded w-full", id="id_nota", type="number", step="0.01", min="0") }}
+            {% for error in form.nota.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
+        </div>
+
+        <div>
+            <label class="block mb-2 font-bold text-gray-700">{{ form.desempenho.label }}:</label>
+            {{ form.desempenho(class="border p-2 rounded w-full", type="number", min="0", max="100") }}
+            {% for error in form.desempenho.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
+        </div>
+    </div>
+
+    <div class="mb-6">
+        <label class="block mb-2 font-bold text-gray-700">{{ form.situacao.label }}:</label>
+        {{ form.situacao(class="border p-2 rounded w-full") }}
+        {% for error in form.situacao.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
+    </div>
+
+    <div class="mb-6">
+        <label class="block mb-2 font-bold text-gray-700">{{ form.observacoes.label }}:</label>
+        {{ form.observacoes(class="border p-2 rounded w-full h-24") }}
+        {% for error in form.observacoes.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
+    </div>
+
+    <button type="submit" class="bg-blue-600 text-white p-3 rounded hover:bg-blue-700 w-full font-semibold">
+        <i class="fas fa-save"></i> Registrar Presença e Nota
+    </button>
+</form>
+
+{% endblock %} 
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const acertosInput = document.getElementById('id_acertos');
+        const notaInput = document.getElementById('id_nota');
+        const acertosContainer = document.getElementById('acertos_container');
+        
+        // Se a tag "Nº de Questões: X" foi encontrada, consideramos que o cálculo automático pode ser aplicado.
+        const totalQuestoesStr = acertosContainer.querySelector('h4').textContent.includes('Provas') 
+                                ? '{{ total_questoes_str }}' : 'N/A';
+        const isCalculoPossivel = totalQuestoesStr !== 'N/A';
+
+        // Mostra/Oculta o campo de Acertos
+        if (isCalculoPossivel) {
+            acertosContainer.style.display = 'block';
+        } else {
+            acertosContainer.style.display = 'none';
+        }
+
+
+        function checkAcertos() {
+            if (isCalculoPossivel) {
+                const acertosValue = acertosInput.value.trim();
+
+                if (acertosValue !== '') {
+                    // Se Acertos preenchido, desativa Nota Manual e zera seu valor
+                    notaInput.disabled = true;
+                    notaInput.placeholder = 'Cálculo Automático';
+                    notaInput.value = 0; // O valor 0 será enviado e substituído pelo cálculo no backend
+                    
+                    // Adiciona um aviso de UX
+                    acertosContainer.classList.add('border-blue-500');
+                } else {
+                    // Se Acertos vazio, reativa Nota Manual
+                    notaInput.disabled = false;
+                    notaInput.placeholder = '';
+                    acertosContainer.classList.remove('border-blue-500');
+                }
+            } else {
+                // Se não for possível calcular, garante que a nota manual é o foco
+                if (acertosInput) {
+                    acertosInput.disabled = true;
+                    notaInput.disabled = false;
+                }
+            }
+        }
+
+        // Event Listeners
+        if (acertosInput) {
+            acertosInput.addEventListener('input', checkAcertos);
+        }
+        
+        // Inicialização
+        checkAcertos(); 
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-3xl font-bold mb-6 text-blue-700">Editar Atividade - <span class="text-blue-600">{{ atividade.titulo }}</span></h2>
+
+<form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded shadow-xl border border-gray-100 mb-6">
+    {{ form.hidden_tag() }}
+    
+    <div class="mb-4">
+        <label class="block mb-2 font-bold text-gray-700">{{ form.titulo.label }}<span class="text-red-500">*</span>:</label>
+        {{ form.titulo(class="border p-2 rounded w-full", id="titulo") }}
+        {% for error in form.titulo.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+    </div>
+
+    <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+            <label class="block mb-2 font-bold text-gray-700">{{ form.data.label }}<span class="text-red-500">*</span>:</label>
+            {{ form.data(class="border p-2 rounded w-full") }}
+            {% for error in form.data.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+        </div>
+        
+        <div>
+            <label class="block mb-2 font-bold text-gray-700">{{ form.tipo.label }}<span class="text-red-500">*</span>:</label>
+            {{ form.tipo(class="border p-2 rounded w-full", id="tipo_atividade") }}
+            {% for error in form.tipo.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+        </div>
+        
+        <div>
+            <label class="block mb-2 font-bold text-gray-700">{{ form.valor_total.label }}<span class="text-red-500">*</span>:</label>
+            {{ form.valor_total(class="border p-2 rounded w-full", type="number", step="0.1") }}
+            {% for error in form.valor_total.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+        </div>
+    </div>
+    
+    <div class="mb-4" id="num_questoes_container">
+        <label class="block mb-2 font-bold text-gray-700">{{ form.num_questoes.label }}<span class="text-red-500">*</span>:</label>
+        {{ form.num_questoes(class="border p-2 rounded w-full", type="number", min="1") }}
+        {% for error in form.num_questoes.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+    </div>
+
+    <div class="mb-4 p-3 bg-gray-50 rounded-lg border">
+        <h4 class="text-sm font-semibold mb-2"><i class="fas fa-magic text-purple-600"></i> Assistente IA para Descrição</h4>
+        <p class="text-xs text-gray-600 mb-2">Preencha o Título. A IA pode gerar questões para a descrição.</p>
+        <label class="block mb-1 text-xs font-bold text-gray-700">Tipo de Questões:</label>
+        <input type="text" id="ia-tipo-questoes" class="border p-2 rounded w-full text-sm mb-2" value="5 questões abertas sobre o tema">
+        
+        <button type="button" id="btn-gerar-questoes" class="w-full bg-purple-600 text-white p-2 rounded hover:bg-purple-700 text-sm font-semibold">
+            <i class="fas fa-magic"></i> Gerar Questões
+        </button>
+    </div>
+    
+    <div class="mb-4">
+        <label class="block mb-2 font-bold text-gray-700">{{ form.descricao.label }}:</label>
+        {{ form.descricao(class="border p-2 rounded w-full h-24", id="descricao", placeholder="Cole as questões aqui, ou deixe a IA gerar...") }}
+    </div>
+
+    <div class="mb-6">
+        <label class="block mb-2 font-bold text-gray-700">{{ form.arquivo_anexo.label }}:</label>
+        <p class="text-sm text-gray-500 mb-2">Anexe o ficheiro da atividade (ex: o seu .docx ou .pdf) para que a IA possa usá-lo para criar provas futuras.</p>
+        {{ form.arquivo_anexo(class="border p-2 rounded w-full text-sm") }}
+        {% for error in form.arquivo_anexo.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+    </div>
+    
+    <button type="submit" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 transition duration-150">
+        <i class="fas fa-save"></i> Salvar Edição
+    </button>
+</form>
+
+<div class="mt-8 pt-4 border-t border-red-300">
+    <h3 class="text-xl font-bold text-red-600 mb-4">Zona de Perigo</h3>
+    
+    <form action="{{ url_for('alunos.delete_atividade', id_atividade=atividade.id) }}" 
+          method="POST" 
+          onsubmit="return confirm('ATENÇÃO: Tem certeza que deseja DELETAR esta atividade? Isso apagará todos os registros de notas/presença associados.')">
+          
+        <button type="submit" class="bg-red-600 text-white p-3 rounded hover:bg-red-700 font-semibold">
+            <i class="fas fa-trash-alt"></i> DELETAR Atividade Permanentemente
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tipoSelect = document.getElementById('tipo_atividade');
+        const numQuestoesContainer = document.getElementById('num_questoes_container');
+        const tituloInput = document.getElementById('titulo');
+        const descricaoTextarea = document.getElementById('descricao');
+        const btnGerarQuestoes = document.getElementById('btn-gerar-questoes');
+        const iaTipoQuestoesInput = document.getElementById('ia-tipo-questoes');
+        const numQuestoesInput = document.querySelector('#num_questoes_container input');
+
+        function toggleNumQuestoes() {
+            if (tipoSelect.value === 'Prova') {
+                numQuestoesContainer.style.display = 'block';
+            } else {
+                numQuestoesContainer.style.display = 'none';
+            }
+        }
+
+        tipoSelect.addEventListener('change', toggleNumQuestoes);
+        
+        // Executa ao carregar para o caso de edição/validação falha
+        toggleNumQuestoes(); 
+
+        // Lógica do assistente IA
+        btnGerarQuestoes.addEventListener('click', async function() {
+            const tema = tituloInput.value.trim();
+            const tipo = iaTipoQuestoesInput.value.trim();
+            
+            if (!tema) {
+                alert("Por favor, preencha o Título da atividade antes de gerar questões.");
+                return;
+            }
+
+            btnGerarQuestoes.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+            btnGerarQuestoes.disabled = true;
+            
+            try {
+                const response = await fetch("{{ url_for('alunos.gerar_questoes_ia') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ tema: tema, tipo: tipo })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    descricaoTextarea.value = data.questoes;
+                    alert('Questões geradas com sucesso!');
+                } else {
+                    alert(`Erro na IA: ${data.message}`);
+                }
+
+            } catch (error) {
+                console.error('Erro na requisição IA:', error);
+                alert('Erro de rede ao comunicar com o assistente IA.');
+            } finally {
+                btnGerarQuestoes.innerHTML = '<i class="fas fa-magic"></i> Gerar Questões';
+                btnGerarQuestoes.disabled = false;
+            }
+        });
+    });
+</script>
+{% endblock %}

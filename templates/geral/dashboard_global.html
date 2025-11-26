@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="font-bold text-3xl text-gray-900 mb-6">📊 Dashboard Global</h1>
+
+<section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4">
+        <div class="bg-blue-100 p-3 rounded-full"><i class="fas fa-users fa-2x text-blue-600"></i></div>
+        <div>
+            <p class="text-gray-500 font-semibold uppercase text-sm">Total de Alunos</p>
+            <p class="text-3xl font-bold text-gray-800">{{ total_alunos }}</p>
+        </div>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4">
+        <div class="bg-yellow-100 p-3 rounded-full"><i class="fas fa-chalkboard-teacher fa-2x text-yellow-600"></i></div>
+        <div>
+            <p class="text-gray-500 font-semibold uppercase text-sm">Total de Turmas</p>
+            <p class="text-3xl font-bold text-gray-800">{{ total_turmas }}</p>
+        </div>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-md flex items-center space-x-4">
+        <div class="bg-indigo-100 p-3 rounded-full"><i class="fas fa-clipboard-list fa-2x text-indigo-600"></i></div>
+        <div>
+            <p class="text-gray-500 font-semibold uppercase text-sm">Total de Atividades</D>
+            <p class="text-3xl font-bold text-gray-800">{{ total_atividades }}</p>
+        </div>
+    </div>
+</section>
+
+<section class="bg-white p-6 rounded-xl shadow-md mb-8">
+    <h2 class="font-bold text-lg mb-4 text-green-700">🏆 Top 10 Alunos por Desempenho Global</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for aluno_data in top_alunos %}
+        <a href="{{ url_for('alunos.aluno', id_aluno=aluno_data.aluno.id) }}"
+           class="bg-green-50 p-4 rounded-lg border border-green-200 hover:border-green-600 transition duration-150 ease-in-out flex justify-between items-center">
+            <div>
+                <p class="text-lg font-bold text-gray-800 truncate">{{ loop.index }}. {{ aluno_data.aluno.nome }}</p>
+                <p class="text-sm text-gray-600">{{ aluno_data.aluno.turma.nome if aluno_data.aluno.turma else 'Sem Turma' }}</p>
+            </div>
+            <p class="text-xl font-extrabold text-green-600">
+                {{ "%.1f"|format(aluno_data.percentual) }}%
+            </p>
+        </a>
+        {% else %}
+        <p class="text-gray-500 col-span-3">Ainda não há dados de desempenho para classificar os alunos (certifique-se de que há notas registradas).</p>
+        {% endfor %}
+    </div>
+</section>
+
+
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="bg-white p-6 rounded-xl shadow-md">
+        <h2 class="font-bold text-lg mb-4">Desempenho Médio por Turma (%)</h2>
+        <div class="h-64 w-full flex items-center justify-center relative">
+            <canvas id="globalDesempenhoChart"></canvas>
+        </div>
+    </div>
+    <div class="bg-white p-6 rounded-xl shadow-md">
+        <h2 class="font-bold text-lg mb-4">Frequência Média por Turma (%)</h2>
+        <div class="h-64 w-full flex items-center justify-center relative">
+            <canvas id="globalFrequenciaChart"></canvas>
+        </div>
+    </div>
+</section>
+
+<section class="bg-white p-6 rounded-xl shadow-md">
+    <h2 class="font-bold text-lg mb-4">Resumo das Turmas</h2>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Turma</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Desempenho Médio</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frequência Média</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+            
+            {% for dados in dados_combinados %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-lg font-medium text-gray-900">{{ dados.turma }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xl font-bold
+                        {% if dados.desempenho >= 80 %}text-green-600
+                        {% elif dados.desempenho >= 60 %}text-blue-600
+                        {% elif dados.desempenho >= 40 %}text-yellow-600
+                        {% else %}text-red-600{% endif %}">
+                        {{ "%.1f"|format(dados.get('desempenho', 0)) }}%
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-xl font-bold
+                        {% if dados.frequencia >= 90 %}text-green-600
+                        {% elif dados.frequencia >= 75 %}text-blue-600
+                        {% else %}text-red-600{% endif %}">
+                        {{ "%.1f"|format(dados.get('frequencia', 0)) }}%
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="3" class="px-6 py-4 text-center text-gray-500">
+                        Nenhuma turma com dados de alunos e presenças encontrada.
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // A lógica JavaScript deve ser implementada aqui para usar os dados_combinados
+        const dadosGraficos = {{ dados_combinados | tojson | safe }}; 
+        const labels = dadosGraficos.map(d => d.turma);
+        const desempenhoData = dadosGraficos.map(d => d.desempenho);
+        const frequenciaData = dadosGraficos.map(d => d.frequencia);
+
+        // Inicializa Gráfico de Desempenho
+        if (document.getElementById('globalDesempenhoChart')) {
+            new Chart(document.getElementById('globalDesempenhoChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Desempenho Médio (%)',
+                        data: desempenhoData,
+                        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Inicializa Gráfico de Frequência
+        if (document.getElementById('globalFrequenciaChart')) {
+            new Chart(document.getElementById('globalFrequenciaChart'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Frequência Média (%)',
+                        data: frequenciaData,
+                        backgroundColor: 'rgba(251, 191, 36, 0.6)',
+                        borderColor: 'rgba(251, 191, 36, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

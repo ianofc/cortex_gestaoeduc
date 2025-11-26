@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-6 text-blue-700">
+    <i class="fas fa-users-class"></i> Adicionar Nova Turma
+</h1>
+
+<div class="max-w-md bg-white rounded-lg shadow-lg p-6 mx-auto">
+    
+    <p class="text-gray-600 mb-4">Preencha os campos abaixo para cadastrar uma nova turma e começar a gerenciar seus alunos.</p>
+
+    <form method="POST">
+        {{ form.hidden_tag() }}
+        <div class="space-y-4">
+            <div>
+                <label for="{{ form.nome.id }}" class="text-sm font-semibold text-gray-700">Nome da Turma <span class="text-red-500">*</span></label>
+                {{ form.nome(placeholder="Ex: 3ª A Eletro", class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500") }}
+                {% for error in form.nome.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
+            </div>
+            <div>
+                <label for="{{ form.descricao.id }}" class="text-sm font-semibold text-gray-700">Descrição (Nível, Perfil)</label>
+                {{ form.descricao(placeholder="Ex: Téc. em Eletrotécnica, 8º Ano Fundamental", class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500") }}
+                {% for error in form.descricao.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
+            </div>
+            <div>
+                <label for="{{ form.turno.id }}" class="text-sm font-semibold text-gray-700">Turno <span class="text-red-500">*</span></label>
+                {{ form.turno(class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500") }}
+                {% for error in form.turno.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
+            </div>
+        </div>
+        
+        <button type="submit" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 w-full mt-6 font-semibold">
+            <i class="fas fa-save"></i> Salvar Turma
+        </button>
+        
+        <a href="{{ url_for('core.index') }}" class="block text-center mt-3 text-sm text-gray-600 hover:text-gray-800">
+            Cancelar e Voltar
+        </a>
+    </form>
+</div>
+{% endblock %}
