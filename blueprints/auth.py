@@ -54,8 +54,9 @@ def register():
         db.session.commit()
         flash('Sua conta foi criada! Você já pode fazer o login.', 'success')
         return redirect(url_for('auth.login'))
-        
-    return render_template('register.html', form=form)
+    
+    # CORREÇÃO: Caminho atualizado para 'main/register.html'
+    return render_template('main/register.html', form=form)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -86,7 +87,8 @@ def login():
         else:
             flash('Login falhou. Verifique suas credenciais.', 'danger')
             
-    return render_template('login.html', form=form)
+    # CORREÇÃO: Caminho atualizado para 'main/login.html'
+    return render_template('main/login.html', form=form)
 
 @auth_bp.route('/logout')
 @login_required
@@ -116,4 +118,4 @@ def editar_professor(id):
         flash('Professor atualizado com sucesso!', 'success')
         return redirect(url_for('core.index'))
         
-    return render_template('edit_professor.html', form=form, professor=professor)
+    return render_template('edit/edit_professor.html', form=form, professor=professor)

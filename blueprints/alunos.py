@@ -15,7 +15,7 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import func, distinct, case
 from sqlalchemy.orm import joinedload
 
-# --- Imports para Exportação de Documentos (Adicionados) ---
+# --- Imports para Exportação de Documentos ---
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -93,8 +93,9 @@ def turma(id_turma):
             'media': media_final_pontos
         })
         
+    # CORREÇÃO: Template na pasta 'geral'
     return render_template(
-        'turma.html', 
+        'geral/turma.html', 
         turma=turma, 
         alunos_com_media=alunos_com_media, 
         atividades=atividades, 
@@ -125,8 +126,9 @@ def aluno(id_aluno):
     
     media_final = total_pontos_obtidos
     
+    # CORREÇÃO: Template na pasta 'geral'
     return render_template(
-        'aluno.html', 
+        'geral/aluno.html', 
         aluno=aluno, 
         presencas=presencas, 
         media_final=media_final,
@@ -153,7 +155,9 @@ def add_aluno(id_turma):
         db.session.commit()
         flash(f'Aluno {novo.nome} adicionado!', 'success')
         return redirect(url_for('alunos.turma', id_turma=id_turma))
-    return render_template('add_aluno.html', turma=turma, form=form)
+    
+    # CORREÇÃO: Template na pasta 'add'
+    return render_template('add/add_aluno.html', turma=turma, form=form)
 
 @alunos_bp.route('/turma/<int:id_turma>/bulk_add_alunos', methods=['POST'])
 @login_required
@@ -201,26 +205,32 @@ def add_atividade(id_turma):
     form = AtividadeForm()
     if form.validate_on_submit():
         
-        # --- Lógica de Upload do Anexo ---
+        # --- Lógica de Upload do Anexo (CORRIGIDA: PASTA DOCS) ---
         arquivo = request.files.get('arquivo_anexo')
         nome_arquivo_anexo = None
         path_arquivo_anexo = None
+        
         if arquivo and arquivo.filename != '' and allowed_file(arquivo.filename):
+            # Define pasta de documentos
+            docs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
+            if not os.path.exists(docs_folder):
+                os.makedirs(docs_folder) # Cria a pasta docs se não existir
+
             filename_seguro = secure_filename(arquivo.filename)
             base, ext_seguro = os.path.splitext(filename_seguro)
             filename_final = f"atividade_{id_turma}_{int(datetime.now().timestamp())}{ext_seguro}"
             
-            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename_final)
+            # Salva em uploads/docs/
+            filepath = os.path.join(docs_folder, filename_final)
             arquivo.save(filepath)
             
             nome_arquivo_anexo = arquivo.filename
             path_arquivo_anexo = filename_final
         # --- Fim da Lógica de Upload ---
         
-        # Lógica para incluir número de questões na descrição (ATUALIZADO)
+        # Lógica para incluir número de questões na descrição
         descricao = form.descricao.data
-        if form.num_questoes.data: # Verifica se o campo foi preenchido
-            # Insere a informação no formato exato que é esperado pelo extrator
+        if form.num_questoes.data: 
             descricao = f"Nº de Questões: {form.num_questoes.data}\n\n{descricao}"
 
         atividade = Atividade(
@@ -242,7 +252,8 @@ def add_atividade(id_turma):
     if ai_desc:
         form.descricao.data = ai_desc
         
-    return render_template('add_atividade.html', turma=turma, form=form)
+    # CORREÇÃO: Template na pasta 'add'
+    return render_template('add/add_atividade.html', turma=turma, form=form)
 
 
 @alunos_bp.route('/registrar_presenca/<int:id_aluno>/<int:id_atividade>', methods=['GET', 'POST'])
@@ -259,16 +270,14 @@ def registrar_presenca(id_aluno, id_atividade):
     
     if form.validate_on_submit():
         
-        # ----------------------------------------------------
-        # LÓGICA DE CÁLCULO AUTOMÁTICO DE NOTA (CORRIGIDA)
-        # ----------------------------------------------------
+        # LÓGICA DE CÁLCULO AUTOMÁTICO DE NOTA
         if form.acertos.data is not None:
             acertos = form.acertos.data
             peso_total = atividade.peso
             
             total_questoes = None 
             
-            # Tenta extrair o número total de questões da descrição (REMOVIDA a condição 'and atividade.tipo == "Prova"')
+            # Tenta extrair o número total de questões da descrição
             if atividade.descricao: 
                 try:
                     for line in atividade.descricao.split('\n'):
@@ -280,13 +289,15 @@ def registrar_presenca(id_aluno, id_atividade):
                     total_questoes = None
             
             if total_questoes is None or total_questoes <= 0:
-                 flash(f'Erro: Não foi possível determinar o Nº total de questões da atividade. Insira a nota manualmente.', 'danger')
-                 return render_template('registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
+                 flash(f'Erro: Não foi possível determinar o Nº total de questões. Insira a nota manualmente.', 'danger')
+                 # CORREÇÃO: Template na pasta 'geral'
+                 return render_template('geral/registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
 
             # Validação: Acertos não pode ser maior que o total
             if acertos > total_questoes:
                  flash(f'Erro: O número de acertos ({acertos}) excede o total de questões ({total_questoes}).', 'danger')
-                 return render_template('registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
+                 # CORREÇÃO: Template na pasta 'geral'
+                 return render_template('geral/registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
             
             # CÁLCULO FINAL: (Acertos / Total Questões) * Peso Total
             nota_calculada = (acertos / total_questoes) * peso_total
@@ -298,10 +309,6 @@ def registrar_presenca(id_aluno, id_atividade):
             # Garante que a nota é 0.0 se for deixada vazia e acertos também for vazio
             form.nota.data = 0.0
             
-        # ----------------------------------------------------
-        # FIM DA LÓGICA DE CÁLCULO
-        # ----------------------------------------------------
-        
         if presenca:
             form.populate_obj(presenca)
             flash(f'Registro de {aluno.nome} atualizado! Nota: {presenca.nota}', 'success')
@@ -317,7 +324,8 @@ def registrar_presenca(id_aluno, id_atividade):
         db.session.commit()
         return redirect(url_for('alunos.turma', id_turma=aluno.id_turma))
 
-    return render_template('registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
+    # CORREÇÃO: Template na pasta 'geral'
+    return render_template('geral/registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
 
 @alunos_bp.route('/atividade/<int:id_atividade>/editar', methods=['GET', 'POST'])
 @login_required
@@ -327,13 +335,11 @@ def edit_atividade(id_atividade):
         flash('Não autorizado.', 'danger')
         return redirect(url_for('core.index'))
     
-    # Helper class para mapear atividade.peso para form.valor_total
     class TempAtividade:
         def __init__(self, atividade):
             self.__dict__ = atividade.__dict__.copy()
             self.valor_total = atividade.peso
             
-            # Tenta extrair o número de questões da descrição para preencher o campo do formulário (REMOVIDA a condição 'and atividade.tipo == "Prova"')
             num_questoes = None
             if atividade.descricao:
                 try:
@@ -349,19 +355,30 @@ def edit_atividade(id_atividade):
     
     if form.validate_on_submit():
         
-        # Lógica de Upload do Anexo
+        # Lógica de Upload do Anexo (CORRIGIDA: PASTA DOCS)
         arquivo = request.files.get('arquivo_anexo')
         if arquivo and arquivo.filename != '' and allowed_file(arquivo.filename):
+            docs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
+            if not os.path.exists(docs_folder):
+                os.makedirs(docs_folder)
+
             if atividade.path_arquivo_anexo:
-                old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], atividade.path_arquivo_anexo)
+                # Tenta apagar na pasta docs
+                old_path = os.path.join(docs_folder, atividade.path_arquivo_anexo)
                 if os.path.exists(old_path):
                     os.remove(old_path)
+                else:
+                    # Tenta apagar na raiz (legado)
+                    old_path_root = os.path.join(current_app.config['UPLOAD_FOLDER'], atividade.path_arquivo_anexo)
+                    if os.path.exists(old_path_root):
+                        os.remove(old_path_root)
             
             filename_seguro = secure_filename(arquivo.filename)
             base, ext_seguro = os.path.splitext(filename_seguro)
             filename_final = f"atividade_{atividade.id_turma}_{int(datetime.now().timestamp())}{ext_seguro}"
             
-            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename_final)
+            # Salva na pasta docs
+            filepath = os.path.join(docs_folder, filename_final)
             arquivo.save(filepath)
             
             atividade.nome_arquivo_anexo = arquivo.filename
@@ -369,20 +386,15 @@ def edit_atividade(id_atividade):
         
         form.populate_obj(atividade)
         
-        # Mapeia form.valor_total de volta para atividade.peso
         atividade.peso = form.valor_total.data
 
-        # Atualiza o número de questões na descrição (ATUALIZADO)
         descricao_form_data = form.descricao.data
 
         if form.num_questoes.data:
-            # 1. Pega a descrição real do usuário (sem a tag)
             lines = descricao_form_data.split('\n')
             
-            # Encontra o índice da primeira linha que não é o prefixo de questões
             start_index = 0
             if lines and lines[0].strip().startswith("Nº de Questões:"):
-                # A descrição começa na 3ª linha ou após a 1ª linha vazia
                 try:
                     for i, line in enumerate(lines):
                         if i > 0 and line.strip() != '':
@@ -399,29 +411,24 @@ def edit_atividade(id_atividade):
                 except Exception:
                     start_index = 1
 
-            # Base da descrição limpa (o conteúdo real que o usuário digitou ou manteve)
             descricao_base_limpa = "\n".join(lines[start_index:]).strip()
-
-            # Reconstroi a descrição com a nova tag no topo
             atividade.descricao = f"Nº de Questões: {form.num_questoes.data}\n\n{descricao_base_limpa}"
         else:
-            # Se o campo num_questoes foi limpo, remove a tag da descrição se ela existir
             lines = atividade.descricao.split('\n') if atividade.descricao else []
             if lines and lines[0].strip().startswith("Nº de Questões:"):
                 atividade.descricao = "\n".join(lines[2:]).strip()
             else:
-                atividade.descricao = descricao_form_data.strip() # Apenas a descrição digitada pelo usuário
+                atividade.descricao = descricao_form_data.strip() 
 
-        # Garante que a descrição não fique apenas com \n\n se for vazia
         if not atividade.descricao.strip():
             atividade.descricao = None
-
         
         db.session.commit()
         flash(f'Atividade "{atividade.titulo}" atualizada com sucesso!', 'success')
         return redirect(url_for('alunos.turma', id_turma=atividade.id_turma))
 
-    return render_template('edit_atividade.html', form=form, atividade=atividade)
+    # CORREÇÃO: Template na pasta 'edit'
+    return render_template('edit/edit_atividade.html', form=form, atividade=atividade)
 
 
 @alunos_bp.route('/atividade/<int:id_atividade>/deletar', methods=['POST'])
@@ -435,9 +442,15 @@ def delete_atividade(id_atividade):
     id_turma = atividade.id_turma
     try:
         if atividade.path_arquivo_anexo:
-            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], atividade.path_arquivo_anexo)
+            # Tenta deletar de docs
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs', atividade.path_arquivo_anexo)
             if os.path.exists(filepath):
                 os.remove(filepath)
+            else:
+                # Tenta deletar da raiz (legado)
+                filepath_root = os.path.join(current_app.config['UPLOAD_FOLDER'], atividade.path_arquivo_anexo)
+                if os.path.exists(filepath_root):
+                    os.remove(filepath_root)
         
         db.session.delete(atividade)
         db.session.commit()
@@ -469,7 +482,9 @@ def editar_aluno(id_aluno):
         form.populate_obj(aluno) 
         db.session.commit()
         return redirect(url_for('alunos.aluno', id_aluno=aluno.id))
-    return render_template('edit_aluno.html', aluno=aluno, form=form)
+    
+    # CORREÇÃO: Template na pasta 'edit'
+    return render_template('edit/edit_aluno.html', aluno=aluno, form=form)
 
 @alunos_bp.route('/aluno/<int:id_aluno>/deletar', methods=['POST'])
 @login_required 
@@ -500,7 +515,9 @@ def editar_turma(id_turma):
         db.session.commit()
         flash(f'Turma {turma.nome} atualizada com sucesso!', 'success')
         return redirect(url_for('alunos.turma', id_turma=turma.id))
-    return render_template('edit_turma.html', turma=turma, form=form)
+    
+    # CORREÇÃO: Template na pasta 'edit'
+    return render_template('edit/edit_turma.html', turma=turma, form=form)
 
 @alunos_bp.route('/turma/<int:id_turma>/deletar', methods=['POST'])
 @login_required 
@@ -543,10 +560,11 @@ def gradebook(id_turma):
         
     presencas_map = { (p.id_aluno, p.id_atividade): p for p in presencas_db }
 
-    return render_template('gradebook.html', 
+    # CORREÇÃO: Template na pasta 'geral'
+    return render_template('geral/gradebook.html', 
                            turma=turma, 
                            alunos=alunos, 
-                           atividades=atividades,
+                           atividades=atividades, 
                            presencas_map=presencas_map)
 
 @alunos_bp.route('/gradebook/salvar', methods=['POST'])
@@ -616,8 +634,9 @@ def dashboard(id_turma):
     ids_alunos_turma = [aluno.id for aluno in alunos]
     
     if not ids_alunos_turma:
+        # CORREÇÃO: Template na pasta 'geral'
         return render_template(
-            'dashboard.html', 
+            'geral/dashboard.html', 
             turma=turma, 
             dados_desempenho=[],
             dados_frequencia={"presente": 0, "ausente": 0, "justificado": 0},
@@ -678,8 +697,9 @@ def dashboard(id_turma):
         "reforco": count_reforco, "insatisfatorio": count_insat
     }
     
+    # CORREÇÃO: Template na pasta 'geral'
     return render_template(
-        'dashboard.html', 
+        'geral/dashboard.html', 
         turma=turma, 
         dados_desempenho=dados_desempenho,
         dados_frequencia=dados_frequencia,
@@ -735,45 +755,62 @@ def gerar_questoes_ia():
 def download_material(filename):
     download_name = None
     autorizado = False
+    # Define diretório padrão (pode ser imgs ou docs)
+    directory = current_app.config['UPLOAD_FOLDER'] 
     
-    # 1. Procura se é a foto de perfil do usuário logado (CORRIGIDO)
+    # 1. Perfil do usuário logado (Pasta imgs)
     if current_user.foto_perfil_path == filename:
         download_name = f"perfil_{current_user.username}.{filename.split('.')[-1]}"
+        directory = os.path.join(current_app.config['UPLOAD_FOLDER'], 'imgs')
         autorizado = True
 
-    # 2. Procura se é um material de plano de aula
+    # 2. Material de plano de aula (Pasta docs)
     material = Material.query.filter_by(path_arquivo=filename).first()
     if not autorizado and material:
         if material.plano_de_aula.turma.autor == current_user:
             download_name = material.nome_arquivo
+            directory = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
             autorizado = True
     
-    # 3. Procura se é um anexo de diário de bordo
+    # 3. Anexo de diário de bordo (Pasta docs)
     if not autorizado:
         entrada = DiarioBordo.query.filter_by(path_arquivo_anexo=filename).first()
         if entrada:
             if entrada.autor_diario == current_user:
                  download_name = entrada.nome_arquivo_anexo
+                 directory = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
                  autorizado = True
             
-    # 4. Procura se é um anexo de atividade
+    # 4. Anexo de atividade (Pasta docs)
     if not autorizado:
         atividade = Atividade.query.filter_by(path_arquivo_anexo=filename).first()
         if atividade:
             if atividade.turma.autor == current_user:
                 download_name = atividade.nome_arquivo_anexo
+                directory = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
                 autorizado = True
 
     if not autorizado:
         flash('Ficheiro não encontrado ou acesso não autorizado.', 'danger')
         return redirect(url_for('core.index'))
         
-    return send_from_directory(
-        current_app.config['UPLOAD_FOLDER'], 
-        filename, 
-        as_attachment=(False if filename == current_user.foto_perfil_path and not request.args.get('download') else True),
-        download_name=download_name
-    )
+    # Tenta servir do diretório identificado (imgs ou docs).
+    # Se falhar, tenta da raiz 'uploads' (para compatibilidade com arquivos antigos)
+    if os.path.exists(os.path.join(directory, filename)):
+        return send_from_directory(
+            directory, 
+            filename, 
+            as_attachment=(False if 'perfil' in str(download_name) and not request.args.get('download') else True),
+            download_name=download_name
+        )
+    else:
+        # Fallback para a raiz uploads/
+        return send_from_directory(
+            current_app.config['UPLOAD_FOLDER'],
+            filename, 
+            as_attachment=(False if 'perfil' in str(download_name) and not request.args.get('download') else True),
+            download_name=download_name
+        )
 
 
 # ------------------- ROTA DE EXPORTAÇÃO (XLSX) ORIGINAL -------------------
@@ -781,7 +818,6 @@ def download_material(filename):
 @alunos_bp.route('/exportar/<int:id_turma>')
 @login_required 
 def exportar_relatorio(id_turma):
-    # Lógica de Exportação de Relatório (XLSX)
     turma = Turma.query.get_or_404(id_turma)
     if turma.autor != current_user:
         flash('Não autorizado.', 'danger')
@@ -833,19 +869,16 @@ def exportar_relatorio(id_turma):
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-# ------------------- NOVAS ROTAS DE EXPORTAÇÃO TIPO MATRIZ (Igual Imagem 1) -------------------
+# ------------------- NOVAS ROTAS DE EXPORTAÇÃO TIPO MATRIZ -------------------
 
 def _gerar_dados_matriz(turma):
-    """Função auxiliar para preparar os dados no formato de matriz (linhas=alunos, col=atividades)."""
     alunos = Aluno.query.filter_by(id_turma=turma.id).order_by(Aluno.nome).all()
     atividades = Atividade.query.filter_by(id_turma=turma.id).order_by(Atividade.data).all()
     
-    # Busca todas as presenças da turma de uma vez
     presencas = Presenca.query.join(Atividade).filter(Atividade.id_turma == turma.id).all()
     presencas_map = {(p.id_aluno, p.id_atividade): p for p in presencas}
 
     cabecalhos = ["ALUNO"]
-    # Usa a data formatada (dd/mm) como cabeçalho, ou o título se não houver data
     for ativ in atividades:
         header = ativ.data.strftime('%d/%m') if ativ.data else ativ.titulo[:5]
         cabecalhos.append(header)
@@ -880,19 +913,16 @@ def exportar_matriz_xlsx(id_turma):
 
     atividades, cabecalhos, linhas = _gerar_dados_matriz(turma)
 
-    # Cria DataFrame Pandas
     df = pd.DataFrame(linhas, columns=cabecalhos)
 
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
         df.to_excel(writer, index=False, sheet_name='Notas')
-        
-        # Ajuste simples de largura de coluna
         worksheet = writer.sheets['Notas']
-        worksheet.column_dimensions['A'].width = 40 # Coluna Aluno mais larga
+        worksheet.column_dimensions['A'].width = 40
         for i in range(len(atividades) + 1):
-            col_letter = chr(66 + i) # Começa do B
-            if col_letter <= 'Z': # Limitação simples para exemplo
+            col_letter = chr(66 + i)
+            if col_letter <= 'Z':
                 worksheet.column_dimensions[col_letter].width = 10
 
     output.seek(0)
@@ -914,8 +944,6 @@ def exportar_matriz_docx(id_turma):
     atividades, cabecalhos, linhas = _gerar_dados_matriz(turma)
 
     document = Document()
-    
-    # Configurar para Paisagem (Landscape) para caber mais colunas
     section = document.sections[0]
     section.orientation = WD_ORIENT.LANDSCAPE
     new_width, new_height = section.page_height, section.page_width
@@ -924,15 +952,12 @@ def exportar_matriz_docx(id_turma):
     section.left_margin = Cm(1.27)
     section.right_margin = Cm(1.27)
 
-    # Título
     titulo = document.add_heading(f'TURMA {turma.nome}', 0)
     titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    # Tabela
     table = document.add_table(rows=1, cols=len(cabecalhos))
     table.style = 'Table Grid'
 
-    # Cabeçalho
     hdr_cells = table.rows[0].cells
     for i, header_text in enumerate(cabecalhos):
         hdr_cells[i].text = str(header_text)
@@ -940,11 +965,9 @@ def exportar_matriz_docx(id_turma):
         paragraph.runs[0].bold = True
         paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    # Dados
     for linha_dados in linhas:
         row_cells = table.add_row().cells
         for i, item in enumerate(linha_dados):
-            # Formata números float para 1 casa decimal
             if isinstance(item, float):
                 row_cells[i].text = f"{item:.1f}".replace('.', ',')
                 row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -973,17 +996,14 @@ def exportar_matriz_pdf(id_turma):
     atividades, cabecalhos, linhas = _gerar_dados_matriz(turma)
 
     f = BytesIO()
-    # PDF em Paisagem
     doc = SimpleDocTemplate(f, pagesize=landscape(A4), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
     elements = []
     styles = getSampleStyleSheet()
 
-    # Título
     title = Paragraph(f"<b>TURMA {turma.nome} - RELATÓRIO DE NOTAS</b>", styles['Title'])
     elements.append(title)
     elements.append(Spacer(1, 20))
 
-    # Prepara dados para a Tabela do ReportLab
     data = [cabecalhos]
     for linha in linhas:
         nova_linha = []
@@ -994,9 +1014,7 @@ def exportar_matriz_pdf(id_turma):
                 nova_linha.append(str(item))
         data.append(nova_linha)
 
-    # Configuração da Tabela
-    # Calcula larguras dinâmicas (coluna aluno maior, outras menores)
-    page_width = landscape(A4)[0] - 60 # Margens
+    page_width = landscape(A4)[0] - 60
     col_width_aluno = 200
     rest_width = page_width - col_width_aluno
     num_cols_notas = len(cabecalhos) - 1
@@ -1009,7 +1027,7 @@ def exportar_matriz_pdf(id_turma):
         ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'), # Alinha nomes à esquerda
+        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
         ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
@@ -1028,8 +1046,6 @@ def exportar_matriz_pdf(id_turma):
         mimetype='application/pdf'
     )
 
-# --- Adicione ao final de blueprints/alunos.py ---
-
 @alunos_bp.route('/aluno/<int:id_aluno>/analisar_desempenho_ia', methods=['POST'])
 @login_required
 def analisar_desempenho_ia(id_aluno):
@@ -1041,7 +1057,6 @@ def analisar_desempenho_ia(id_aluno):
     if not api_key:
         return jsonify({"status": "error", "message": "API Key não configurada."}), 500
 
-    # 1. Coleta de Dados (Últimas 10 atividades)
     presencas = Presenca.query.filter_by(id_aluno=id_aluno)\
         .join(Atividade).order_by(Atividade.data.desc()).limit(10).all()
     
@@ -1057,7 +1072,6 @@ def analisar_desempenho_ia(id_aluno):
 
     media_recente = sum(notas) / len(notas) if notas else 0.0
 
-    # 2. Construção do Prompt
     prompt = f"""
     Aja como um coordenador pedagógico experiente. Analise o desempenho do aluno '{aluno.nome}'.
     
@@ -1074,7 +1088,6 @@ def analisar_desempenho_ia(id_aluno):
     Responda em formato HTML simples (sem tags html/body), usando <h4> para títulos, <p> para texto e <ul>/<li> para listas. Seja direto e construtivo.
     """
 
-    # 3. Chamada à API
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
     data = {"contents": [{"parts": [{"text": prompt}]}]}
@@ -1087,19 +1100,13 @@ def analisar_desempenho_ia(id_aluno):
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-        # Em blueprints/alunos.py
-
 @alunos_bp.route('/listar')
 @login_required
 def listar_alunos():
-    # Busca todas as turmas do professor atual
     turmas = current_user.turmas
-    
-    # Cria uma lista plana de todos os alunos dessas turmas
-    # (Pode ser otimizado depois com uma query direta, mas assim funciona rápido agora)
     alunos_list = []
     for turma in turmas:
         alunos_list.extend(turma.alunos)
         
-    # Renderiza um template para listar (você precisará criar este HTML ou usar um existente)
-    return render_template('listar_alunos.html', alunos=alunos_list)
+    # CORREÇÃO: Template na pasta 'list'
+    return render_template('list/listar_alunos.html', alunos=alunos_list)

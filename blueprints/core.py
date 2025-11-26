@@ -7,7 +7,6 @@ from sqlalchemy import func, case
 from werkzeug.utils import secure_filename 
 
 # Imports de Módulos Locais
-# Nota: Removi 'Escola' dos imports pois não existe no models.py enviado
 from models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo
 from forms import TurmaForm, LembreteForm, UserProfileForm
 
@@ -59,7 +58,7 @@ def index():
     else:
         horarios_texto = ["--:--"] * 5
     
-    return render_template('index.html', 
+    return render_template('main/index.html', 
                            turmas=turmas, 
                            lembrete_form=lembrete_form,
                            lembretes=lembretes,
@@ -87,7 +86,7 @@ def add_turma():
         flash('Turma criada com sucesso!', 'success')
         return redirect(url_for('core.index'))
     
-    return render_template('add_turma.html', form=form, title="Adicionar Turma")
+    return render_template('add/add_turma.html', form=form, title="Adicionar Turma")
 
 @core_bp.route('/turma/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -106,7 +105,7 @@ def editar_turma(id):
         flash('Turma atualizada!', 'success')
         return redirect(url_for('core.listar_turmas'))
     
-    return render_template('edit_turma.html', form=form, turma=turma)
+    return render_template('edit/edit_turma.html', form=form, turma=turma)
 
 @core_bp.route('/turma/excluir/<int:id>')
 @login_required
@@ -121,11 +120,7 @@ def excluir_turma(id):
     flash('Turma excluída com sucesso.', 'success')
     return redirect(url_for('core.listar_turmas'))
 
-@core_bp.route('/turma/<int:id>')
-@login_required
-def ver_turma(id):
-    # Redireciona para a view de alunos que é a "Home" da turma
-    return redirect(url_for('alunos.turma', id_turma=id))
+# ROTA REMOVIDA: ver_turma (Causava loop de redirecionamento com alunos.turma)
 
 # ------------------- DASHBOARD GLOBAL -------------------
 
@@ -205,7 +200,7 @@ def dashboard():
     top_alunos_data.sort(key=lambda x: x['percentual'], reverse=True)
     top_alunos_data = top_alunos_data[:10]
     
-    return render_template('dashboard_global.html',
+    return render_template('geral/dashboard_global.html',
                            total_turmas=total_turmas,
                            total_alunos=total_alunos,
                            total_atividades=total_atividades,
@@ -230,15 +225,25 @@ def edit_perfil():
         foto_upload = request.files.get('foto_perfil')
         
         if foto_upload and foto_upload.filename != '':
+            # Define a pasta de imagens dentro de static/uploads
+            imgs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'imgs')
+            
+            # Garante que a pasta existe
+            if not os.path.exists(imgs_folder):
+                os.makedirs(imgs_folder)
+
+            # Remove a foto antiga se existir (procurando na pasta correta)
             if current_user.foto_perfil_path:
-                old_path = os.path.join(current_app.config['UPLOAD_FOLDER'], current_user.foto_perfil_path)
+                old_path = os.path.join(imgs_folder, current_user.foto_perfil_path)
                 if os.path.exists(old_path):
                     os.remove(old_path)
                     
             filename_seguro = secure_filename(foto_upload.filename)
             _, ext_seguro = os.path.splitext(filename_seguro)
             filename_final = f"perfil_{current_user.id}_{int(datetime.now().timestamp())}{ext_seguro}"
-            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename_final)
+            
+            # Caminho completo para salvar o arquivo
+            filepath = os.path.join(imgs_folder, filename_final)
             
             foto_upload.save(filepath)
             
@@ -253,7 +258,7 @@ def edit_perfil():
         flash('Perfil e preferências atualizados com sucesso!', 'success')
         return redirect(url_for('core.edit_perfil'))
 
-    return render_template('edit_perfil.html', form=form, title="Editar Perfil")
+    return render_template('edit/edit_perfil.html', form=form, title="Editar Perfil")
 
 # ------------------- LEMBRETES -------------------
 
@@ -290,7 +295,7 @@ def deletar_lembrete(id):
 @login_required
 def listar_turmas():
     turmas = current_user.turmas 
-    return render_template('listar_turmas.html', turmas=turmas)
+    return render_template('list/listar_turmas.html', turmas=turmas)
 
 # 2. LISTAR ATIVIDADES
 @core_bp.route('/atividades/listar')
@@ -302,20 +307,18 @@ def listar_atividades():
     if not turmas_ids:
         atividades = []
     else:
-        # CORREÇÃO CRÍTICA: 'id_turma' (DB) vs 'turma_id' (Objeto)
         # Usamos Atividade.id_turma.in_(...) para filtrar
         atividades = Atividade.query.filter(Atividade.id_turma.in_(turmas_ids)).order_by(Atividade.data.desc()).all()
         
-    return render_template('listar_atividades.html', atividades=atividades)
+    return render_template('list/listar_atividades.html', atividades=atividades)
 
 # 3. LISTAR PROFESSORES
 @core_bp.route('/professores')
 @login_required
 def listar_professores():
     # Lista todos os usuários marcados como professor
-    # (Ou todos se for o caso do sistema atual)
     professores = User.query.filter_by(is_professor=True).all()
-    return render_template('listar_professores.html', professores=professores)
+    return render_template('list/listar_professores.html', professores=professores)
 
 # 4. EXCLUIR ATIVIDADE (Ação)
 @core_bp.route('/atividade/excluir/<int:id>')
@@ -338,7 +341,6 @@ def excluir_atividade(id):
 @login_required
 def excluir_usuario(id):
     # Proteção simples: Apenas Admin pode excluir (se houver essa flag)
-    # ou lógica personalizada
     if not current_user.is_admin:
          flash('Acesso negado. Apenas administradores podem excluir usuários.', 'danger')
          return redirect(url_for('core.index'))
@@ -353,6 +355,27 @@ def excluir_usuario(id):
     flash('Usuário removido com sucesso.', 'success')
     return redirect(request.referrer)
 
-# NOTA: Rotas de 'Escolas' e 'Coordenadores' foram omitidas temporariamente
-# pois o models.py fornecido NÃO contém a classe 'Escola'.
-# Adicione a classe Escola ao models.py para habilitar essas rotas.
+# ------------------- ROTAS PARA ESCOLAS E COORDENADORES (NOVAS) -------------------
+
+@core_bp.route('/escolas/listar')
+@login_required
+def listar_escolas():
+    # Apenas admins podem ver todas as escolas
+    if not current_user.is_admin:
+        flash('Acesso restrito.', 'danger')
+        return redirect(url_for('core.index'))
+        
+    from models import Escola # Import tardio para evitar ciclo se necessário
+    escolas = Escola.query.all()
+    return render_template('list/listar_escola.html', escolas=escolas)
+
+@core_bp.route('/coordenadores/listar')
+@login_required
+def listar_coordenadores():
+    # Apenas admins
+    if not current_user.is_admin:
+        flash('Acesso restrito.', 'danger')
+        return redirect(url_for('core.index'))
+        
+    coordenadores = User.query.filter_by(is_coordenador=True).all()
+    return render_template('list/listar_coordenadores.html', coordenadores=coordenadores)

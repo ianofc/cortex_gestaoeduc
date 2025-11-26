@@ -68,7 +68,8 @@ def calcular_media_desempenho_turma(id_turma):
 @login_required
 def planejamentos():
     turmas = Turma.query.filter_by(autor=current_user).order_by(Turma.nome).all()
-    return render_template('planejamentos.html', turmas=turmas)
+    # CORREÇÃO: Template na pasta 'geral'
+    return render_template('geral/planejamentos.html', turmas=turmas)
 
 
 @planos_bp.route('/turma/<int:id_turma>/planejamento', methods=['GET', 'POST'])
@@ -104,7 +105,8 @@ def planejamento(id_turma):
             
     planos = PlanoDeAula.query.filter_by(id_turma=id_turma).order_by(PlanoDeAula.data_prevista.desc()).all()
     
-    return render_template('planejamento.html', 
+    # CORREÇÃO: Template na pasta 'geral'
+    return render_template('geral/planejamento.html', 
                            turma=turma, 
                            form=form, 
                            planos=planos,
@@ -201,7 +203,8 @@ def gerar_plano_ia(id_turma):
         form = PlanoDeAulaForm() 
 
     material_form = MaterialForm()
-    return render_template('planejamento.html', 
+    # CORREÇÃO: Template na pasta 'geral'
+    return render_template('geral/planejamento.html', 
                            turma=turma, 
                            form=form, 
                            planos=planos,
@@ -282,11 +285,16 @@ def add_material(id_plano):
                 flash('Tipo de ficheiro não suportado!', 'danger')
                 return redirect(url_for('planos.planejamento', id_turma=plano.id_turma))
 
+            # --- CORREÇÃO: Salvar na pasta 'docs' ---
+            docs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
+            if not os.path.exists(docs_folder):
+                os.makedirs(docs_folder)
+
             filename_seguro = secure_filename(arquivo.filename)
             base, ext_seguro = os.path.splitext(filename_seguro)
             filename_final = f"{base}_{int(datetime.now().timestamp())}{ext_seguro}"
             
-            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename_final)
+            filepath = os.path.join(docs_folder, filename_final)
             arquivo.save(filepath)
             
             novo_material = Material(id_plano_aula=id_plano, nome_arquivo=arquivo.filename, path_arquivo=filename_final)
@@ -323,9 +331,17 @@ def deletar_material(id_material):
     
     try:
         if material.path_arquivo:
-            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], material.path_arquivo)
+            # --- CORREÇÃO: Procurar na pasta 'docs' ---
+            docs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
+            filepath = os.path.join(docs_folder, material.path_arquivo)
+            
             if os.path.exists(filepath):
                 os.remove(filepath)
+            else:
+                # Fallback para arquivos antigos na raiz
+                filepath_root = os.path.join(current_app.config['UPLOAD_FOLDER'], material.path_arquivo)
+                if os.path.exists(filepath_root):
+                    os.remove(filepath_root)
         
         db.session.delete(material)
         db.session.commit()
@@ -352,9 +368,15 @@ def delete_atividade(atividade_id):
     try:
         # 1. Apagar ficheiro associado, se houver
         if atividade.path_arquivo_anexo:
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], atividade.path_arquivo_anexo)
-            if os.path.exists(file_path):
-                os.remove(file_path)
+            # --- CORREÇÃO: Procurar na pasta 'docs' ---
+            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs', atividade.path_arquivo_anexo)
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            else:
+                # Fallback
+                filepath_root = os.path.join(current_app.config['UPLOAD_FOLDER'], atividade.path_arquivo_anexo)
+                if os.path.exists(filepath_root):
+                    os.remove(filepath_root)
                 
         # 2. Deletar a Atividade (e suas Presenças via cascade)
         db.session.delete(atividade)
@@ -397,11 +419,16 @@ def diario_bordo():
         
         arquivo = request.files.get('arquivo_anexo')
         if arquivo and arquivo.filename != '':
+            # --- CORREÇÃO: Salvar na pasta 'docs' ---
+            docs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
+            if not os.path.exists(docs_folder):
+                os.makedirs(docs_folder)
+
             filename_seguro = secure_filename(arquivo.filename)
             base, ext_seguro = os.path.splitext(filename_seguro)
             filename_final = f"diario_{current_user.id}_{int(datetime.now().timestamp())}{ext_seguro}"
             
-            filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename_final)
+            filepath = os.path.join(docs_folder, filename_final)
             arquivo.save(filepath)
             
             nova_entrada.nome_arquivo_anexo = arquivo.filename
@@ -417,7 +444,8 @@ def diario_bordo():
     
     entradas = query.all()
     
-    return render_template('diario_bordo.html', 
+    # CORREÇÃO: Template na pasta 'geral'
+    return render_template('geral/diario_bordo.html', 
                            form=form, 
                            turmas_user=turmas_user,
                            entradas=entradas,
@@ -431,9 +459,13 @@ def download_diario_anexo(filename):
     if entrada.autor_diario != current_user:
         flash('Não autorizado.', 'danger')
         return redirect(url_for('planos.diario_bordo'))
-        
+    
+    # --- CORREÇÃO: Servir da pasta 'docs' (ou raiz como fallback) ---
+    docs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
+    directory = docs_folder if os.path.exists(os.path.join(docs_folder, filename)) else current_app.config['UPLOAD_FOLDER']
+
     return send_from_directory(
-        current_app.config['UPLOAD_FOLDER'], 
+        directory, 
         entrada.path_arquivo_anexo, 
         as_attachment=True,
         download_name=entrada.nome_arquivo_anexo
@@ -472,7 +504,8 @@ def gerenciar_horario():
 
     dias_semana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
     
-    return render_template('gerenciar_horario.html', 
+    # CORREÇÃO: Template na pasta 'geral'
+    return render_template('geral/gerenciar_horario.html', 
                            horario=horario,
                            blocos_map=blocos_map,
                            turmas_user=turmas_user,
@@ -560,7 +593,8 @@ def analisar_acessibilidade_ia(id_plano):
 @login_required
 def gerar_prova():
     turmas = Turma.query.filter_by(autor=current_user).order_by(Turma.nome).all()
-    return render_template('gerar_prova.html', turmas=turmas)
+    # CORREÇÃO: Template na pasta 'geral'
+    return render_template('geral/gerar_prova.html', turmas=turmas)
 
 @planos_bp.route('/api/fontes_turma/<int:id_turma>')
 @login_required
@@ -627,7 +661,14 @@ def gerar_prova_docx():
                 texto_fonte = f"Atividade: {atividade.titulo}\nDescrição: {atividade.descricao or 'N/A'}"
                 
                 if atividade.path_arquivo_anexo:
-                    filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], atividade.path_arquivo_anexo)
+                    # --- CORREÇÃO: Caminho correto para docs ---
+                    # Tenta primeiro em docs, depois na raiz
+                    docs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
+                    filepath = os.path.join(docs_folder, atividade.path_arquivo_anexo)
+                    
+                    if not os.path.exists(filepath):
+                        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], atividade.path_arquivo_anexo)
+
                     if os.path.exists(filepath):
                         texto_extraido = extrair_texto_de_ficheiro(filepath, atividade.nome_arquivo_anexo)
                         texto_fonte += f"\nConteúdo do Anexo (Questões): {texto_extraido[:2000]}..."
@@ -968,4 +1009,5 @@ def listar_planos():
         # CORREÇÃO: Usar 'id_turma' (DB) e 'data_prevista'
         planos = PlanoDeAula.query.filter(PlanoDeAula.id_turma.in_(turmas_ids)).order_by(PlanoDeAula.data_prevista.desc()).all()
         
-    return render_template('listar_planos.html', planos=planos)
+    # CORREÇÃO: Template na pasta 'list'
+    return render_template('list/listar_planos.html', planos=planos)

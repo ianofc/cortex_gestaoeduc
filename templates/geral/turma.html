@@ -1,148 +1,202 @@
-{% extends "base.html" %}
+{% extends "main/base.html" %}
+
+{% block title %}Turma {{ turma.nome }} - Cortex{% endblock %}
+
 {% block content %}
-<h2 class="text-3xl font-bold mb-6 text-blue-700">Turma: {{ turma.nome }}</h2>
+<div class="space-y-8">
 
-<div class="flex flex-wrap gap-4 mb-8"> 
-    <a href="{{ url_for('alunos.add_aluno', id_turma=turma.id) }}" class="bg-green-600 text-white p-2 rounded shadow hover:bg-green-700 flex items-center">
-        <i class="fas fa-plus mr-2"></i> Adicionar Aluno
-    </a>
-    <a href="{{ url_for('alunos.add_atividade', id_turma=turma.id) }}" class="bg-yellow-600 text-white p-2 rounded shadow hover:bg-yellow-700 flex items-center">
-        <i class="fas fa-clipboard-list mr-2"></i> Adicionar Atividade
-    </a>
-    
-    <a href="{{ url_for('planos.planejamento', id_turma=turma.id) }}" class="bg-indigo-600 text-white p-2 rounded shadow hover:bg-indigo-700 flex items-center">
-        <i class="fas fa-calendar-alt mr-2"></i> Planejamento de Aulas
-    </a>
-    
-    <!-- Botão Diário de Bordo Restaurado -->
-    <a href="{{ url_for('planos.diario_bordo', id_turma=turma.id) }}" class="bg-teal-600 text-white p-2 rounded shadow hover:bg-teal-700 flex items-center">
-        <i class="fas fa-book mr-2"></i> Diário de Bordo
-    </a>
-    
-    <a href="{{ url_for('alunos.gradebook', id_turma=turma.id) }}" class="bg-purple-600 text-white p-2 rounded shadow hover:bg-purple-700 flex items-center">
-        <i class="fas fa-th mr-2"></i> Lançamento Rápido
-    </a>
-    <a href="{{ url_for('alunos.exportar_relatorio', id_turma=turma.id) }}" class="bg-gray-700 text-white p-2 rounded shadow hover:bg-gray-800 flex items-center">
-        <i class="fas fa-file-excel mr-2"></i> Exportar Relatório (XLSX)
-    </a>
-    <a href="{{ url_for('alunos.dashboard', id_turma=turma.id) }}" class="bg-red-600 text-white p-2 rounded shadow hover:bg-red-700 flex items-center">
-        <i class="fas fa-chart-pie mr-2"></i> Dashboard
-    </a>
-</div>
-
-<div class="flex space-x-4 mb-8 p-4 bg-gray-50 rounded-lg border">
-    <a href="{{ url_for('alunos.editar_turma', id_turma=turma.id) }}" 
-       class="bg-yellow-500 text-white p-2 rounded shadow hover:bg-yellow-600 transition duration-150 flex items-center">
-        <i class="fas fa-edit mr-2"></i> Editar Turma
-    </a>
-    
-    <form id="delete-turma-form" action="{{ url_for('alunos.deletar_turma', id_turma=turma.id) }}" method="POST" style="display:inline;">
-        <button type="submit" 
-                onclick="return confirm('ATENÇÃO: Deseja DELETAR a turma \'{{ turma.nome }}\'? Todas as atividades serão removidas e os alunos ficarão sem turma.')" 
-                class="bg-red-600 text-white p-2 rounded shadow hover:bg-red-700 transition duration-150 flex items-center">
-            <i class="fas fa-trash-alt mr-2"></i> Deletar Turma
-        </button>
-    </form>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-    
-    <div class="bg-white p-6 rounded-lg shadow-lg">
-        <h3 class="text-2xl font-semibold mb-4 border-b pb-2 flex justify-between items-center">
-            <span><i class="fas fa-user-graduate text-blue-600 mr-2"></i> Alunos ({{ alunos_com_media | length }})</span>
-        </h3>
-        
-        <form method="GET" action="{{ url_for('alunos.turma', id_turma=turma.id) }}" class="mb-4">
-            <div class="flex">
-                <input type="text" name="q" placeholder="Buscar aluno..." 
-                       class="border p-2 rounded-l w-full focus:ring-blue-500 focus:border-blue-500" 
-                       value="{{ q | default('', true) }}">
-                <button type="submit" class="bg-blue-600 text-white p-2 rounded-r hover:bg-blue-700">
-                    <i class="fas fa-search"></i>
-                </button>
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('core.listar_turmas') }}" class="hover:text-indigo-600 transition-colors">Minhas Turmas</a>
+                <i class="fas fa-chevron-right text-xs"></i>
+                <span>Gerenciar</span>
             </div>
-        </form>
-        <ul class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl shadow-lg">
+                    {{ turma.nome[:1].upper() }}
+                </div>
+                {{ turma.nome }}
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-1 ml-16">{{ turma.turno or 'Turno não definido' }} • {{ alunos_com_media|length }} Alunos Matriculados</p>
+        </div>
+
+        <div class="flex gap-3">
+            <a href="{{ url_for('alunos.editar_turma', id_turma=turma.id) }}" class="p-2.5 text-gray-500 hover:text-indigo-600 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-all" title="Editar Configurações">
+                <i class="fas fa-cog text-lg"></i>
+            </a>
+            <form action="{{ url_for('alunos.deletar_turma', id_turma=turma.id) }}" method="POST" onsubmit="return confirm('ATENÇÃO: Deseja DELETAR a turma \'{{ turma.nome }}\'? Isso apagará todos os vínculos.');">
+                <button type="submit" class="p-2.5 text-gray-500 hover:text-red-600 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-all" title="Excluir Turma">
+                    <i class="fas fa-trash-alt text-lg"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         
-        {% for item in alunos_com_media %}
-            <li class="p-3 bg-gray-50 rounded flex justify-between items-center hover:bg-blue-50 transition duration-150 border border-transparent hover:border-blue-200">
-                
-                <div class="flex-grow">
-                    <a href="{{ url_for('alunos.aluno', id_aluno=item.aluno.id) }}" class="text-lg font-medium text-gray-800 hover:text-blue-700 block">
-                        {{ item.aluno.nome }}
+        <a href="{{ url_for('alunos.add_aluno', id_turma=turma.id) }}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-green-200 dark:hover:border-green-900 group transition-all">
+            <div class="w-10 h-10 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <i class="fas fa-user-plus"></i>
+            </div>
+            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center">Novo Aluno</span>
+        </a>
+
+        <a href="{{ url_for('alunos.add_atividade', id_turma=turma.id) }}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-purple-200 dark:hover:border-purple-900 group transition-all">
+            <div class="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <i class="fas fa-plus-circle"></i>
+            </div>
+            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center">Nova Atividade</span>
+        </a>
+
+        <a href="{{ url_for('planos.planejamento', id_turma=turma.id) }}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-900 group transition-all">
+            <div class="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <i class="fas fa-book-open"></i>
+            </div>
+            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center">Planejamento</span>
+        </a>
+
+        <a href="{{ url_for('alunos.gradebook', id_turma=turma.id) }}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-900 group transition-all">
+            <div class="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <i class="fas fa-table"></i>
+            </div>
+            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center">Notas (Matriz)</span>
+        </a>
+
+        <a href="{{ url_for('alunos.dashboard', id_turma=turma.id) }}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-red-200 dark:hover:border-red-900 group transition-all">
+            <div class="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <i class="fas fa-chart-pie"></i>
+            </div>
+            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center">Gráficos</span>
+        </a>
+
+        <a href="{{ url_for('alunos.exportar_relatorio', id_turma=turma.id) }}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 group transition-all">
+            <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                <i class="fas fa-file-export"></i>
+            </div>
+            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center">Excel</span>
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 flex flex-col h-[600px]">
+            
+            <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/30 rounded-t-2xl">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                    <i class="fas fa-user-graduate text-indigo-500"></i> Alunos
+                    <span class="text-xs font-normal bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 px-2 py-0.5 rounded-full">{{ alunos_com_media|length }}</span>
+                </h3>
+            </div>
+
+            <div class="p-4 border-b border-gray-100 dark:border-gray-700">
+                <form method="GET" action="{{ url_for('alunos.turma', id_turma=turma.id) }}" class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" name="q" placeholder="Buscar aluno por nome..." 
+                           class="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-indigo-500 focus:border-indigo-500"
+                           value="{{ q | default('', true) }}">
+                </form>
+            </div>
+            
+            <div class="flex-grow overflow-y-auto custom-scrollbar p-2 space-y-2">
+                {% for item in alunos_com_media %}
+                <div class="group flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border border-transparent hover:border-gray-100 dark:hover:border-gray-600">
+                    <a href="{{ url_for('alunos.aluno', id_aluno=item.aluno.id) }}" class="flex items-center gap-3 flex-grow min-w-0">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-100 to-blue-100 dark:from-indigo-900 dark:to-blue-900 text-indigo-600 dark:text-indigo-300 flex items-center justify-center text-xs font-bold shadow-sm flex-shrink-0">
+                            {{ item.aluno.nome[:2].upper() }}
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                            <span class="font-semibold text-gray-800 dark:text-gray-200 truncate text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{{ item.aluno.nome }}</span>
+                            <span class="text-[10px] text-gray-400">Mat: {{ item.aluno.matricula or 'N/A' }}</span>
+                        </div>
                     </a>
                     
-                    <div class="flex items-center mt-1">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500 mr-2">Média:</span>
-                        <span class="text-base font-bold 
-                                    {% if item.media >= 6.0 %}text-blue-600
-                                    {% elif item.media >= 4.0 %}text-yellow-600
-                                    {% else %}text-red-600{% endif %}">
+                    <div class="flex flex-col items-end flex-shrink-0 ml-2">
+                        <span class="text-[10px] uppercase text-gray-400 font-bold tracking-wider mb-0.5">Média</span>
+                        <span class="text-sm font-bold px-2 py-0.5 rounded-md border 
+                            {% if item.media >= 6.0 %}bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800
+                            {% elif item.media >= 4.0 %}bg-yellow-50 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800
+                            {% else %}bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800{% endif %}">
                             {{ "%.1f"|format(item.media) }}
                         </span>
                     </div>
                 </div>
-                
-                <span class="text-xs text-gray-400 flex-shrink-0 bg-white px-2 py-1 rounded border">
-                    Mat: {{ item.aluno.matricula | default("N/A", true) }}
-                </span>
-            </li>
-        {% else %}
-             <div class="text-center py-8">
-                 <i class="fas fa-user-slash text-gray-300 text-4xl mb-3"></i>
-                 <p class="text-gray-500">Nenhum aluno encontrado.</p>
-             </div>
-        {% endfor %}
-        </ul>
-    </div>
-
-    <div class="bg-white p-6 rounded-lg shadow-lg">
-        <h3 class="text-2xl font-semibold mb-4 border-b pb-2 flex justify-between items-center">
-            <span><i class="fas fa-tasks text-yellow-600 mr-2"></i> Atividades ({{ atividades | length }})</span>
-        </h3>
-        
-        <ul class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-        {% for atividade in atividades %}
-            <li class="p-4 bg-gray-50 rounded-lg border-l-4 border-yellow-500 hover:shadow-md transition duration-150" id="atividade-{{ atividade.id }}">
-                
-                <div class="flex justify-between items-start mb-2">
-                    <div>
-                        <p class="text-lg font-bold text-gray-800">{{ atividade.titulo }}</p>
-                        <span class="text-xs font-semibold px-2 py-0.5 rounded bg-yellow-100 text-yellow-800">
-                            {{ atividade.tipo }}
-                        </span>
-                    </div>
-                    <a href="{{ url_for('alunos.edit_atividade', id_atividade=atividade.id) }}" 
-                       class="text-gray-400 hover:text-yellow-600 transition-colors p-1" title="Editar Atividade">
-                        <i class="fas fa-pencil-alt"></i> Editar
-                    </a>
+                {% else %}
+                <div class="flex flex-col items-center justify-center h-full text-gray-400">
+                    <i class="fas fa-user-slash text-3xl mb-2 opacity-50"></i>
+                    <p class="text-sm">Nenhum aluno encontrado.</p>
                 </div>
-                
-                <div class="flex justify-between text-sm text-gray-600 mb-3">
-                    <span><i class="far fa-calendar-alt mr-1"></i> {{ atividade.data.strftime('%d/%m/%Y') if atividade.data else 'N/A' }}</span>
-                    <span class="font-semibold text-gray-700">Peso: {{ atividade.peso }}</span>
-                </div>
-                
-                <div class="mt-2 pt-2 border-t border-gray-200">
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Lançar Notas para:</p>
-                    <div class="flex flex-wrap gap-2">
-                    
-                    {% for item in alunos_com_media %}
-                        <a href="{{ url_for('alunos.registrar_presenca', id_aluno=item.aluno.id, id_atividade=atividade.id) }}" 
-                           class="bg-white border border-blue-200 text-blue-700 text-xs font-medium px-2 py-1 rounded hover:bg-blue-600 hover:text-white transition-colors duration-150 flex items-center">
-                            {{ item.aluno.nome.split(' ')[0] }}
-                        </a>
-                    {% endfor %}
-                    </div>
-                </div>
-            </li>
-        {% else %}
-            <div class="text-center py-8">
-                <i class="fas fa-clipboard text-gray-300 text-4xl mb-3"></i>
-                <p class="text-gray-500">Nenhuma atividade cadastrada.</p>
+                {% endfor %}
             </div>
-        {% endfor %}
-        </ul>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 flex flex-col h-[600px]">
+            
+            <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900/30 rounded-t-2xl">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                    <i class="fas fa-tasks text-purple-500"></i> Atividades
+                    <span class="text-xs font-normal bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 px-2 py-0.5 rounded-full">{{ atividades|length }}</span>
+                </h3>
+            </div>
+
+            <div class="flex-grow overflow-y-auto custom-scrollbar p-4 space-y-4">
+                {% for atividade in atividades %}
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm hover:shadow-md transition-all group relative overflow-hidden">
+                    
+                    <div class="absolute left-0 top-0 bottom-0 w-1 
+                        {% if atividade.tipo == 'Prova' %}bg-red-500
+                        {% elif atividade.tipo == 'Trabalho' %}bg-blue-500
+                        {% else %}bg-purple-500{% endif %}">
+                    </div>
+
+                    <div class="pl-3">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ atividade.tipo }}</span>
+                                    <span class="text-xs text-gray-400 flex items-center gap-1">
+                                        <i class="far fa-calendar-alt"></i> {{ atividade.data.strftime('%d/%m') if atividade.data else '--/--' }}
+                                    </span>
+                                </div>
+                                <h4 class="font-bold text-gray-800 dark:text-white text-base leading-tight">{{ atividade.titulo }}</h4>
+                            </div>
+                            <a href="{{ url_for('alunos.edit_atividade', id_atividade=atividade.id) }}" class="text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
+                                <i class="fas fa-pen text-sm"></i>
+                            </a>
+                        </div>
+
+                        <div class="flex justify-between items-center text-xs text-gray-500 dark:text-gray-400 mt-3 pt-3 border-t border-gray-50 dark:border-gray-700">
+                            <span class="font-medium">Peso Máximo: <span class="text-gray-900 dark:text-white font-bold">{{ atividade.peso }}</span></span>
+                            
+                            <div class="flex items-center gap-1">
+                                <span class="mr-1">Lançar:</span>
+                                <div class="flex -space-x-2 overflow-hidden hover:space-x-1 transition-all duration-300">
+                                    {% for item in alunos_com_media[:5] %}
+                                    <a href="{{ url_for('alunos.registrar_presenca', id_aluno=item.aluno.id, id_atividade=atividade.id) }}" 
+                                       class="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 border border-white dark:border-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-600 dark:text-gray-300 hover:bg-purple-600 hover:text-white hover:border-purple-600 hover:z-10 transition-colors"
+                                       title="{{ item.aluno.nome }}">
+                                        {{ item.aluno.nome[:1] }}
+                                    </a>
+                                    {% endfor %}
+                                    {% if alunos_com_media|length > 5 %}
+                                    <a href="{{ url_for('alunos.gradebook', id_turma=turma.id) }}" class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-600 border border-white dark:border-gray-800 flex items-center justify-center text-[9px] font-bold text-gray-600 dark:text-gray-200 hover:z-10">
+                                        +{{ alunos_com_media|length - 5 }}
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="flex flex-col items-center justify-center h-full text-gray-400">
+                    <i class="fas fa-clipboard-list text-3xl mb-2 opacity-50"></i>
+                    <p class="text-sm">Nenhuma atividade agendada.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}

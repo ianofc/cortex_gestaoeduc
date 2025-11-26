@@ -40,11 +40,12 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False) 
     
-    # Controle de Acesso
-    is_professor = db.Column(db.Boolean, default=True) # Se False, é aluno ou admin
-    is_admin = db.Column(db.Boolean, default=False)    # Se True, vê dados de todos
+    # Controle de Acesso (Roles)
+    is_professor = db.Column(db.Boolean, default=True)   # Professor (Padrão)
+    is_coordenador = db.Column(db.Boolean, default=False) # NOVO: Coordenador de Escola
+    is_admin = db.Column(db.Boolean, default=False)      # Admin Geral do Sistema
     
-    # Relacionamento com Escola (Novo para SaaS/Multi-Escola)
+    # Relacionamento com Escola (SaaS/Multi-Escola)
     escola_id = db.Column(db.Integer, db.ForeignKey('escolas.id'), nullable=True)
     
     # CAMPOS DE PERFIL
@@ -52,7 +53,7 @@ class User(db.Model, UserMixin):
     telefone = db.Column(db.String(20), nullable=True)
     foto_perfil_path = db.Column(db.String(255), nullable=True) 
     
-    # NOVO: Gênero para personalização de tema (Masculino/Feminino)
+    # Gênero para personalização de tema (Masculino/Feminino)
     genero = db.Column(db.String(20), default='Masculino') 
     
     # Relacionamentos

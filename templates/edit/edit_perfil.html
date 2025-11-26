@@ -1,11 +1,11 @@
-{% extends "base.html" %}
+{% extends "main/base.html" %}
 {% block content %}
 
-<h1 class="text-3xl font-bold mb-6 text-blue-700">
+<h1 class="text-3xl font-bold mb-6 text-blue-700 dark:text-blue-400">
     <i class="fas fa-user-circle"></i> Editar Perfil
 </h1>
 
-<div class="max-w-xl mx-auto bg-white p-8 rounded-lg shadow-xl border border-gray-100">
+<div class="max-w-xl mx-auto bg-white p-8 rounded-lg shadow-xl border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
     
     <form method="POST" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
@@ -14,57 +14,64 @@
             
             <div class="text-center mb-6">
                 
+                {# Lógica de Caminho da Imagem Corrigida #}
                 {% set default_avatar_path = url_for('static', filename='images/default-avatar.png') %}
                 {% set photo_url = default_avatar_path %}
                 
                 {% if current_user.foto_perfil_path %}
-                    {% set photo_url = url_for('alunos.download_material', filename=current_user.foto_perfil_path) %}
+                    {# Aponta para a subpasta 'imgs' criada no backend #}
+                    {% set photo_url = url_for('static', filename='uploads/imgs/' + current_user.foto_perfil_path) %}
                 {% endif %}
                 
-                <img src="{{ photo_url }}" alt="Foto de Perfil" class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-blue-500 shadow-md">
+                <img src="{{ photo_url }}" 
+                     alt="Foto de Perfil" 
+                     class="w-24 h-24 rounded-full mx-auto object-cover border-4 border-blue-500 shadow-md"
+                     onerror="this.onerror=null;this.src='{{ default_avatar_path }}';">
                 
-                <p class="text-sm text-gray-500 mt-2">Foto atual. Escolha um novo arquivo para alterar.</p>
+                <p class="text-sm text-gray-500 mt-2 dark:text-gray-400">Foto atual. Escolha um novo arquivo para alterar.</p>
                 
-                <label for="{{ form.foto_perfil.id }}" class="block text-sm font-semibold text-gray-700 mt-4 cursor-pointer">
+                <label for="{{ form.foto_perfil.id }}" class="block text-sm font-semibold text-gray-700 mt-4 cursor-pointer dark:text-gray-300 hover:text-blue-600 transition-colors">
                     <i class="fas fa-camera mr-1"></i> {{ form.foto_perfil.label.text }}
                 </label>
-                {{ form.foto_perfil(class="mt-1 block mx-auto") }}
+                
+                {# Estilização do input de arquivo para ficar mais bonito #}
+                {{ form.foto_perfil(class="mt-1 block mx-auto text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-700 dark:file:text-gray-300") }}
                 
                 {% for error in form.foto_perfil.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
             </div>
 
             <div>
-                <label for="{{ form.username.id }}" class="block text-sm font-semibold text-gray-700">Nome de Usuário <span class="text-red-500">*</span></label>
-                {{ form.username(class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500") }}
+                <label for="{{ form.username.id }}" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Nome de Usuário <span class="text-red-500">*</span></label>
+                {{ form.username(class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white") }}
                 {% for error in form.username.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
             </div>
 
             <div>
-                <label for="{{ form.email_contato.id }}" class="block text-sm font-semibold text-gray-700">Email de Contato</label>
-                {{ form.email_contato(class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500", type="email") }}
+                <label for="{{ form.email_contato.id }}" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Email de Contato</label>
+                {{ form.email_contato(class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white", type="email") }}
                 {% for error in form.email_contato.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
             </div>
 
             <div>
-                <label for="{{ form.telefone.id }}" class="block text-sm font-semibold text-gray-700">Telefone/WhatsApp</label>
-                {{ form.telefone(class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500", placeholder="Ex: (XX) XXXX-XXXX") }}
+                <label for="{{ form.telefone.id }}" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Telefone/WhatsApp</label>
+                {{ form.telefone(class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white", placeholder="Ex: (XX) XXXX-XXXX") }}
                 {% for error in form.telefone.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
             </div>
 
             <div>
-                <label for="{{ form.genero.id }}" class="block text-sm font-semibold text-gray-700">Tema do Sistema (Gênero)</label>
-                <p class="text-xs text-gray-500 mb-1">Isso muda as cores principais da aplicação (Azul/Roxo ou Rosa/Vermelho).</p>
-                {{ form.genero(class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500") }}
+                <label for="{{ form.genero.id }}" class="block text-sm font-semibold text-gray-700 dark:text-gray-300">Tema do Sistema (Gênero)</label>
+                <p class="text-xs text-gray-500 mb-1 dark:text-gray-400">Isso muda as cores principais da aplicação.</p>
+                {{ form.genero(class="border p-2 rounded w-full mt-1 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white") }}
                 {% for error in form.genero.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
             </div>
 
-            <button type="submit" name="submit" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 w-full font-semibold mt-6">
-                <i class="fas fa-save"></i> {{ form.submit.label.text }}
+            <button type="submit" name="submit" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 w-full font-semibold mt-6 shadow-md transition-transform hover:scale-[1.02]">
+                <i class="fas fa-save mr-2"></i> {{ form.submit.label.text }}
             </button>
         </div>
     </form>
     
-    <a href="{{ url_for('core.index') }}" class="block text-center mt-4 text-sm text-gray-600 hover:text-gray-800">
+    <a href="{{ url_for('core.index') }}" class="block text-center mt-4 text-sm text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
         Voltar para Home
     </a>
 </div>

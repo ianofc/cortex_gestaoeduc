@@ -1,33 +1,58 @@
-{% extends "base.html" %}
+{% extends "main/base.html" %}
+
+{% block title %}Selecionar Turma - Cortex{% endblock %}
+
 {% block content %}
-
-<h1 class="font-semibold text-3xl text-gray-900 mb-6">
-    <i class="fas fa-calendar-alt text-indigo-600"></i> Visão Geral de Planejamentos
-</h1>
-
-<div class="bg-white rounded-lg shadow p-6">
-    <h2 class="text-xl font-semibold text-gray-900 mb-4">
-        Selecione uma turma para ver ou editar o planejamento:
-    </h2>
+<div class="space-y-8">
     
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="text-center max-w-2xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Onde vamos planejar hoje?
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400">
+            Selecione uma turma para acessar o caderno de planejamento, criar aulas com IA e gerenciar conteúdos.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {% for turma in turmas %}
             <a href="{{ url_for('planos.planejamento', id_turma=turma.id) }}" 
-               class="block bg-gray-50 p-4 rounded-lg shadow-sm hover:shadow-lg transition duration-150 ease-in-out border border-gray-200 hover:border-indigo-600 transform hover:-translate-y-1">
+               class="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:border-emerald-200 dark:hover:border-emerald-900/50 overflow-hidden">
                 
-                <h3 class="text-lg font-bold text-indigo-800 truncate">{{ turma.nome }}</h3>
-                <p class="text-gray-600 text-sm h-10">{{ turma.descricao | default("Sem descrição", true) }}</p>
+                <div class="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent dark:from-emerald-900/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 
-                <div class="mt-2 text-right">
-                    <span class="text-indigo-600 font-semibold text-sm">
-                        Ir para o Planejamento <i class="fas fa-arrow-right"></i>
-                    </span>
+                <div class="relative z-10">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white text-2xl shadow-md mb-4 group-hover:scale-110 transition-transform duration-300">
+                        <span class="font-bold">{{ turma.nome[:1].upper() }}</span>
+                    </div>
+
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                        {{ turma.nome }}
+                    </h3>
+                    
+                    <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 h-10 mb-4">
+                        {{ turma.descricao | default("Sem descrição definida.", true) }}
+                    </p>
+
+                    <div class="flex items-center justify-between pt-4 border-t border-gray-50 dark:border-gray-700">
+                        <span class="text-xs font-medium text-gray-400 dark:text-gray-500">
+                            {{ turma.turno or 'Turno N/A' }}
+                        </span>
+                        <span class="text-sm font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1 group-hover:gap-2 transition-all">
+                            Acessar <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </div>
                 </div>
             </a>
         {% else %}
-            <p class="text-gray-500 col-span-3">Nenhuma turma encontrada. Crie uma turma na página inicial primeiro.</p>
+            <div class="col-span-full py-16 text-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
+                <i class="fas fa-chalkboard text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+                <p class="text-gray-500 dark:text-gray-400 mb-4">Você ainda não possui turmas cadastradas.</p>
+                <a href="{{ url_for('core.add_turma') }}" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-medium">
+                    Criar Turma Agora
+                </a>
+            </div>
         {% endfor %}
     </div>
 </div>
-
 {% endblock %}
