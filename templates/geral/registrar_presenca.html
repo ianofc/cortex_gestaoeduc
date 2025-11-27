@@ -2,7 +2,6 @@
 {% block content %}
 
 {% set total_questoes_list = [] %}
-{% set is_prova = (atividade.tipo == 'Prova') %}
 {% if atividade.descricao %}
     {% set lines = atividade.descricao.split('\n') %}
     {% for line in lines %}
@@ -11,141 +10,165 @@
         {% endif %}
     {% endfor %}
 {% endif %}
-{% set total_questoes_str = total_questoes_list[0] if total_questoes_list else 'N/A' %}
+{% set total_questoes_db = total_questoes_list[0] if total_questoes_list else '' %}
 
-<h2 class="text-3xl font-bold mb-4 text-blue-700">
-    Registro de Presença e Nota
-</h2>
+<div class="max-w-4xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            <i class="fas fa-edit text-indigo-600"></i> Lançamento Individual
+        </h2>
+        <a href="{{ url_for('alunos.turma', id_turma=aluno.turma.id) }}" class="text-sm text-gray-500 hover:text-indigo-600 transition-colors">
+            <i class="fas fa-arrow-left"></i> Voltar para Turma
+        </a>
+    </div>
 
-<div class="mb-6 p-4 bg-gray-100 rounded-lg border border-gray-300">
-    <p class="text-xl font-semibold">Aluno: {{ aluno.nome }}</p>
-    <p class="text-lg">Turma: {{ aluno.turma.nome }}</p>
-    <p class="text-lg font-semibold mt-2 text-indigo-700">Atividade: {{ atividade.titulo }}</p>
-    <p class="text-md text-gray-700">Tipo: {{ atividade.tipo }} | Valor Máximo: <span class="font-bold text-green-700">{{ "{:.1f}".format(atividade.peso) }} pontos</span></p>
-    
-    {% if total_questoes_str != 'N/A' %}
-        <p class="text-md text-gray-700 font-semibold">Total de Questões na Prova: <span class="font-bold {% if is_prova %}text-red-600{% else %}text-gray-500{% endif %}">{{ total_questoes_str }}</span></p>
-    {% endif %}
-</div>
-
-<form method="POST" class="bg-white p-6 rounded-lg shadow-xl border border-gray-100">
-    {{ form.hidden_tag() }}
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div>
-            <label class="block mb-2 font-bold text-gray-700">{{ form.status.label }}:</label>
-            {{ form.status(class="border p-2 rounded w-full") }}
-            {% for error in form.status.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
-        </div>
-        <div>
-            <label class="block mb-2 font-bold text-gray-700">{{ form.participacao.label }}:</label>
-            {{ form.participacao(class="border p-2 rounded w-full") }}
-            {% for error in form.participacao.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 mb-8 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-indigo-500 to-purple-600"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Aluno</p>
+                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ aluno.nome }}</p>
+                <p class="text-xs text-gray-400">Matrícula: {{ aluno.matricula or 'N/A' }}</p>
+            </div>
+            <div class="md:text-right">
+                <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Atividade</p>
+                <p class="text-lg font-semibold text-indigo-600 dark:text-indigo-400">{{ atividade.titulo }}</p>
+                <div class="flex items-center justify-end gap-2 mt-1">
+                    <span class="px-2 py-0.5 rounded text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                        {{ atividade.tipo }}
+                    </span>
+                    <span class="px-2 py-0.5 rounded text-xs font-bold bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
+                        Valor: {{ "{:.1f}".format(atividade.peso) }} pts
+                    </span>
+                </div>
+            </div>
         </div>
     </div>
-    
-    <h3 class="text-xl font-semibold mb-4 border-b pb-2">Pontuação e Desempenho</h3>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <form method="POST" class="space-y-6">
+        {{ form.hidden_tag() }}
         
-        <div class="p-4 bg-green-50 rounded-lg border border-green-300" id="acertos_container">
-            <h4 class="font-bold text-green-700 mb-2">Cálculo Automático (Provas)</h4>
-            
-            <label class="block mb-2 font-bold text-green-700">{{ form.acertos.label }}:</label>
-            <p class="text-xs text-gray-600 mb-2">Se preenchido, a Nota Manual será ignorada.</p>
-            {{ form.acertos(class="border p-2 rounded w-full", id="id_acertos", type="number", min="0") }}
-            {% for error in form.acertos.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
+                <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-2">
+                    <i class="far fa-check-circle text-gray-400 mr-2"></i>Status
+                </h3>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{{ form.status.label }}</label>
+                        {{ form.status(class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{{ form.participacao.label }}</label>
+                        {{ form.participacao(class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500") }}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{{ form.situacao.label }}</label>
+                        {{ form.situacao(class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500") }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                
+                <div class="bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-xl border border-indigo-100 dark:border-indigo-800 relative transition-all duration-300" id="box-calculo">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-bold text-indigo-800 dark:text-indigo-300 flex items-center gap-2">
+                            <i class="fas fa-calculator"></i> Calcular Nota
+                        </h4>
+                        <span class="text-[10px] bg-white dark:bg-gray-800 px-2 py-1 rounded-full text-indigo-600 font-mono shadow-sm border border-indigo-100">Automático</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-indigo-700 dark:text-indigo-400 mb-1">Total Questões</label>
+                            <input type="number" name="total_questoes_manual" id="total_questoes_manual" 
+                                   value="{{ total_questoes_db }}" 
+                                   class="w-full rounded-lg border-indigo-200 dark:border-indigo-700 bg-white dark:bg-gray-800 text-center font-bold text-gray-700 dark:text-white focus:ring-indigo-500"
+                                   placeholder="Definir...">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-indigo-700 dark:text-indigo-400 mb-1">{{ form.acertos.label }}</label>
+                            {{ form.acertos(class="w-full rounded-lg border-indigo-200 dark:border-indigo-700 bg-white dark:bg-gray-800 text-center font-bold text-indigo-700 dark:text-indigo-300 focus:ring-indigo-500", placeholder="0") }}
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-indigo-600/70 dark:text-indigo-400/70 mt-2 text-center">
+                        Preencha "Total" e "Acertos" para gerar a nota.
+                    </p>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
+                    <div class="flex justify-between items-end mb-2">
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300">Nota Final (0 a {{ atividade.peso }})</label>
+                        <i class="fas fa-lock text-gray-300" id="lock-icon" style="display: none;"></i>
+                    </div>
+                    
+                    {{ form.nota(class="w-full text-2xl font-bold text-center rounded-xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white focus:ring-green-500 focus:border-green-500 p-3", step="0.1") }}
+                    
+                    <div class="mt-4">
+                        <label class="block text-xs font-bold text-gray-500 mb-1">{{ form.desempenho.label }}</label>
+                        <div class="flex items-center gap-2">
+                            {{ form.desempenho(class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm") }}
+                            <span class="text-sm font-bold text-gray-500">%</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
 
-        <div class="p-4 bg-yellow-50 rounded-lg border border-yellow-300">
-            <h4 class="font-bold text-yellow-700 mb-2">Nota Manual (Outras Atividades)</h4>
-            
-            <label class="block mb-2 font-bold text-gray-700">{{ form.nota.label }}:</label>
-            <p class="text-xs text-gray-600 mb-2">Será usado se o campo Acertos estiver vazio.</p>
-            {{ form.nota(class="border p-2 rounded w-full", id="id_nota", type="number", step="0.01", min="0") }}
-            {% for error in form.nota.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
+            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{{ form.observacoes.label }}</label>
+            {{ form.observacoes(class="w-full rounded-xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 p-3 h-24 resize-none", placeholder="Anotações sobre o desempenho...") }}
         </div>
 
-        <div>
-            <label class="block mb-2 font-bold text-gray-700">{{ form.desempenho.label }}:</label>
-            {{ form.desempenho(class="border p-2 rounded w-full", type="number", min="0", max="100") }}
-            {% for error in form.desempenho.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
-        </div>
-    </div>
-
-    <div class="mb-6">
-        <label class="block mb-2 font-bold text-gray-700">{{ form.situacao.label }}:</label>
-        {{ form.situacao(class="border p-2 rounded w-full") }}
-        {% for error in form.situacao.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
-    </div>
-
-    <div class="mb-6">
-        <label class="block mb-2 font-bold text-gray-700">{{ form.observacoes.label }}:</label>
-        {{ form.observacoes(class="border p-2 rounded w-full h-24") }}
-        {% for error in form.observacoes.errors %}<span class="text-red-500 text-sm block mt-1">{{ error }}</span>{% endfor %}
-    </div>
-
-    <button type="submit" class="bg-blue-600 text-white p-3 rounded hover:bg-blue-700 w-full font-semibold">
-        <i class="fas fa-save"></i> Registrar Presença e Nota
-    </button>
-</form>
+        <button type="submit" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold shadow-lg transform transition hover:-translate-y-0.5 text-lg">
+            <i class="fas fa-save mr-2"></i> Salvar Lançamento
+        </button>
+    </form>
+</div>
 
 {% endblock %} 
 
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const acertosInput = document.getElementById('id_acertos');
-        const notaInput = document.getElementById('id_nota');
-        const acertosContainer = document.getElementById('acertos_container');
-        
-        // Se a tag "Nº de Questões: X" foi encontrada, consideramos que o cálculo automático pode ser aplicado.
-        const totalQuestoesStr = acertosContainer.querySelector('h4').textContent.includes('Provas') 
-                                ? '{{ total_questoes_str }}' : 'N/A';
-        const isCalculoPossivel = totalQuestoesStr !== 'N/A';
+        const acertosInput = document.getElementById('acertos');
+        const totalInput = document.getElementById('total_questoes_manual');
+        const notaInput = document.getElementById('nota');
+        const desempenhoInput = document.getElementById('desempenho');
+        const pesoMax = {{ atividade.peso }};
 
-        // Mostra/Oculta o campo de Acertos
-        if (isCalculoPossivel) {
-            acertosContainer.style.display = 'block';
-        } else {
-            acertosContainer.style.display = 'none';
-        }
+        function calcularNota() {
+            const acertos = parseFloat(acertosInput.value);
+            const total = parseFloat(totalInput.value);
 
-
-        function checkAcertos() {
-            if (isCalculoPossivel) {
-                const acertosValue = acertosInput.value.trim();
-
-                if (acertosValue !== '') {
-                    // Se Acertos preenchido, desativa Nota Manual e zera seu valor
-                    notaInput.disabled = true;
-                    notaInput.placeholder = 'Cálculo Automático';
-                    notaInput.value = 0; // O valor 0 será enviado e substituído pelo cálculo no backend
-                    
-                    // Adiciona um aviso de UX
-                    acertosContainer.classList.add('border-blue-500');
-                } else {
-                    // Se Acertos vazio, reativa Nota Manual
-                    notaInput.disabled = false;
-                    notaInput.placeholder = '';
-                    acertosContainer.classList.remove('border-blue-500');
+            if (!isNaN(acertos) && !isNaN(total) && total > 0) {
+                if (acertos > total) {
+                    alert('Número de acertos não pode ser maior que o total de questões!');
+                    acertosInput.value = total;
+                    return;
                 }
-            } else {
-                // Se não for possível calcular, garante que a nota manual é o foco
-                if (acertosInput) {
-                    acertosInput.disabled = true;
-                    notaInput.disabled = false;
-                }
+
+                // Cálculo Regra de 3
+                let notaCalculada = (acertos / total) * pesoMax;
+                let desempenhoCalc = (acertos / total) * 100;
+
+                // Atualiza campos
+                notaInput.value = notaCalculada.toFixed(1);
+                desempenhoInput.value = Math.round(desempenhoCalc);
+                
+                // UX: Visual de campo calculado
+                notaInput.classList.add('bg-green-50', 'text-green-700', 'border-green-300');
+                setTimeout(() => notaInput.classList.remove('bg-green-50', 'text-green-700', 'border-green-300'), 1000);
             }
         }
 
-        // Event Listeners
-        if (acertosInput) {
-            acertosInput.addEventListener('input', checkAcertos);
+        if (acertosInput && totalInput) {
+            acertosInput.addEventListener('input', calcularNota);
+            totalInput.addEventListener('input', calcularNota);
         }
-        
-        // Inicialização
-        checkAcertos(); 
     });
 </script>
 {% endblock %}

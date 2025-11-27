@@ -13,14 +13,6 @@ from flask_login import login_required, current_user
 
 core_bp = Blueprint('core', __name__, url_prefix='/')
 
-# --- CONTEXT PROCESSOR (NOTIFICAÇÕES GLOBAIS) ---
-@core_bp.context_processor
-def inject_notificacoes():
-    if current_user.is_authenticated:
-        nao_lidas = Notificacao.query.filter_by(destinatario=current_user, lida=False).count()
-        recentes = Notificacao.query.filter_by(destinatario=current_user).order_by(Notificacao.data_criacao.desc()).limit(5).all()
-        return dict(num_notificacoes=nao_lidas, notificacoes_topo=recentes)
-    return dict(num_notificacoes=0, notificacoes_topo=[])
 
 # --- SEGURANÇA: BLOQUEIO DE ALUNOS ---
 @core_bp.before_request
@@ -32,8 +24,8 @@ def restrict_student_access():
     """
     if current_user.is_authenticated and getattr(current_user, 'is_aluno', False):
         flash('Acesso redirecionado para o Portal do Aluno.', 'info')
-        # Certifique-se de que a rota 'aluno.dashboard' existe no seu blueprint de aluno
-        return redirect(url_for('aluno.dashboard'))
+        # Certifique-se de que a rota 'portal.dashboard' existe no seu blueprint de aluno
+        return redirect(url_for('portal.dashboard'))
 
 # ------------------- ROTAS PRINCIPAIS (DASHBOARD) -------------------
 

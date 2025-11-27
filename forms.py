@@ -1,13 +1,13 @@
 # forms.py
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField, SelectField, DateField, FloatField, IntegerField, PasswordField, BooleanField
+# CORREÇÃO: Adicionado RadioField aqui no topo
+from wtforms import StringField, SubmitField, TextAreaField, SelectField, DateField, FloatField, IntegerField, PasswordField, BooleanField, RadioField
 from wtforms.validators import DataRequired, InputRequired, Length, NumberRange, EqualTo, ValidationError, Optional, Email
 
 from flask_wtf.file import FileField, FileAllowed
 
 from wtforms_sqlalchemy.fields import QuerySelectField
-# AJUSTE: Adicionada a importação de 'Escola'
 from models import Turma, Aluno, Atividade, db, User, Escola
 from datetime import date
 
@@ -15,18 +15,12 @@ from datetime import date
 class RegisterForm(FlaskForm):
     username = StringField('Nome de Usuário', 
                            validators=[DataRequired(), Length(min=4, max=80)])
-    # ADICIONADO: Campo de email para permitir login futuro
+    
     email = StringField('Email', 
                         validators=[DataRequired(), Email(), Length(max=120)])
     
-    # Novos campos para seleção de papel e escola (Reintegrados do seu código anterior para manter funcionalidade)
-    # Nota: A interface nova pede isso? O código fornecido removeu 'tipo_conta' e 'escola'.
-    # Se você quiser manter a lógica de registro de Aluno/Professor no cadastro, precisamos reincluir.
-    # Vou manter o que você enviou no bloco "atualize forms.py", mas atenção:
-    # Se o 'tipo_conta' foi removido, a lógica do auth.py vai quebrar.
-    # VOU REINCLUIR OS CAMPOS DE TIPO E ESCOLA para não quebrar o seu auth.py recém criado.
-    
-    from wtforms import RadioField # Import local para garantir
+    # CORREÇÃO: Importação removida daqui de dentro.
+    # O campo agora usa o RadioField importado no topo do arquivo.
     tipo_conta = RadioField('Eu sou:', choices=[('professor', 'Professor'), ('aluno', 'Aluno')], default='professor', validators=[DataRequired()])
     escola = SelectField('Escola', coerce=int, validators=[Optional()])
 
@@ -47,7 +41,6 @@ class RegisterForm(FlaskForm):
             raise ValidationError('Este email já está cadastrado.')
 
 class LoginForm(FlaskForm):
-    # CORREÇÃO: Campo 'login' aceita tanto email quanto username (sem validador de Email)
     login = StringField('Email ou Usuário', validators=[DataRequired()])
     password = PasswordField('Senha', validators=[DataRequired()])
     remember = BooleanField('Manter conectado')
@@ -116,7 +109,6 @@ class AtividadeForm(FlaskForm):
     
     descricao = TextAreaField('Descrição (ou questões geradas por IA)')
     
-    # Renomeado para corresponder ao seu código novo, mas verifique se o HTML usa 'arquivo_anexo' ou 'arquivo_upload'
     arquivo_anexo = FileField('Anexar Ficheiro da Atividade (.pdf, .docx, .txt)', validators=[
         FileAllowed(['pdf', 'docx', 'txt'], 'Apenas .pdf, .docx ou .txt!'),
         Optional()
@@ -250,15 +242,13 @@ class EscolaForm(FlaskForm):
     submit = SubmitField('Cadastrar Escola')
 
 class CoordenadorForm(FlaskForm):
-    # Validadores de tamanho adicionados para evitar erros de DB
     nome = StringField('Nome (Usuário)', validators=[DataRequired(), Length(max=80)])
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
     senha = PasswordField('Senha', validators=[DataRequired(), Length(min=6)])
-    escola_id = SelectField('Escola', coerce=int) # Vai carregar as escolas dinamicamente na rota
+    escola_id = SelectField('Escola', coerce=int) 
     submit = SubmitField('Cadastrar Coordenador')
 
 class ProfessorForm(FlaskForm):
-    # Validadores de tamanho adicionados
     nome = StringField('Nome (Usuário)', validators=[DataRequired(), Length(max=80)])
     email = StringField('Email', validators=[DataRequired(), Email(), Length(max=120)])
     senha = PasswordField('Senha', validators=[DataRequired(), Length(min=6)])

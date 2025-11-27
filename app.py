@@ -3,24 +3,21 @@ from flask import Flask
 from config import Config
 
 # Imports de extensões Flask
-from flask_bcrypt import Bcrypt
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user # Adicionado current_user
 from flask_moment import Moment
 from flask_migrate import Migrate
-from flask_wtf.csrf import CSRFProtect 
 
-# --- Instâncias Globais ---
-bcrypt = Bcrypt()
-csrf = CSRFProtect()
+# --- IMPORTAÇÃO DAS EXTENSÕES ---
+from extensions import bcrypt, csrf 
 
 # Imports de Módulos Locais
-from models import db, User 
+from models import db, User, Notificacao # Adicionado Notificacao
 from blueprints.auth import auth_bp
 from blueprints.core import core_bp
 from blueprints.planos import planos_bp
 from blueprints.alunos import alunos_bp
 from blueprints.backup import backup_bp
-from blueprints.portal import portal_bp # <--- NOVO IMPORT
+from blueprints.portal import portal_bp 
 
 # --- APPLICATION FACTORY ---
 
@@ -48,6 +45,18 @@ def create_app(config_class=Config):
     def load_user(user_id):
         return User.query.get(int(user_id))
 
+    # --- CORREÇÃO: CONTEXT PROCESSOR GLOBAL ---
+    # Isso garante que 'num_notificacoes' exista em TODAS as páginas
+    @app.context_processor
+    def inject_notificacoes():
+        if current_user.is_authenticated:
+            # Conta notificações não lidas
+            nao_lidas = Notificacao.query.filter_by(destinatario=current_user, lida=False).count()
+            # Pega as 5 mais recentes
+            recentes = Notificacao.query.filter_by(destinatario=current_user).order_by(Notificacao.data_criacao.desc()).limit(5).all()
+            return dict(num_notificacoes=nao_lidas, notificacoes_topo=recentes)
+        return dict(num_notificacoes=0, notificacoes_topo=[])
+
     # 3. Configuração da Pasta de Upload 
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         try:
@@ -61,7 +70,7 @@ def create_app(config_class=Config):
     app.register_blueprint(planos_bp)
     app.register_blueprint(alunos_bp)
     app.register_blueprint(backup_bp)
-    app.register_blueprint(portal_bp) # <--- REGISTRO DO PORTAL
+    app.register_blueprint(portal_bp)
     
     return app
 
@@ -72,20 +81,17 @@ app = create_app()
 
 @app.cli.command("create-db-full")
 def create_db_full():
-    """Cria o banco de dados e as tabelas se não existirem."""
     with app.app_context():
         db.create_all()
-        print(">>> Banco de dados (SQLite) e tabelas verificados/criados com sucesso!")
+        print(">>> Banco de dados verificado/criado!")
 
 @app.cli.command("reset-db-full")
 def reset_db_full():
-    """Deleta e recria TODAS as tabelas. PERIGO: PERDE TODOS OS DADOS."""
     with app.app_context():
         try:
-            print("Iniciando reset COMPLETO do banco de dados...")
+            print("Resetando banco...")
             db.drop_all()
-            print("Tabelas antigas deletadas.")
             db.create_all()
-            print("✅ Sucesso! Banco de dados limpo e recriado.")
+            print("✅ Sucesso!")
         except Exception as e:
-            print(f"❌ Erro durante o reset: {e}")
+            print(f"❌ Erro: {e}")

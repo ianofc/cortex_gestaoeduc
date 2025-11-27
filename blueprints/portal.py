@@ -48,7 +48,7 @@ def dashboard():
     notas = [p.nota for p in aluno.presencas if p.nota is not None]
     media_geral = round(sum(notas) / len(notas), 1) if notas else 0.0
 
-    return render_template('portal/dashboard.html', 
+    return render_template('portal/dashboard_aluno.html', 
                            aluno=aluno,
                            turma=turma,
                            freq_percent=freq_percent,

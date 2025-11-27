@@ -3,6 +3,9 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 
+# --- IMPORTAÇÃO DA EXTENSÃO (CORREÇÃO) ---
+from extensions import bcrypt  # Importa o bcrypt diretamente do arquivo novo
+
 # Imports Locais
 from models import db, User, Horario, BlocoAula, Aluno, Escola
 from forms import RegisterForm, LoginForm, ProfessorForm
@@ -26,8 +29,7 @@ def register():
         form.escola.choices = [(0, 'Nenhuma escola cadastrada')]
 
     if form.validate_on_submit():
-        # Acesso seguro ao Bcrypt
-        bcrypt = current_app.extensions['bcrypt']
+        # Acesso seguro ao Bcrypt (CORRIGIDO: usa o objeto importado diretamente)
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         
         # Determina o papel do usuário
@@ -103,8 +105,7 @@ def login():
             )
         ).first()
         
-        bcrypt = current_app.extensions['bcrypt']
-        
+        # Acesso seguro ao Bcrypt (CORRIGIDO: usa o objeto importado diretamente)
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember.data)
             
@@ -146,7 +147,7 @@ def editar_professor(id):
         professor.email_contato = form.email.data
         
         if form.senha.data:
-            bcrypt = current_app.extensions['bcrypt']
+            # Acesso seguro ao Bcrypt (CORRIGIDO: usa o objeto importado diretamente)
             hashed_password = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
             professor.password_hash = hashed_password
             

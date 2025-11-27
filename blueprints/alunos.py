@@ -10,6 +10,9 @@ from flask import (
     Blueprint, render_template, redirect, url_for, 
     send_file, flash, jsonify, send_from_directory, request, current_app
 )
+
+from extensions import csrf
+
 import pandas as pd
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, distinct, case
@@ -112,25 +115,30 @@ def aluno(id_aluno):
         flash('Acesso não autorizado a este aluno.', 'danger')
         return redirect(url_for('core.index'))
     
-    presencas = Presenca.query.filter_by(id_aluno=id_aluno).join(Atividade).order_by(Atividade.data.desc()).all()
+    # 1. Busca TODAS as atividades da turma (ordenadas pela data mais recente)
+    atividades = Atividade.query.filter_by(id_turma=aluno.id_turma).order_by(Atividade.data.desc()).all()
     
+    # 2. Busca as presenças existentes deste aluno
+    presencas = Presenca.query.filter_by(id_aluno=id_aluno).all()
+    
+    # 3. Cria um "Mapa" (Dicionário) para acesso rápido: { id_atividade: objeto_presenca }
+    presencas_map = {p.id_atividade: p for p in presencas}
+    
+    # 4. Cálculos de Média
     total_pontos_obtidos = 0.0
-    total_max_score = 0.0
-
-    if aluno.id_turma: 
-        atividades_turma = Atividade.query.filter_by(id_turma=aluno.id_turma).all()
-        total_max_score = sum(a.peso for a in atividades_turma if a.peso is not None)
-        
-        for p in presencas:
-            if p.nota is not None:
-                total_pontos_obtidos += p.nota
+    total_max_score = sum(a.peso for a in atividades if a.peso is not None)
+    
+    for p in presencas:
+        if p.nota is not None:
+            total_pontos_obtidos += p.nota
     
     media_final = total_pontos_obtidos
     
     return render_template(
         'geral/aluno.html', 
         aluno=aluno, 
-        presencas=presencas, 
+        atividades=atividades,      # Passamos a lista completa de atividades
+        presencas_map=presencas_map,# Passamos o mapa de presenças
         media_final=media_final,
         total_max_score=total_max_score
     )
@@ -253,7 +261,6 @@ def add_atividade(id_turma):
         
     return render_template('add/add_atividade.html', turma=turma, form=form)
 
-
 @alunos_bp.route('/registrar_presenca/<int:id_aluno>/<int:id_atividade>', methods=['GET', 'POST'])
 @login_required 
 def registrar_presenca(id_aluno, id_atividade):
@@ -267,57 +274,34 @@ def registrar_presenca(id_aluno, id_atividade):
     form = PresencaForm(obj=presenca) 
     
     if form.validate_on_submit():
+        # O cálculo agora é feito preferencialmente no Front-end (JS) e enviado no campo 'nota'.
+        # Mas vamos manter uma lógica de backup no backend caso o JS falhe e os acertos sejam enviados.
         
-        # LÓGICA DE CÁLCULO AUTOMÁTICO DE NOTA
-        if form.acertos.data is not None:
-            acertos = form.acertos.data
-            peso_total = atividade.peso
-            
-            total_questoes = None 
-            
-            # Tenta extrair o número total de questões da descrição
-            if atividade.descricao: 
-                try:
-                    for line in atividade.descricao.split('\n'):
-                        if line.strip().startswith("Nº de Questões:"):
-                            total_questoes_str = line.split(':')[-1].strip()
-                            total_questoes = int(total_questoes_str)
-                            break
-                except:
-                    total_questoes = None
-            
-            if total_questoes is None or total_questoes <= 0:
-                 flash(f'Erro: Não foi possível determinar o Nº total de questões. Insira a nota manualmente.', 'danger')
-                 return render_template('geral/registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
+        if form.nota.data is None:
+             form.nota.data = 0.0
 
-            # Validação: Acertos não pode ser maior que o total
-            if acertos > total_questoes:
-                 flash(f'Erro: O número de acertos ({acertos}) excede o total de questões ({total_questoes}).', 'danger')
-                 return render_template('geral/registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
-            
-            # CÁLCULO FINAL: (Acertos / Total Questões) * Peso Total
-            nota_calculada = (acertos / total_questoes) * peso_total
-            
-            # Define a nota calculada, substituindo a nota manual
-            form.nota.data = round(nota_calculada, 2)
-            
-        elif form.nota.data is None:
-            # Garante que a nota é 0.0 se for deixada vazia e acertos também for vazio
-            form.nota.data = 0.0
-            
+        # Lógica de Backup Backend: Se veio 'acertos' e 'total_questoes_manual' no request, recalcula
+        total_questoes_manual = request.form.get('total_questoes_manual')
+        if form.acertos.data is not None and total_questoes_manual and int(total_questoes_manual) > 0:
+             acertos = form.acertos.data
+             total = int(total_questoes_manual)
+             if acertos <= total:
+                 nota_calc = (acertos / total) * atividade.peso
+                 form.nota.data = round(nota_calc, 2)
+
         if presenca:
             form.populate_obj(presenca)
-            flash(f'Registro de {aluno.nome} atualizado! Nota: {presenca.nota}', 'success')
+            flash(f'Registro atualizado! Nota: {presenca.nota}', 'success')
         else:
-            nova_presenca = Presenca(
-                id_aluno=id_aluno,
-                id_atividade=id_atividade
-            )
+            nova_presenca = Presenca(id_aluno=id_aluno, id_atividade=id_atividade)
             form.populate_obj(nova_presenca)
             db.session.add(nova_presenca)
-            flash(f'Registro de {aluno.nome} criado! Nota: {nova_presenca.nota}', 'success')
+            flash(f'Registro criado! Nota: {nova_presenca.nota}', 'success')
         
         db.session.commit()
+        
+        # Redireciona de volta para a mesma página para facilitar lançamento contínuo? 
+        # Ou para a turma? O usuário pediu "individual", então talvez voltar pra turma seja melhor.
         return redirect(url_for('alunos.turma', id_turma=aluno.id_turma))
 
     return render_template('geral/registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
@@ -560,6 +544,7 @@ def gradebook(id_turma):
 
 @alunos_bp.route('/gradebook/salvar', methods=['POST'])
 @login_required
+@csrf.exempt  # <--- ADICIONADO: Permite salvar via JS sem token complicado
 def salvar_gradebook():
     data = request.json
     try:
@@ -586,8 +571,11 @@ def salvar_gradebook():
 
     try:
         if campo == 'nota':
-            if valor is not None and valor != '':
-                valor_float = float(valor)
+            if valor is not None and str(valor).strip() != '':
+                # --- CORREÇÃO: Substitui vírgula por ponto para evitar erro ---
+                valor_str = str(valor).replace(',', '.')
+                valor_float = float(valor_str)
+                
                 if atividade.peso is not None and valor_float > atividade.peso: 
                     return jsonify({"status": "error", "message": f"Nota excede o máximo permitido ({atividade.peso})"}), 400
                 presenca.nota = valor_float
@@ -605,10 +593,11 @@ def salvar_gradebook():
             
         db.session.commit()
         return jsonify({"status": "success", "message": "Salvo"}), 200
+    except ValueError:
+        return jsonify({"status": "error", "message": "Valor inválido (use números)"}), 400
     except Exception as e:
         db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
-
 
 @alunos_bp.route('/dashboard/<int:id_turma>')
 @login_required 
@@ -626,7 +615,7 @@ def dashboard(id_turma):
     # Se não houver alunos ou atividades, retorna dados vazios para evitar erros
     if not alunos or not atividades:
         return render_template(
-            'geral/dashboard.html', 
+            'geral/dashboard_turma.html', 
             turma=turma, 
             dados_desempenho=[],
             dados_frequencia={"presente": 0, "ausente": 0, "justificado": 0},
@@ -693,7 +682,7 @@ def dashboard(id_turma):
     }
     
     return render_template(
-        'geral/dashboard.html', 
+        'geral/dashboard_turma.html', 
         turma=turma, 
         dados_desempenho=dados_desempenho,
         dados_frequencia=dados_frequencia,
