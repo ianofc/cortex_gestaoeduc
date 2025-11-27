@@ -1,5 +1,3 @@
-# blueprints/core.py
-
 import os
 from datetime import date, datetime 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
@@ -7,14 +5,37 @@ from sqlalchemy import func, case
 from werkzeug.utils import secure_filename 
 
 # Imports de Módulos Locais
-from models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo
-from forms import TurmaForm, LembreteForm, UserProfileForm
+from models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao
+from forms import TurmaForm, LembreteForm, UserProfileForm, EscolaForm, CoordenadorForm, ProfessorForm
+from utils import enviar_notificacao 
 
 from flask_login import login_required, current_user
 
 core_bp = Blueprint('core', __name__, url_prefix='/')
 
-# ------------------- ROTAS PRINCIPAIS (HOME / INDEX) -------------------
+# --- CONTEXT PROCESSOR (NOTIFICAÇÕES GLOBAIS) ---
+@core_bp.context_processor
+def inject_notificacoes():
+    if current_user.is_authenticated:
+        nao_lidas = Notificacao.query.filter_by(destinatario=current_user, lida=False).count()
+        recentes = Notificacao.query.filter_by(destinatario=current_user).order_by(Notificacao.data_criacao.desc()).limit(5).all()
+        return dict(num_notificacoes=nao_lidas, notificacoes_topo=recentes)
+    return dict(num_notificacoes=0, notificacoes_topo=[])
+
+# --- SEGURANÇA: BLOQUEIO DE ALUNOS ---
+@core_bp.before_request
+def restrict_student_access():
+    """
+    Verifica se o usuário logado é um aluno. Se for, impede o acesso
+    às rotas do 'core' (painel do professor/admin) e redireciona
+    para o portal do aluno.
+    """
+    if current_user.is_authenticated and getattr(current_user, 'is_aluno', False):
+        flash('Acesso redirecionado para o Portal do Aluno.', 'info')
+        # Certifique-se de que a rota 'aluno.dashboard' existe no seu blueprint de aluno
+        return redirect(url_for('aluno.dashboard'))
+
+# ------------------- ROTAS PRINCIPAIS (DASHBOARD) -------------------
 
 @core_bp.route('/', methods=['GET', 'POST'])
 @login_required 
@@ -26,6 +47,14 @@ def index():
                                  autor=current_user)
         db.session.add(novo_lembrete)
         db.session.commit()
+        
+        # --- GATILHO DE TESTE DA NOTIFICAÇÃO ---
+        enviar_notificacao(
+            current_user.id, 
+            f"Novo lembrete criado: {novo_lembrete.texto[:15]}...", 
+            url_for('core.index')
+        )
+        
         flash('Lembrete salvo!', 'success')
         return redirect(url_for('core.index'))
 
@@ -67,6 +96,31 @@ def index():
                            horarios_texto_widget=horarios_texto,
                            dias_semana_widget=dias_semana
                            )
+
+# ------------------- GESTÃO DE NOTIFICAÇÕES -------------------
+
+@core_bp.route('/notificacao/<int:id>/ler')
+@login_required
+def ler_notificacao(id):
+    notificacao = Notificacao.query.get_or_404(id)
+    if notificacao.destinatario != current_user:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('core.index'))
+    
+    notificacao.lida = True
+    db.session.commit()
+    
+    if notificacao.link:
+        return redirect(notificacao.link)
+    return redirect(request.referrer or url_for('core.index'))
+
+@core_bp.route('/notificacoes/ler_todas')
+@login_required
+def ler_todas_notificacoes():
+    Notificacao.query.filter_by(destinatario=current_user, lida=False).update({'lida': True})
+    db.session.commit()
+    flash('Todas as notificações marcadas como lidas.', 'success')
+    return redirect(request.referrer or url_for('core.index'))
 
 # ------------------- GESTÃO DE TURMAS (CRUD) -------------------
 
@@ -120,12 +174,11 @@ def excluir_turma(id):
     flash('Turma excluída com sucesso.', 'success')
     return redirect(url_for('core.listar_turmas'))
 
-# ------------------- DASHBOARD GLOBAL (CORTEX ANALYTICS) -------------------
+# ------------------- DASHBOARD GLOBAL -------------------
 
 @core_bp.route('/dashboard')
 @login_required
 def dashboard():
-    # 1. KPIs Principais
     total_turmas = Turma.query.filter_by(autor=current_user).count()
     
     total_alunos = db.session.query(func.count(Aluno.id))\
@@ -136,17 +189,14 @@ def dashboard():
         .join(Turma)\
         .filter(Turma.id_user == current_user.id).scalar()
 
-    # 2. Dados de Desempenho por Turma (Média)
-    # Nota: Assume que Presenca pode ter nota ou desempenho associado, ou ajustamos conforme seu model
     desempenho_turmas_raw = db.session.query(
         Turma.nome,
-        func.avg(Presenca.nota).label('media_desempenho') 
+        func.avg(Presenca.desempenho).label('media_desempenho')
     ).select_from(Turma).join(Turma.alunos, isouter=True).join(Aluno.presencas, isouter=True)\
      .filter(Turma.id_user == current_user.id)\
      .group_by(Turma.nome)\
      .order_by(Turma.nome).all()
      
-    # 3. Dados de Frequência (Presença vs Faltas)
     frequencia_turmas_raw = db.session.query(
         Turma.nome,
         func.avg(case((Presenca.status == 'Presente', 100.0), (Presenca.status == 'Justificado', 100.0), else_=0.0)).label('media_frequencia')
@@ -154,7 +204,6 @@ def dashboard():
      .filter(Turma.id_user == current_user.id)\
      .group_by(Turma.nome).all()
 
-    # 4. Combinar Dados
     dados_combinados = {}
     for d in desempenho_turmas_raw:
         dados_combinados[d.nome] = {"desempenho": float(d.media_desempenho) if d.media_desempenho else 0}
@@ -169,8 +218,8 @@ def dashboard():
         for nome, dados in dados_combinados.items()
     ]
     
-    # 5. Top Alunos
     top_alunos_data = []
+    
     alunos_scores = db.session.query(
         Aluno,
         func.sum(Presenca.nota).label('pontos_obtidos'),
@@ -183,8 +232,7 @@ def dashboard():
      
     for aluno, pontos_obtidos, pontos_max_aluno in alunos_scores:
         pontos_obtidos = float(pontos_obtidos) if pontos_obtidos else 0.0
-        # Ajuste para evitar divisão por zero se não houver peso
-        pontos_max_aluno = float(pontos_max_aluno) if pontos_max_aluno and pontos_max_aluno > 0 else 100.0 
+        pontos_max_aluno = float(pontos_max_aluno) if pontos_max_aluno and pontos_max_aluno > 0 else 0.0
         
         if pontos_max_aluno > 0:
             percentual = (pontos_obtidos / pontos_max_aluno) * 100
@@ -198,26 +246,18 @@ def dashboard():
             "percentual": percentual
         })
         
-    top_alunos_data = [a for a in top_alunos_data if a['pontos_obtidos'] > 0] # Filtra quem não tem nota
+    top_alunos_data = [
+        a for a in top_alunos_data if a['pontos_max_aluno'] > 0
+    ]
     top_alunos_data.sort(key=lambda x: x['percentual'], reverse=True)
     top_alunos_data = top_alunos_data[:10]
     
-    # --- PREPARAÇÃO PARA CHART.JS ---
-    # Extraindo listas simples para passar ao template
-    chart_labels = [d['turma'] for d in dados_graficos]
-    chart_desempenho = [d.get('desempenho', 0) for d in dados_graficos]
-    chart_frequencia = [d.get('frequencia', 0) for d in dados_graficos]
-
     return render_template('geral/dashboard_global.html',
                            total_turmas=total_turmas,
                            total_alunos=total_alunos,
                            total_atividades=total_atividades,
-                           dados_combinados=dados_graficos, # Mantido para tabelas antigas se houver
-                           top_alunos=top_alunos_data,
-                           # Variáveis novas para os Gráficos
-                           chart_labels=chart_labels,
-                           chart_desempenho=chart_desempenho,
-                           chart_frequencia=chart_frequencia
+                           dados_combinados=dados_graficos, 
+                           top_alunos=top_alunos_data
                            )
 
 # ------------------- PERFIL DE USUÁRIO -------------------
@@ -252,6 +292,7 @@ def edit_perfil():
             filename_final = f"perfil_{current_user.id}_{int(datetime.now().timestamp())}{ext_seguro}"
             
             filepath = os.path.join(imgs_folder, filename_final)
+            
             foto_upload.save(filepath)
             
             current_user.foto_perfil_path = filename_final
@@ -307,10 +348,12 @@ def listar_turmas():
 @login_required
 def listar_atividades():
     turmas_ids = [t.id for t in current_user.turmas]
+    
     if not turmas_ids:
         atividades = []
     else:
         atividades = Atividade.query.filter(Atividade.id_turma.in_(turmas_ids)).order_by(Atividade.data.desc()).all()
+        
     return render_template('list/listar_atividades.html', atividades=atividades)
 
 @core_bp.route('/professores')
@@ -335,7 +378,7 @@ def excluir_atividade(id):
 @core_bp.route('/usuario/excluir/<int:id>')
 @login_required
 def excluir_usuario(id):
-    if not current_user.is_admin:
+    if not getattr(current_user, 'is_admin', False):
          flash('Acesso negado. Apenas administradores podem excluir usuários.', 'danger')
          return redirect(url_for('core.index'))
 
@@ -349,23 +392,170 @@ def excluir_usuario(id):
     flash('Usuário removido com sucesso.', 'success')
     return redirect(request.referrer)
 
+# ------------------- ESCOLAS E COORDENADORES (NOVAS) -------------------
+
 @core_bp.route('/escolas/listar')
 @login_required
 def listar_escolas():
-    if not current_user.is_admin:
+    if not getattr(current_user, 'is_admin', False):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
         
-    from models import Escola 
     escolas = Escola.query.all()
     return render_template('list/listar_escola.html', escolas=escolas)
+
+@core_bp.route('/escola/adicionar', methods=['GET', 'POST'])
+@login_required
+def add_escola():
+    if not getattr(current_user, 'is_admin', False):
+        flash('Acesso restrito.', 'danger')
+        return redirect(url_for('core.index'))
+        
+    form = EscolaForm()
+    if form.validate_on_submit():
+        escola = Escola(
+            nome=form.nome.data,
+            endereco=form.endereco.data,
+            telefone=form.telefone.data,
+            email_contato=form.email_contato.data
+        )
+        db.session.add(escola)
+        db.session.commit()
+        flash('Escola cadastrada com sucesso!', 'success')
+        return redirect(url_for('core.listar_escolas'))
+        
+    return render_template('add/add_escola.html', form=form)
+
+@core_bp.route('/escola/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_escola(id):
+    if not getattr(current_user, 'is_admin', False):
+        flash('Acesso restrito.', 'danger')
+        return redirect(url_for('core.index'))
+        
+    escola = Escola.query.get_or_404(id)
+    form = EscolaForm(obj=escola)
+    
+    if form.validate_on_submit():
+        form.populate_obj(escola)
+        db.session.commit()
+        flash('Escola atualizada com sucesso!', 'success')
+        return redirect(url_for('core.listar_escolas'))
+        
+    return render_template('edit/edit_escola.html', form=form, escola=escola)
+
+@core_bp.route('/escola/excluir/<int:id>')
+@login_required
+def excluir_escola(id):
+    if not getattr(current_user, 'is_admin', False):
+        flash('Acesso restrito.', 'danger')
+        return redirect(url_for('core.index'))
+        
+    escola = Escola.query.get_or_404(id)
+    db.session.delete(escola)
+    db.session.commit()
+    flash('Escola excluída.', 'success')
+    return redirect(url_for('core.listar_escolas'))
+
+# --- COORDENADORES ---
 
 @core_bp.route('/coordenadores/listar')
 @login_required
 def listar_coordenadores():
-    if not current_user.is_admin:
+    if not getattr(current_user, 'is_admin', False):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
         
     coordenadores = User.query.filter_by(is_coordenador=True).all()
     return render_template('list/listar_coordenadores.html', coordenadores=coordenadores)
+
+@core_bp.route('/coordenador/adicionar', methods=['GET', 'POST'])
+@login_required
+def add_coordenador():
+    if not getattr(current_user, 'is_admin', False):
+        flash('Acesso restrito.', 'danger')
+        return redirect(url_for('core.index'))
+        
+    form = CoordenadorForm()
+    # Popula o select de escolas
+    form.escola_id.choices = [(e.id, e.nome) for e in Escola.query.all()]
+    
+    if form.validate_on_submit():
+        from app import bcrypt
+        hashed_pw = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
+        
+        novo_coord = User(
+            username=form.nome.data,
+            email_contato=form.email.data,
+            password_hash=hashed_pw,
+            is_coordenador=True,
+            is_professor=False, # Coordenador não dá aula por padrão
+            escola_id=form.escola_id.data
+        )
+        db.session.add(novo_coord)
+        db.session.commit()
+        flash('Coordenador cadastrado!', 'success')
+        return redirect(url_for('core.listar_coordenadores'))
+        
+    return render_template('add/add_coordenador.html', form=form)
+
+@core_bp.route('/coordenador/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_coordenador(id):
+    if not getattr(current_user, 'is_admin', False):
+        flash('Acesso restrito.', 'danger')
+        return redirect(url_for('core.index'))
+        
+    coord = User.query.get_or_404(id)
+    form = CoordenadorForm(obj=coord)
+    form.escola_id.choices = [(e.id, e.nome) for e in Escola.query.all()]
+    form.senha.validators = [] # Senha opcional na edição
+    
+    if request.method == 'GET':
+        form.nome.data = coord.username
+        form.email.data = coord.email_contato
+        form.escola_id.data = coord.escola_id
+
+    if form.validate_on_submit():
+        coord.username = form.nome.data
+        coord.email_contato = form.email.data
+        coord.escola_id = form.escola_id.data
+        
+        if form.senha.data:
+            from app import bcrypt
+            coord.password_hash = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
+            
+        db.session.commit()
+        flash('Coordenador atualizado!', 'success')
+        return redirect(url_for('core.listar_coordenadores'))
+        
+    return render_template('edit/edit_coordenador.html', form=form, coord=coord)
+
+@core_bp.route('/professor/adicionar', methods=['GET', 'POST'])
+@login_required
+def add_professor():
+    # Qualquer admin ou coordenador pode adicionar professor
+    if not (getattr(current_user, 'is_admin', False) or getattr(current_user, 'is_coordenador', False)):
+        flash('Acesso restrito.', 'danger')
+        return redirect(url_for('core.index'))
+    
+    form = ProfessorForm()
+    
+    if form.validate_on_submit():
+        from app import bcrypt
+        hashed_pw = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
+        
+        novo_prof = User(
+            username=form.nome.data,
+            email_contato=form.email.data,
+            password_hash=hashed_pw,
+            is_professor=True,
+            # Vincula à mesma escola do coordenador se quem cria for coordenador
+            escola_id=current_user.escola_id if getattr(current_user, 'is_coordenador', False) else None
+        )
+        db.session.add(novo_prof)
+        db.session.commit()
+        flash('Professor cadastrado!', 'success')
+        return redirect(url_for('core.listar_professores'))
+        
+    return render_template('add/add_professor.html', form=form)

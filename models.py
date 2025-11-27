@@ -1,5 +1,3 @@
-# models.py
-
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin 
 from datetime import datetime, date 
@@ -41,7 +39,8 @@ class User(db.Model, UserMixin):
     password_hash = db.Column(db.String(128), nullable=False) 
     
     # Controle de Acesso (Roles)
-    is_professor = db.Column(db.Boolean, default=True)   # Professor (Padrão)
+    is_professor = db.Column(db.Boolean, default=False)   # Alterado padrão para False
+    is_student = db.Column(db.Boolean, default=False)     # NOVO: Identifica Aluno
     is_coordenador = db.Column(db.Boolean, default=False) # NOVO: Coordenador de Escola
     is_admin = db.Column(db.Boolean, default=False)      # Admin Geral do Sistema
     
@@ -102,7 +101,7 @@ class Aluno(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
     matricula = db.Column(db.String(50))
-    data_cadastro = db.Column(db.Date)
+    data_cadastro = db.Column(db.Date, default=date.today)
     id_turma = db.Column(db.Integer, db.ForeignKey('turmas.id'), nullable=True) 
     
     # Portal do Aluno: Link para a conta de usuário

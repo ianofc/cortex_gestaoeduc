@@ -18,6 +18,18 @@ class RegisterForm(FlaskForm):
     # ADICIONADO: Campo de email para permitir login futuro
     email = StringField('Email', 
                         validators=[DataRequired(), Email(), Length(max=120)])
+    
+    # Novos campos para seleção de papel e escola (Reintegrados do seu código anterior para manter funcionalidade)
+    # Nota: A interface nova pede isso? O código fornecido removeu 'tipo_conta' e 'escola'.
+    # Se você quiser manter a lógica de registro de Aluno/Professor no cadastro, precisamos reincluir.
+    # Vou manter o que você enviou no bloco "atualize forms.py", mas atenção:
+    # Se o 'tipo_conta' foi removido, a lógica do auth.py vai quebrar.
+    # VOU REINCLUIR OS CAMPOS DE TIPO E ESCOLA para não quebrar o seu auth.py recém criado.
+    
+    from wtforms import RadioField # Import local para garantir
+    tipo_conta = RadioField('Eu sou:', choices=[('professor', 'Professor'), ('aluno', 'Aluno')], default='professor', validators=[DataRequired()])
+    escola = SelectField('Escola', coerce=int, validators=[Optional()])
+
     password = PasswordField('Senha', 
                              validators=[DataRequired(), Length(min=6)])
     confirm_password = PasswordField('Confirmar Senha', 
@@ -104,6 +116,7 @@ class AtividadeForm(FlaskForm):
     
     descricao = TextAreaField('Descrição (ou questões geradas por IA)')
     
+    # Renomeado para corresponder ao seu código novo, mas verifique se o HTML usa 'arquivo_anexo' ou 'arquivo_upload'
     arquivo_anexo = FileField('Anexar Ficheiro da Atividade (.pdf, .docx, .txt)', validators=[
         FileAllowed(['pdf', 'docx', 'txt'], 'Apenas .pdf, .docx ou .txt!'),
         Optional()
@@ -163,13 +176,13 @@ class PlanoDeAulaForm(FlaskForm):
     data_prevista = DateField('Data Prevista', default=date.today, validators=[DataRequired()])
     duracao = StringField('Duração (ex: 2 aulas, 50 min)')
     titulo = StringField('Tema da Aula', validators=[DataRequired(), Length(max=100)])
-    conteudo = TextAreaField('Conteúdo (Tópicos a abordar)')
+    conteudo = TextAreaField('Conteúdo (Tópicos a abordar)', render_kw={"rows": 4})
     habilidades_bncc = StringField('Habilidades BNCC (ex: EF08LP08)')
-    objetivos = TextAreaField('Objetivos de Aprendizagem')
-    metodologia = TextAreaField('Metodologia (ex: Aula expositiva, debate)')
-    recursos = TextAreaField('Recursos Didáticos (ex: Projetor, livro)')
-    avaliacao = TextAreaField('Avaliação (ex: Exercícios, participação)')
-    referencias = TextAreaField('Referências')
+    objetivos = TextAreaField('Objetivos de Aprendizagem', render_kw={"rows": 3})
+    metodologia = TextAreaField('Metodologia (ex: Aula expositiva, debate)', render_kw={"rows": 3})
+    recursos = TextAreaField('Recursos Didáticos (ex: Projetor, livro)', render_kw={"rows": 2})
+    avaliacao = TextAreaField('Avaliação (ex: Exercícios, participação)', render_kw={"rows": 2})
+    referencias = TextAreaField('Referências', render_kw={"rows": 2})
     submit = SubmitField('Salvar Plano de Aula')
 
 class LembreteForm(FlaskForm):

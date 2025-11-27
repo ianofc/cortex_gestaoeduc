@@ -30,7 +30,16 @@
             theme: {
                 extend: {
                     colors: customColors,
-                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    animation: {
+                        'fade-in-down': 'fadeInDown 0.3s ease-out'
+                    },
+                    keyframes: {
+                        fadeInDown: {
+                            '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' }
+                        }
+                    }
                 }
             }
         }
@@ -43,7 +52,7 @@
         .nav-item { position: relative; display: flex; align-items: center; justify-content: center; }
         .nav-label {
             position: absolute;
-            bottom: -30px; /* Ajustado para não sobrepor */
+            bottom: -30px;
             left: 50%;
             transform: translateX(-50%);
             background-color: rgba(31, 41, 55, 0.9);
@@ -125,6 +134,42 @@
                         <i class="fas fa-moon" id="theme-icon"></i>
                     </button>
 
+                    <!-- NOTIFICAÇÕES (Conectado ao core.py) -->
+                    <div class="relative group ml-1" id="notification-dropdown">
+                        <button class="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none transition-colors">
+                            <i class="fas fa-bell text-lg"></i>
+                            {% if num_notificacoes > 0 %}
+                                <span class="absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"></span>
+                            {% endif %}
+                        </button>
+                        
+                        <!-- Dropdown de Notificações -->
+                        <div class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 hidden group-hover:block transform origin-top-right transition-all z-50 dark:bg-gray-800 dark:border-gray-700 animate-fade-in-down">
+                            <div class="px-4 py-3 border-b border-gray-50 dark:border-gray-700 flex justify-between items-center">
+                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Notificações</h3>
+                                {% if num_notificacoes > 0 %}
+                                    <a href="{{ url_for('core.ler_todas_notificacoes') }}" class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300">Marcar lidas</a>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="max-h-64 overflow-y-auto">
+                                {% if notificacoes_topo %}
+                                    {% for notif in notificacoes_topo %}
+                                        <a href="{{ url_for('core.ler_notificacao', id=notif.id) }}" class="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {% if not notif.lida %}bg-indigo-50/50 dark:bg-indigo-900/10 border-l-2 border-indigo-500{% endif %}">
+                                            <p class="text-sm text-gray-800 dark:text-gray-200 {{ 'font-semibold' if not notif.lida else '' }}">{{ notif.texto }}</p>
+                                            <p class="text-xs text-gray-400 mt-1">{{ notif.data_criacao.strftime('%d/%m %H:%M') }}</p>
+                                        </a>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="px-4 py-6 text-center text-gray-500 dark:text-gray-400 text-sm">
+                                        Nenhuma notificação recente.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MENU PERFIL -->
                     <div class="relative group ml-2">
                         <button type="button" class="flex items-center focus:outline-none transition-transform hover:scale-105">
                             {% if current_user.foto_perfil_path %}
@@ -143,7 +188,7 @@
                             {% endif %}
                         </button>
 
-                        <div class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl py-2 hidden group-hover:block border border-gray-100 transform origin-top-right transition-all z-50 dark:bg-gray-800 dark:border-gray-700 animate-fade-in-down">
+                        <div class="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl py-2 hidden group-hover:block border border-gray-100 transform origin-top-right transition-all z-50 dark:bg-gray-800 dark:border-gray-700 animate-fade-in-down">
                             <div class="px-4 py-3 border-b border-gray-50 dark:border-gray-700">
                                 <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ current_user.username }}</p>
                                 <p class="text-xs text-gray-500 truncate dark:text-gray-400">{{ current_user.email_contato }}</p>
@@ -158,8 +203,16 @@
 
                             {% if current_user.is_admin %}
                             <div class="border-t border-gray-50 my-1 dark:border-gray-700"></div>
+                            <p class="px-4 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Administração</p>
+                            
                             <a href="{{ url_for('core.listar_escolas') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-indigo-400 transition-colors">
-                                <i class="fas fa-school w-5 mr-2"></i> Gestão Escolas
+                                <i class="fas fa-school w-5 mr-2"></i> Escolas
+                            </a>
+                            <a href="{{ url_for('core.listar_coordenadores') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-indigo-400 transition-colors">
+                                <i class="fas fa-user-tie w-5 mr-2"></i> Coordenadores
+                            </a>
+                            <a href="{{ url_for('core.listar_professores') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-indigo-400 transition-colors">
+                                <i class="fas fa-chalkboard-teacher w-5 mr-2"></i> Professores
                             </a>
                             {% endif %}
 
@@ -185,6 +238,7 @@
             </div>
         </div>
 
+        <!-- MENU MOBILE -->
         <div class="hidden md:hidden bg-white border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700 shadow-inner" id="mobile-menu">
             <div class="px-4 pt-2 pb-4 space-y-1">
                 {% if current_user.is_authenticated %}
@@ -210,6 +264,15 @@
                     <a href="{{ url_for('core.listar_atividades') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-tasks w-6 text-center mr-2"></i> Atividades</a>
                     <a href="{{ url_for('planos.diario_bordo') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-calendar-check w-6 text-center mr-2"></i> Diário</a>
                     
+                    <!-- MENU ADMIN MOBILE -->
+                    {% if current_user.is_admin %}
+                        <div class="border-t border-gray-200 my-2 dark:border-gray-600"></div>
+                        <p class="px-3 text-xs font-semibold text-gray-400 uppercase mb-1">Admin</p>
+                        <a href="{{ url_for('core.listar_escolas') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-school w-6 text-center mr-2"></i> Escolas</a>
+                        <a href="{{ url_for('core.listar_coordenadores') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-user-tie w-6 text-center mr-2"></i> Coordenadores</a>
+                        <a href="{{ url_for('core.listar_professores') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-chalkboard-teacher w-6 text-center mr-2"></i> Professores</a>
+                    {% endif %}
+
                     <div class="border-t border-gray-200 my-2 dark:border-gray-600"></div>
                     
                     <a href="{{ url_for('core.edit_perfil') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-user-cog w-6 text-center mr-2"></i> Perfil</a>

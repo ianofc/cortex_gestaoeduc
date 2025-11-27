@@ -1,10 +1,11 @@
-# utils.py
-
 import os
 import requests 
 import json     
 from io import BytesIO
 import docx
+from datetime import datetime
+from flask import current_app
+from models import db, Notificacao
 
 # Import condicional do PyPDF2, essencial para ler PDFs
 try:
@@ -14,8 +15,31 @@ except ImportError:
     print("AVISO: PyPDF2 não instalado. A leitura de PDF falhará. Instale com: pip install PyPDF2")
     PdfReader = None
 
+# --- SISTEMA DE NOTIFICAÇÕES (NOVO) ---
+
+def enviar_notificacao(id_user, texto, link=None):
+    """
+    Cria uma nova notificação para um usuário.
+    Uso: enviar_notificacao(current_user.id, 'Backup realizado com sucesso!', '/backup')
+    Retorna True se sucesso, False se erro.
+    """
+    try:
+        nova_notificacao = Notificacao(
+            id_user=id_user,
+            texto=texto,
+            link=link,
+            lida=False,
+            data_criacao=datetime.utcnow()
+        )
+        db.session.add(nova_notificacao)
+        db.session.commit()
+        return True
+    except Exception as e:
+        print(f"Erro ao enviar notificação: {e}")
+        db.session.rollback()
+        return False
+
 # --- FUNÇÃO HELPER DE VALIDAÇÃO DE FICHEIROS (allowed_file) ---
-# Adicionada para resolver o ImportError
 
 def allowed_file(filename):
     """
