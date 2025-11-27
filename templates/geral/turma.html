@@ -70,12 +70,26 @@
             <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center">Gráficos</span>
         </a>
 
-        <a href="{{ url_for('alunos.exportar_relatorio', id_turma=turma.id) }}" class="flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 group transition-all">
-            <div class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                <i class="fas fa-file-export"></i>
+        <div class="flex flex-col items-center justify-center p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Exportar Relatório</span>
+            <div class="flex gap-2">
+                <a href="{{ url_for('alunos.exportar_relatorio', id_turma=turma.id) }}" 
+                   class="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/40 transition-colors" 
+                   title="Relatório Geral (Excel)">
+                    <i class="fas fa-file-excel text-lg"></i>
+                </a>
+                <a href="{{ url_for('alunos.exportar_matriz_docx', id_turma=turma.id) }}" 
+                   class="p-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40 transition-colors" 
+                   title="Matriz de Notas (DOCX)">
+                    <i class="fas fa-file-word text-lg"></i>
+                </a>
+                <a href="{{ url_for('alunos.exportar_matriz_pdf', id_turma=turma.id) }}" 
+                   class="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/40 transition-colors" 
+                   title="Matriz de Notas (PDF)">
+                    <i class="fas fa-file-pdf text-lg"></i>
+                </a>
             </div>
-            <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 text-center">Excel</span>
-        </a>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -137,6 +151,26 @@
                     <i class="fas fa-tasks text-purple-500"></i> Atividades
                     <span class="text-xs font-normal bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 px-2 py-0.5 rounded-full">{{ atividades|length }}</span>
                 </h3>
+                
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 hidden sm:inline">Total Distribuído:</span>
+                    <span class="text-sm font-bold px-2 py-0.5 rounded-md border flex items-center gap-1
+                        {% if total_max_score > 10 %}
+                            bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800
+                        {% elif total_max_score == 10 %}
+                            bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800
+                        {% else %}
+                            bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800
+                        {% endif %}" 
+                        title="A pontuação total das atividades deve somar 10.0">
+                        {{ "%.1f"|format(total_max_score) }} <span class="text-xs opacity-70">/ 10</span>
+                        {% if total_max_score > 10 %}
+                            <i class="fas fa-exclamation-circle" title="Atenção: A soma excede 10 pontos!"></i>
+                        {% elif total_max_score == 10 %}
+                            <i class="fas fa-check-circle" title="Distribuição completa"></i>
+                        {% endif %}
+                    </span>
+                </div>
             </div>
 
             <div class="flex-grow overflow-y-auto custom-scrollbar p-4 space-y-4">

@@ -1,217 +1,239 @@
 {% extends "main/base.html" %}
 
-{% block title %}Dashboard Global | Cortex{% endblock %}
+{% block title %}Cortex Analytics - Dashboard{% endblock %}
 
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script> <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script> <script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script> <div class="container mx-auto px-4 py-6" id="dashboard-content">
 
-<div id="global-dashboard-data" 
-     data-desempenho='{{ dados_combinados | tojson | safe }}'
-     data-frequencia='{{ dados_combinados | tojson | safe }}'
-     style="display: none;">
-</div>
-
-<div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-    <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <span class="bg-indigo-600 text-white p-2 rounded-xl shadow-lg shadow-indigo-500/30">
-                <i class="fas fa-globe"></i>
-            </span>
-            Dashboard Global
-        </h1>
-        <p class="text-gray-500 dark:text-gray-400 mt-1 ml-14">Visão macro de todas as turmas e alunos.</p>
-    </div>
-    
-    <div class="flex gap-2">
-        <button onclick="window.print()" class="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:text-indigo-600 transition-all shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700">
-            <i class="fas fa-print mr-2"></i> Imprimir Relatório
-        </button>
-    </div>
-</div>
-
-<section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    
-    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-transform hover:-translate-y-1 relative overflow-hidden group">
-        <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-blue-50 to-transparent dark:from-blue-900/10 opacity-50 group-hover:w-1/2 transition-all duration-500"></div>
-        <div class="relative z-10 flex justify-between items-start">
-            <div>
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Alunos Totais</p>
-                <h3 class="text-4xl font-extrabold text-gray-800 dark:text-white">{{ total_alunos }}</h3>
-                <p class="text-xs text-blue-500 mt-2 font-medium">Cadastrados no sistema</p>
-            </div>
-            <div class="p-3 bg-blue-100 rounded-xl text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 shadow-sm">
-                <i class="fas fa-users fa-xl"></i>
-            </div>
+    <div class="flex flex-col lg:flex-row justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                <i class="fas fa-brain text-indigo-600"></i> Cortex Analytics
+            </h1>
+            <p class="text-gray-500 mt-1">Visão global de inteligência pedagógica</p>
+        </div>
+        
+        <div class="mt-4 lg:mt-0 flex gap-2 no-export" data-html2canvas-ignore="true">
+            <button onclick="window.print()" class="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition text-sm font-medium">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <button onclick="exportToPDF()" class="flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg transition text-sm font-medium">
+                <i class="fas fa-file-pdf"></i> PDF
+            </button>
+            <button onclick="exportToExcel()" class="flex items-center gap-2 bg-green-50 hover:bg-green-100 text-green-600 px-4 py-2 rounded-lg transition text-sm font-medium">
+                <i class="fas fa-file-excel"></i> Excel
+            </button>
+            <button onclick="exportToDocx()" class="flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-lg transition text-sm font-medium">
+                <i class="fas fa-file-word"></i> Docx
+            </button>
         </div>
     </div>
-    
-    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-transform hover:-translate-y-1 relative overflow-hidden group">
-        <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-purple-50 to-transparent dark:from-purple-900/10 opacity-50 group-hover:w-1/2 transition-all duration-500"></div>
-        <div class="relative z-10 flex justify-between items-start">
-            <div>
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Turmas Ativas</p>
-                <h3 class="text-4xl font-extrabold text-gray-800 dark:text-white">{{ total_turmas }}</h3>
-                <p class="text-xs text-purple-500 mt-2 font-medium">Sob sua gestão</p>
-            </div>
-            <div class="p-3 bg-purple-100 rounded-xl text-purple-600 dark:bg-purple-900/30 dark:text-purple-400 shadow-sm">
-                <i class="fas fa-chalkboard-teacher fa-xl"></i>
-            </div>
-        </div>
-    </div>
-    
-    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700 transition-transform hover:-translate-y-1 relative overflow-hidden group">
-        <div class="absolute right-0 top-0 h-full w-1/3 bg-gradient-to-l from-emerald-50 to-transparent dark:from-emerald-900/10 opacity-50 group-hover:w-1/2 transition-all duration-500"></div>
-        <div class="relative z-10 flex justify-between items-start">
-            <div>
-                <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Atividades</p>
-                <h3 class="text-4xl font-extrabold text-gray-800 dark:text-white">{{ total_atividades }}</h3>
-                <p class="text-xs text-emerald-500 mt-2 font-medium">Registradas e avaliadas</p>
-            </div>
-            <div class="p-3 bg-emerald-100 rounded-xl text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400 shadow-sm">
-                <i class="fas fa-clipboard-check fa-xl"></i>
-            </div>
-        </div>
-    </div>
-</section>
 
-<section class="mb-8">
-    <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-white flex items-center">
-            <span class="text-yellow-500 mr-2"><i class="fas fa-trophy"></i></span>
-            Top 10 Desempenho Global
-        </h2>
-    </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        {% for aluno_data in top_alunos %}
-        <a href="{{ url_for('alunos.aluno', id_aluno=aluno_data.aluno.id) }}"
-           class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500/50 transition-all group flex flex-col justify-between h-full relative overflow-hidden">
-            
-            {% if loop.index == 1 %}
-                <div class="absolute top-0 right-0 p-2 text-yellow-500 opacity-20 group-hover:opacity-100 transition-opacity"><i class="fas fa-crown fa-2x"></i></div>
-            {% elif loop.index == 2 %}
-                <div class="absolute top-0 right-0 p-2 text-gray-400 opacity-20 group-hover:opacity-100 transition-opacity"><i class="fas fa-medal fa-2x"></i></div>
-            {% elif loop.index == 3 %}
-                <div class="absolute top-0 right-0 p-2 text-orange-400 opacity-20 group-hover:opacity-100 transition-opacity"><i class="fas fa-medal fa-2x"></i></div>
-            {% endif %}
-
-            <div class="mb-3">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="text-xs font-bold px-2 py-0.5 rounded-md 
-                        {% if loop.index == 1 %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
-                        {% elif loop.index == 2 %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300
-                        {% elif loop.index == 3 %}bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400
-                        {% else %}bg-indigo-50 text-indigo-600 dark:bg-gray-700 dark:text-gray-400{% endif %}">
-                        #{{ loop.index }}
-                    </span>
-                    <span class="text-xs text-gray-400 truncate flex-1">{{ aluno_data.aluno.turma.nome if aluno_data.aluno.turma else '-' }}</span>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-blue-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Turmas Ativas</p>
+                    <h3 class="text-3xl font-bold text-gray-800 mt-1">{{ total_turmas }}</h3>
                 </div>
-                <h4 class="font-semibold text-gray-800 dark:text-gray-100 leading-tight truncate" title="{{ aluno_data.aluno.nome }}">
-                    {{ aluno_data.aluno.nome.split()[0] }} {{ aluno_data.aluno.nome.split()[-1] if aluno_data.aluno.nome.split()|length > 1 else '' }}
-                </h4>
+                <div class="p-3 bg-blue-50 rounded-lg text-blue-500">
+                    <i class="fas fa-chalkboard-teacher fa-lg"></i>
+                </div>
             </div>
-            
-            <div class="flex items-end justify-between border-t border-gray-50 pt-3 dark:border-gray-700">
-                <div class="text-xs text-gray-400">Nota Global</div>
-                <div class="text-xl font-bold text-indigo-600 dark:text-indigo-400">{{ "%.1f"|format(aluno_data.percentual) }}%</div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-green-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total de Alunos</p>
+                    <h3 class="text-3xl font-bold text-gray-800 mt-1">{{ total_alunos }}</h3>
+                </div>
+                <div class="p-3 bg-green-50 rounded-lg text-green-500">
+                    <i class="fas fa-user-graduate fa-lg"></i>
+                </div>
             </div>
-        </a>
-        {% else %}
-        <div class="col-span-full py-8 text-center bg-white rounded-xl border border-dashed border-gray-300 dark:bg-gray-800 dark:border-gray-700 text-gray-500">
-            <i class="fas fa-chart-bar mb-2 text-2xl opacity-50"></i>
-            <p>Ainda não há dados suficientes para o ranking.</p>
         </div>
-        {% endfor %}
-    </div>
-</section>
 
-
-<section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-    
-    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700 flex flex-col">
-        <h2 class="font-bold text-lg text-gray-800 dark:text-gray-100 mb-6 flex items-center">
-            <span class="w-1 h-6 bg-green-500 rounded mr-3"></span>
-            Desempenho Médio por Turma
-        </h2>
-        <div class="flex-grow flex items-center justify-center relative min-h-[300px]">
-            <canvas id="globalDesempenhoChart"></canvas>
+        <div class="bg-white rounded-xl shadow-sm p-6 border-l-4 border-purple-500">
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Atividades Geradas</p>
+                    <h3 class="text-3xl font-bold text-gray-800 mt-1">{{ total_atividades }}</h3>
+                </div>
+                <div class="p-3 bg-purple-50 rounded-lg text-purple-500">
+                    <i class="fas fa-book-open fa-lg"></i>
+                </div>
+            </div>
         </div>
     </div>
 
-    <div class="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700 flex flex-col">
-        <h2 class="font-bold text-lg text-gray-800 dark:text-gray-100 mb-6 flex items-center">
-            <span class="w-1 h-6 bg-blue-500 rounded mr-3"></span>
-            Frequência Média por Turma
-        </h2>
-        <div class="flex-grow flex items-center justify-center relative min-h-[300px]">
-            <canvas id="globalFrequenciaChart"></canvas>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 break-inside-avoid">
+        
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">
+                <i class="fas fa-chart-bar text-indigo-500 mr-2"></i>Média de Desempenho
+            </h3>
+            <div class="relative h-64 w-full">
+                <canvas id="chartDesempenho"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <h3 class="text-lg font-bold text-gray-700 mb-4 border-b pb-2">
+                <i class="fas fa-chart-line text-emerald-500 mr-2"></i>Índice de Frequência
+            </h3>
+            <div class="relative h-64 w-full">
+                <canvas id="chartFrequencia"></canvas>
+            </div>
         </div>
     </div>
-</section>
 
-<section class="bg-white rounded-2xl shadow-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700 overflow-hidden mb-8">
-    <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-        <h2 class="font-bold text-lg text-gray-800 dark:text-white">Resumo Detalhado das Turmas</h2>
-        <a href="{{ url_for('core.listar_turmas') }}" class="text-sm text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium">
-            Gerenciar Turmas <i class="fas fa-arrow-right ml-1"></i>
-        </a>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden break-inside-avoid" id="tabela-container">
+        <div class="p-6 border-b border-gray-100">
+            <h3 class="text-lg font-bold text-gray-700">
+                <i class="fas fa-medal text-yellow-500 mr-2"></i>Relatório: Top 10 Alunos
+            </h3>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse" id="tableTopAlunos">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="p-4 text-xs font-semibold tracking-wide text-gray-500 uppercase">Aluno</th>
+                        <th class="p-4 text-xs font-semibold tracking-wide text-gray-500 uppercase">Turma</th>
+                        <th class="p-4 text-xs font-semibold tracking-wide text-gray-500 uppercase text-center">Pontos</th>
+                        <th class="p-4 text-xs font-semibold tracking-wide text-gray-500 uppercase">Aproveitamento</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for item in top_alunos %}
+                    <tr>
+                        <td class="p-4 font-medium text-gray-700">{{ item.aluno.nome }}</td>
+                        <td class="p-4 text-gray-600 text-sm">{{ item.aluno.turma.nome if item.aluno.turma else 'N/A' }}</td>
+                        <td class="p-4 text-center text-gray-700">
+                            {{ "%.1f"|format(item.pontos_obtidos) }}
+                        </td>
+                        <td class="p-4">
+                            <span class="text-indigo-700 font-bold">{{ "%.1f"|format(item.percentual) }}%</span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="p-4 text-center">Sem dados.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-    
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead class="bg-gray-50 dark:bg-gray-900/50">
-                <tr>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Turma</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Desempenho Médio</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Barra de Progresso</th>
-                    <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Frequência</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-            {% for dados in dados_combinados %}
-                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-bold text-gray-900 dark:text-white">{{ dados.turma }}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="text-lg font-bold 
-                            {% if dados.desempenho >= 80 %}text-green-600 dark:text-green-400
-                            {% elif dados.desempenho >= 60 %}text-blue-600 dark:text-blue-400
-                            {% elif dados.desempenho >= 40 %}text-yellow-600 dark:text-yellow-400
-                            {% else %}text-red-600 dark:text-red-400{% endif %}">
-                            {{ "%.1f"|format(dados.get('desempenho', 0)) }}%
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap align-middle">
-                        <div class="w-full max-w-xs bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                            <div class="h-2.5 rounded-full 
-                                {% if dados.desempenho >= 80 %}bg-green-500
-                                {% elif dados.desempenho >= 60 %}bg-blue-500
-                                {% elif dados.desempenho >= 40 %}bg-yellow-500
-                                {% else %}bg-red-500{% endif %}" 
-                                 style="width: {{ dados.get('desempenho', 0) }}%"></div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            {% if dados.frequencia >= 90 %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300
-                            {% elif dados.frequencia >= 75 %}bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300
-                            {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300{% endif %}">
-                            <i class="fas fa-check-circle mr-1.5"></i>
-                            {{ "%.1f"|format(dados.get('frequencia', 0)) }}%
-                        </span>
-                    </td>
-                </tr>
-            {% else %}
-                <tr>
-                    <td colspan="4" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
-                        <i class="fas fa-folder-open mb-2 text-xl block"></i>
-                        Nenhuma turma com dados consolidados encontrada.
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</section>
+</div>
+
+<script>
+    // --- LÓGICA DOS GRÁFICOS (CHART.JS) ---
+    document.addEventListener('DOMContentLoaded', function() {
+        const labels = {{ chart_labels | tojson }};
+        const dataDesempenho = {{ chart_desempenho | tojson }};
+        const dataFrequencia = {{ chart_frequencia | tojson }};
+        
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#6B7280';
+
+        // Gráfico Barras
+        new Chart(document.getElementById('chartDesempenho'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Nota Média',
+                    data: dataDesempenho,
+                    backgroundColor: 'rgba(79, 70, 229, 0.6)',
+                    borderColor: 'rgba(79, 70, 229, 1)',
+                    borderWidth: 1, borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, max: 10, grid: { borderDash: [2, 4] } }, x: { grid: { display: false } } }
+            }
+        });
+
+        // Gráfico Linha
+        new Chart(document.getElementById('chartFrequencia'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Frequência (%)',
+                    data: dataFrequencia,
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderColor: 'rgba(16, 185, 129, 1)',
+                    borderWidth: 2, tension: 0.3, fill: true, pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, max: 100, grid: { borderDash: [2, 4] } }, x: { grid: { display: false } } }
+            }
+        });
+    });
+
+    // --- LÓGICA DE EXPORTAÇÃO ---
+
+    // 1. Exportar para PDF (Dashboard Visual Completo)
+    function exportToPDF() {
+        const element = document.getElementById('dashboard-content');
+        const opt = {
+            margin:       0.5,
+            filename:     'Cortex_Dashboard.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true }, // Scale 2 melhora qualidade
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+        // A classe .no-export é ignorada automaticamente pelo atributo data-html2canvas-ignore
+        html2pdf().set(opt).from(element).save();
+    }
+
+    // 2. Exportar para Excel (Foco nos Dados da Tabela)
+    function exportToExcel() {
+        const table = document.getElementById('tableTopAlunos');
+        const wb = XLSX.utils.table_to_book(table, {sheet: "Relatorio Alunos"});
+        XLSX.writeFile(wb, 'Cortex_Relatorio_Alunos.xlsx');
+    }
+
+    // 3. Exportar para DOCX (Foco nos Dados Editáveis)
+    function exportToDocx() {
+        // Para Docx, focamos na tabela pois gráficos em canvas são complexos para exportar direto para Word via JS
+        const content = `
+            <h2 style="font-family: Arial; color: #333;">Relatório Cortex Analytics</h2>
+            <p>Data de geração: ${new Date().toLocaleDateString()}</p>
+            <br>
+            ${document.getElementById('tableTopAlunos').outerHTML}
+        `;
+        
+        const converted = htmlDocx.asBlob(content);
+        saveAs(converted, 'Cortex_Relatorio.docx');
+    }
+</script>
+
+<style>
+    @media print {
+        /* Esconde barra lateral, topo e botões na hora de imprimir */
+        aside, nav, .no-export, footer { 
+            display: none !important; 
+        }
+        /* Ajusta o layout para ocupar a folha toda */
+        body, .container { 
+            width: 100% !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            background: white;
+        }
+        /* Evita quebras de página ruins */
+        .break-inside-avoid {
+            page-break-inside: avoid;
+        }
+    }
+</style>
 
 {% endblock %}

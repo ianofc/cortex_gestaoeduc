@@ -14,7 +14,7 @@ from flask_login import login_required, current_user
 
 core_bp = Blueprint('core', __name__, url_prefix='/')
 
-# ------------------- ROTAS PRINCIPAIS (DASHBOARD) -------------------
+# ------------------- ROTAS PRINCIPAIS (HOME / INDEX) -------------------
 
 @core_bp.route('/', methods=['GET', 'POST'])
 @login_required 
@@ -120,13 +120,12 @@ def excluir_turma(id):
     flash('Turma excluída com sucesso.', 'success')
     return redirect(url_for('core.listar_turmas'))
 
-# ROTA REMOVIDA: ver_turma (Causava loop de redirecionamento com alunos.turma)
-
-# ------------------- DASHBOARD GLOBAL -------------------
+# ------------------- DASHBOARD GLOBAL (CORTEX ANALYTICS) -------------------
 
 @core_bp.route('/dashboard')
 @login_required
 def dashboard():
+    # 1. KPIs Principais
     total_turmas = Turma.query.filter_by(autor=current_user).count()
     
     total_alunos = db.session.query(func.count(Aluno.id))\
@@ -137,14 +136,17 @@ def dashboard():
         .join(Turma)\
         .filter(Turma.id_user == current_user.id).scalar()
 
+    # 2. Dados de Desempenho por Turma (Média)
+    # Nota: Assume que Presenca pode ter nota ou desempenho associado, ou ajustamos conforme seu model
     desempenho_turmas_raw = db.session.query(
         Turma.nome,
-        func.avg(Presenca.desempenho).label('media_desempenho')
+        func.avg(Presenca.nota).label('media_desempenho') 
     ).select_from(Turma).join(Turma.alunos, isouter=True).join(Aluno.presencas, isouter=True)\
      .filter(Turma.id_user == current_user.id)\
      .group_by(Turma.nome)\
      .order_by(Turma.nome).all()
      
+    # 3. Dados de Frequência (Presença vs Faltas)
     frequencia_turmas_raw = db.session.query(
         Turma.nome,
         func.avg(case((Presenca.status == 'Presente', 100.0), (Presenca.status == 'Justificado', 100.0), else_=0.0)).label('media_frequencia')
@@ -152,6 +154,7 @@ def dashboard():
      .filter(Turma.id_user == current_user.id)\
      .group_by(Turma.nome).all()
 
+    # 4. Combinar Dados
     dados_combinados = {}
     for d in desempenho_turmas_raw:
         dados_combinados[d.nome] = {"desempenho": float(d.media_desempenho) if d.media_desempenho else 0}
@@ -166,8 +169,8 @@ def dashboard():
         for nome, dados in dados_combinados.items()
     ]
     
+    # 5. Top Alunos
     top_alunos_data = []
-    
     alunos_scores = db.session.query(
         Aluno,
         func.sum(Presenca.nota).label('pontos_obtidos'),
@@ -180,7 +183,8 @@ def dashboard():
      
     for aluno, pontos_obtidos, pontos_max_aluno in alunos_scores:
         pontos_obtidos = float(pontos_obtidos) if pontos_obtidos else 0.0
-        pontos_max_aluno = float(pontos_max_aluno) if pontos_max_aluno and pontos_max_aluno > 0 else 0.0
+        # Ajuste para evitar divisão por zero se não houver peso
+        pontos_max_aluno = float(pontos_max_aluno) if pontos_max_aluno and pontos_max_aluno > 0 else 100.0 
         
         if pontos_max_aluno > 0:
             percentual = (pontos_obtidos / pontos_max_aluno) * 100
@@ -194,18 +198,26 @@ def dashboard():
             "percentual": percentual
         })
         
-    top_alunos_data = [
-        a for a in top_alunos_data if a['pontos_max_aluno'] > 0
-    ]
+    top_alunos_data = [a for a in top_alunos_data if a['pontos_obtidos'] > 0] # Filtra quem não tem nota
     top_alunos_data.sort(key=lambda x: x['percentual'], reverse=True)
     top_alunos_data = top_alunos_data[:10]
     
+    # --- PREPARAÇÃO PARA CHART.JS ---
+    # Extraindo listas simples para passar ao template
+    chart_labels = [d['turma'] for d in dados_graficos]
+    chart_desempenho = [d.get('desempenho', 0) for d in dados_graficos]
+    chart_frequencia = [d.get('frequencia', 0) for d in dados_graficos]
+
     return render_template('geral/dashboard_global.html',
                            total_turmas=total_turmas,
                            total_alunos=total_alunos,
                            total_atividades=total_atividades,
-                           dados_combinados=dados_graficos, 
-                           top_alunos=top_alunos_data
+                           dados_combinados=dados_graficos, # Mantido para tabelas antigas se houver
+                           top_alunos=top_alunos_data,
+                           # Variáveis novas para os Gráficos
+                           chart_labels=chart_labels,
+                           chart_desempenho=chart_desempenho,
+                           chart_frequencia=chart_frequencia
                            )
 
 # ------------------- PERFIL DE USUÁRIO -------------------
@@ -225,14 +237,11 @@ def edit_perfil():
         foto_upload = request.files.get('foto_perfil')
         
         if foto_upload and foto_upload.filename != '':
-            # Define a pasta de imagens dentro de static/uploads
             imgs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'imgs')
             
-            # Garante que a pasta existe
             if not os.path.exists(imgs_folder):
                 os.makedirs(imgs_folder)
 
-            # Remove a foto antiga se existir (procurando na pasta correta)
             if current_user.foto_perfil_path:
                 old_path = os.path.join(imgs_folder, current_user.foto_perfil_path)
                 if os.path.exists(old_path):
@@ -242,9 +251,7 @@ def edit_perfil():
             _, ext_seguro = os.path.splitext(filename_seguro)
             filename_final = f"perfil_{current_user.id}_{int(datetime.now().timestamp())}{ext_seguro}"
             
-            # Caminho completo para salvar o arquivo
             filepath = os.path.join(imgs_folder, filename_final)
-            
             foto_upload.save(filepath)
             
             current_user.foto_perfil_path = filename_final
@@ -288,45 +295,34 @@ def deletar_lembrete(id):
     flash('Lembrete deletado.', 'info')
     return redirect(url_for('core.index'))
 
-# ------------------- ROTAS DE LISTAGEM (NOVAS) -------------------
+# ------------------- ROTAS DE LISTAGEM -------------------
 
-# 1. LISTAR TURMAS
 @core_bp.route('/turmas/listar')
 @login_required
 def listar_turmas():
     turmas = current_user.turmas 
     return render_template('list/listar_turmas.html', turmas=turmas)
 
-# 2. LISTAR ATIVIDADES
 @core_bp.route('/atividades/listar')
 @login_required
 def listar_atividades():
-    # Obtém IDs das turmas do professor atual
     turmas_ids = [t.id for t in current_user.turmas]
-    
     if not turmas_ids:
         atividades = []
     else:
-        # Usamos Atividade.id_turma.in_(...) para filtrar
         atividades = Atividade.query.filter(Atividade.id_turma.in_(turmas_ids)).order_by(Atividade.data.desc()).all()
-        
     return render_template('list/listar_atividades.html', atividades=atividades)
 
-# 3. LISTAR PROFESSORES
 @core_bp.route('/professores')
 @login_required
 def listar_professores():
-    # Lista todos os usuários marcados como professor
     professores = User.query.filter_by(is_professor=True).all()
     return render_template('list/listar_professores.html', professores=professores)
 
-# 4. EXCLUIR ATIVIDADE (Ação)
 @core_bp.route('/atividade/excluir/<int:id>')
 @login_required
 def excluir_atividade(id):
     atividade = Atividade.query.get_or_404(id)
-    
-    # Verifica se a turma da atividade pertence ao usuário atual
     if not atividade.turma or atividade.turma.autor != current_user:
         flash('Não autorizado.', 'danger')
         return redirect(url_for('core.index'))
@@ -336,11 +332,9 @@ def excluir_atividade(id):
     flash('Atividade removida com sucesso.', 'success')
     return redirect(url_for('core.listar_atividades'))
 
-# 5. EXCLUIR USUÁRIO (Admin/Coordenador)
 @core_bp.route('/usuario/excluir/<int:id>')
 @login_required
 def excluir_usuario(id):
-    # Proteção simples: Apenas Admin pode excluir (se houver essa flag)
     if not current_user.is_admin:
          flash('Acesso negado. Apenas administradores podem excluir usuários.', 'danger')
          return redirect(url_for('core.index'))
@@ -355,24 +349,20 @@ def excluir_usuario(id):
     flash('Usuário removido com sucesso.', 'success')
     return redirect(request.referrer)
 
-# ------------------- ROTAS PARA ESCOLAS E COORDENADORES (NOVAS) -------------------
-
 @core_bp.route('/escolas/listar')
 @login_required
 def listar_escolas():
-    # Apenas admins podem ver todas as escolas
     if not current_user.is_admin:
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
         
-    from models import Escola # Import tardio para evitar ciclo se necessário
+    from models import Escola 
     escolas = Escola.query.all()
     return render_template('list/listar_escola.html', escolas=escolas)
 
 @core_bp.route('/coordenadores/listar')
 @login_required
 def listar_coordenadores():
-    # Apenas admins
     if not current_user.is_admin:
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))

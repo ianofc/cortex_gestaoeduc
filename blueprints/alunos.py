@@ -15,7 +15,7 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import func, distinct, case
 from sqlalchemy.orm import joinedload
 
-# --- Imports para Exportação de Documentos ---
+# --- Imports para Exportação de Documentos (ReportLab e Docx) ---
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -35,7 +35,7 @@ from forms import (
 from utils import extrair_texto_de_ficheiro, obter_resumo_ia, allowed_file 
 from flask_login import login_required, current_user
 
-# Criação do Blueprint para Turmas, Alunos e Atividades
+# Criação do Blueprint
 alunos_bp = Blueprint('alunos', __name__, url_prefix='/')
 
 
@@ -56,21 +56,23 @@ def turma(id_turma):
         alunos_query = alunos_query.filter(Aluno.nome.ilike(f'%{q_aluno}%'))
     
     alunos = alunos_query.order_by(Aluno.nome).all()
-    # Atividades são lidas e passadas para o template
+    # Carrega atividades ordenadas por data
     atividades = Atividade.query.filter_by(id_turma=id_turma).order_by(Atividade.data.desc()).all()
     
     ids_alunos = [aluno.id for aluno in alunos]
     
     presencas_turma = []
     if ids_alunos:
+        # Otimização com joinedload para evitar N+1 queries
         presencas_turma = Presenca.query.join(Atividade).filter(
             Atividade.id_turma == id_turma,
             Presenca.id_aluno.in_(ids_alunos)
         ).options(joinedload(Presenca.atividade)).all() 
 
-    # Soma o Valor Máximo de Pontos de todas as atividades (peso = Valor Máximo)
+    # Soma o Valor Máximo de Pontos (Peso) de todas as atividades
     total_max_score = sum(a.peso for a in atividades if a.peso is not None)
 
+    # Organiza presenças por aluno em um dicionário
     presencas_por_aluno = {}
     for p in presencas_turma:
         if p.id_aluno not in presencas_por_aluno:
@@ -93,7 +95,6 @@ def turma(id_turma):
             'media': media_final_pontos
         })
         
-    # CORREÇÃO: Template na pasta 'geral'
     return render_template(
         'geral/turma.html', 
         turma=turma, 
@@ -126,7 +127,6 @@ def aluno(id_aluno):
     
     media_final = total_pontos_obtidos
     
-    # CORREÇÃO: Template na pasta 'geral'
     return render_template(
         'geral/aluno.html', 
         aluno=aluno, 
@@ -156,7 +156,6 @@ def add_aluno(id_turma):
         flash(f'Aluno {novo.nome} adicionado!', 'success')
         return redirect(url_for('alunos.turma', id_turma=id_turma))
     
-    # CORREÇÃO: Template na pasta 'add'
     return render_template('add/add_aluno.html', turma=turma, form=form)
 
 @alunos_bp.route('/turma/<int:id_turma>/bulk_add_alunos', methods=['POST'])
@@ -205,7 +204,7 @@ def add_atividade(id_turma):
     form = AtividadeForm()
     if form.validate_on_submit():
         
-        # --- Lógica de Upload do Anexo (CORRIGIDA: PASTA DOCS) ---
+        # --- Lógica de Upload do Anexo (Salva na pasta DOCS) ---
         arquivo = request.files.get('arquivo_anexo')
         nome_arquivo_anexo = None
         path_arquivo_anexo = None
@@ -217,7 +216,7 @@ def add_atividade(id_turma):
                 os.makedirs(docs_folder) # Cria a pasta docs se não existir
 
             filename_seguro = secure_filename(arquivo.filename)
-            base, ext_seguro = os.path.splitext(filename_seguro)
+            _, ext_seguro = os.path.splitext(filename_seguro)
             filename_final = f"atividade_{id_turma}_{int(datetime.now().timestamp())}{ext_seguro}"
             
             # Salva em uploads/docs/
@@ -252,7 +251,6 @@ def add_atividade(id_turma):
     if ai_desc:
         form.descricao.data = ai_desc
         
-    # CORREÇÃO: Template na pasta 'add'
     return render_template('add/add_atividade.html', turma=turma, form=form)
 
 
@@ -290,13 +288,11 @@ def registrar_presenca(id_aluno, id_atividade):
             
             if total_questoes is None or total_questoes <= 0:
                  flash(f'Erro: Não foi possível determinar o Nº total de questões. Insira a nota manualmente.', 'danger')
-                 # CORREÇÃO: Template na pasta 'geral'
                  return render_template('geral/registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
 
             # Validação: Acertos não pode ser maior que o total
             if acertos > total_questoes:
                  flash(f'Erro: O número de acertos ({acertos}) excede o total de questões ({total_questoes}).', 'danger')
-                 # CORREÇÃO: Template na pasta 'geral'
                  return render_template('geral/registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
             
             # CÁLCULO FINAL: (Acertos / Total Questões) * Peso Total
@@ -324,7 +320,6 @@ def registrar_presenca(id_aluno, id_atividade):
         db.session.commit()
         return redirect(url_for('alunos.turma', id_turma=aluno.id_turma))
 
-    # CORREÇÃO: Template na pasta 'geral'
     return render_template('geral/registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
 
 @alunos_bp.route('/atividade/<int:id_atividade>/editar', methods=['GET', 'POST'])
@@ -355,7 +350,7 @@ def edit_atividade(id_atividade):
     
     if form.validate_on_submit():
         
-        # Lógica de Upload do Anexo (CORRIGIDA: PASTA DOCS)
+        # Lógica de Upload do Anexo (Salva na pasta DOCS)
         arquivo = request.files.get('arquivo_anexo')
         if arquivo and arquivo.filename != '' and allowed_file(arquivo.filename):
             docs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
@@ -374,7 +369,7 @@ def edit_atividade(id_atividade):
                         os.remove(old_path_root)
             
             filename_seguro = secure_filename(arquivo.filename)
-            base, ext_seguro = os.path.splitext(filename_seguro)
+            _, ext_seguro = os.path.splitext(filename_seguro)
             filename_final = f"atividade_{atividade.id_turma}_{int(datetime.now().timestamp())}{ext_seguro}"
             
             # Salva na pasta docs
@@ -427,7 +422,6 @@ def edit_atividade(id_atividade):
         flash(f'Atividade "{atividade.titulo}" atualizada com sucesso!', 'success')
         return redirect(url_for('alunos.turma', id_turma=atividade.id_turma))
 
-    # CORREÇÃO: Template na pasta 'edit'
     return render_template('edit/edit_atividade.html', form=form, atividade=atividade)
 
 
@@ -483,7 +477,6 @@ def editar_aluno(id_aluno):
         db.session.commit()
         return redirect(url_for('alunos.aluno', id_aluno=aluno.id))
     
-    # CORREÇÃO: Template na pasta 'edit'
     return render_template('edit/edit_aluno.html', aluno=aluno, form=form)
 
 @alunos_bp.route('/aluno/<int:id_aluno>/deletar', methods=['POST'])
@@ -516,7 +509,6 @@ def editar_turma(id_turma):
         flash(f'Turma {turma.nome} atualizada com sucesso!', 'success')
         return redirect(url_for('alunos.turma', id_turma=turma.id))
     
-    # CORREÇÃO: Template na pasta 'edit'
     return render_template('edit/edit_turma.html', turma=turma, form=form)
 
 @alunos_bp.route('/turma/<int:id_turma>/deletar', methods=['POST'])
@@ -560,7 +552,6 @@ def gradebook(id_turma):
         
     presencas_map = { (p.id_aluno, p.id_atividade): p for p in presencas_db }
 
-    # CORREÇÃO: Template na pasta 'geral'
     return render_template('geral/gradebook.html', 
                            turma=turma, 
                            alunos=alunos, 
@@ -631,21 +622,22 @@ def dashboard(id_turma):
     atividades = Atividade.query.filter_by(id_turma=id_turma).all()
     
     dados_desempenho = []
-    ids_alunos_turma = [aluno.id for aluno in alunos]
     
-    if not ids_alunos_turma:
-        # CORREÇÃO: Template na pasta 'geral'
+    # Se não houver alunos ou atividades, retorna dados vazios para evitar erros
+    if not alunos or not atividades:
         return render_template(
             'geral/dashboard.html', 
             turma=turma, 
             dados_desempenho=[],
             dados_frequencia={"presente": 0, "ausente": 0, "justificado": 0},
             dados_situacao={"excelente": 0, "bom": 0, "reforco": 0, "insatisfatorio": 0},
-            total_alunos=0,
+            total_alunos=len(alunos),
             total_atividades=len(atividades),
             desempenho_medio_turma=0,
             frequencia_media=0
         )
+
+    ids_alunos_turma = [aluno.id for aluno in alunos]
 
     todas_presencas_turma = Presenca.query.join(Atividade).filter(
         Presenca.id_aluno.in_(ids_alunos_turma),
@@ -660,13 +652,16 @@ def dashboard(id_turma):
 
     for aluno in alunos:
         presencas_aluno = presencas_por_aluno.get(aluno.id, [])
+        # Calcula média simples de desempenho (assumindo que presenca.desempenho é 0-100)
         desempenho_medio = (
             sum(p.desempenho for p in presencas_aluno if p.desempenho is not None) / len(presencas_aluno)
             if presencas_aluno else 0
         )
         dados_desempenho.append({
-            "aluno": aluno.nome, "desempenho": desempenho_medio,
-            "id_aluno": aluno.id, "tem_presenca": bool(presencas_aluno)
+            "aluno": aluno.nome, 
+            "desempenho": desempenho_medio,
+            "id_aluno": aluno.id, 
+            "tem_presenca": bool(presencas_aluno)
         })
         
     desempenho_total_turma = sum(item['desempenho'] for item in dados_desempenho)
@@ -697,7 +692,6 @@ def dashboard(id_turma):
         "reforco": count_reforco, "insatisfatorio": count_insat
     }
     
-    # CORREÇÃO: Template na pasta 'geral'
     return render_template(
         'geral/dashboard.html', 
         turma=turma, 
@@ -1108,5 +1102,4 @@ def listar_alunos():
     for turma in turmas:
         alunos_list.extend(turma.alunos)
         
-    # CORREÇÃO: Template na pasta 'list'
     return render_template('list/listar_alunos.html', alunos=alunos_list)
