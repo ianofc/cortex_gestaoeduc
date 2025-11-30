@@ -12,163 +12,428 @@
 {% endif %}
 {% set total_questoes_db = total_questoes_list[0] if total_questoes_list else '' %}
 
-<div class="max-w-4xl mx-auto">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <i class="fas fa-edit text-indigo-600"></i> Lançamento Individual
-        </h2>
-        <a href="{{ url_for('alunos.turma', id_turma=aluno.turma.id) }}" class="text-sm text-gray-500 hover:text-indigo-600 transition-colors">
-            <i class="fas fa-arrow-left"></i> Voltar para Turma
-        </a>
-    </div>
-
-    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 mb-8 relative overflow-hidden">
-        <div class="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-indigo-500 to-purple-600"></div>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-                <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Aluno</p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ aluno.nome }}</p>
-                <p class="text-xs text-gray-400">Matrícula: {{ aluno.matricula or 'N/A' }}</p>
-            </div>
-            <div class="md:text-right">
-                <p class="text-sm text-gray-500 uppercase font-bold tracking-wider">Atividade</p>
-                <p class="text-lg font-semibold text-indigo-600 dark:text-indigo-400">{{ atividade.titulo }}</p>
-                <div class="flex items-center justify-end gap-2 mt-1">
-                    <span class="px-2 py-0.5 rounded text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
-                        {{ atividade.tipo }}
-                    </span>
-                    <span class="px-2 py-0.5 rounded text-xs font-bold bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
-                        Valor: {{ "{:.1f}".format(atividade.peso) }} pts
-                    </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <form method="POST" class="space-y-6">
-        {{ form.hidden_tag() }}
+<div class="max-w-7xl mx-auto space-y-8 animate-fade-in-down">
+    
+    <div class="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b from-blue-500 to-purple-600"></div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
-                <h3 class="text-lg font-semibold mb-4 text-gray-800 dark:text-white border-b border-gray-100 dark:border-gray-700 pb-2">
-                    <i class="far fa-check-circle text-gray-400 mr-2"></i>Status
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 pl-4">
+            <div>
+                <div class="flex items-center gap-2 mb-2 text-sm text-gray-500 dark:text-gray-400">
+                    <a href="{{ url_for('alunos.turma', id_turma=aluno.turma.id) }}" class="hover:text-indigo-600 transition-colors flex items-center gap-1 font-medium">
+                        <i class="fas fa-arrow-left"></i> Voltar para Turma
+                    </a>
+                    <span class="opacity-30">|</span>
+                    <span class="uppercase tracking-wider text-xs font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{{ atividade.tipo }}</span>
+                </div>
+                
+                <h1 class="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+                    <span class="bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 w-12 h-12 rounded-full flex items-center justify-center text-lg text-gray-600 dark:text-gray-300 shadow-inner">
+                        {{ aluno.nome[:2].upper() }}
+                    </span>
+                    {{ aluno.nome }}
+                </h1>
+                
+                <div class="mt-3 flex flex-wrap items-center gap-3 text-sm">
+                    <span class="text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <i class="fas fa-book-open text-indigo-400"></i>
+                        Atividade: <strong class="text-indigo-600 dark:text-indigo-400">{{ atividade.titulo }}</strong>
+                    </span>
+                    <span class="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-3 py-1 rounded-full font-bold text-xs border border-green-200 dark:border-green-800 flex items-center gap-1">
+                        <i class="fas fa-star"></i> Max: {{ "{:.1f}".format(atividade.peso) }} pts
+                    </span>
+                    {% if atividade.unidade %}
+                    <span class="bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 px-3 py-1 rounded-full font-bold text-xs border border-purple-200 dark:border-purple-800">
+                        {{ atividade.unidade }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        
+        <form method="POST" class="flex flex-col gap-6 h-full">
+            {{ form.hidden_tag() }}
+            
+            <div class="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-700 flex-grow relative">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700 pb-4">
+                    <span class="bg-indigo-100 dark:bg-indigo-900/50 p-2 rounded-lg text-indigo-600 dark:text-indigo-400"><i class="fas fa-edit"></i></span>
+                    Registro de Nota
                 </h3>
-                
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{{ form.status.label }}</label>
-                        {{ form.status(class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500") }}
+
+                <div class="grid grid-cols-2 gap-6 mb-8">
+                    <div class="col-span-2 sm:col-span-1">
+                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Nota Final</label>
+                        <div class="relative group">
+                            {{ form.nota(class="w-full text-4xl font-black text-center text-indigo-600 dark:text-indigo-400 border-2 border-indigo-100 dark:border-indigo-900/50 rounded-2xl py-4 focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all bg-indigo-50/30 dark:bg-indigo-900/10", id="nota", type="number", step="0.1", min="0", max=atividade.peso) }}
+                            <div class="absolute right-3 bottom-3 text-xs text-indigo-300 font-bold opacity-0 group-hover:opacity-100 transition-opacity">PTS</div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{{ form.participacao.label }}</label>
-                        {{ form.participacao(class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500") }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">{{ form.situacao.label }}</label>
-                        {{ form.situacao(class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 focus:border-indigo-500") }}
+                    <div class="col-span-2 sm:col-span-1">
+                        <label class="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Desempenho</label>
+                        <div class="relative">
+                            {{ form.desempenho(class="w-full text-4xl font-black text-center text-gray-700 dark:text-gray-300 border-2 border-gray-200 dark:border-gray-700 rounded-2xl py-4 focus:ring-4 focus:ring-gray-500/20 focus:border-gray-500 transition-all bg-white dark:bg-gray-800", id="desempenho", type="number", min="0", max="100") }}
+                            <span class="absolute right-6 top-1/2 -translate-y-1/2 text-gray-300 font-black text-xl">%</span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="space-y-4">
-                
-                <div class="bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-xl border border-indigo-100 dark:border-indigo-800 relative transition-all duration-300" id="box-calculo">
-                    <div class="flex justify-between items-center mb-3">
-                        <h4 class="font-bold text-indigo-800 dark:text-indigo-300 flex items-center gap-2">
-                            <i class="fas fa-calculator"></i> Calcular Nota
-                        </h4>
-                        <span class="text-[10px] bg-white dark:bg-gray-800 px-2 py-1 rounded-full text-indigo-600 font-mono shadow-sm border border-indigo-100">Automático</span>
+                <div class="mb-8 bg-blue-50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-800/50 p-5 transition-all hover:shadow-md">
+                    <div class="flex justify-between items-center cursor-pointer group" onclick="document.getElementById('calc-manual').classList.toggle('hidden')">
+                        <span class="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wide flex items-center gap-2">
+                            <i class="fas fa-calculator"></i> Calculadora de Acertos
+                        </span>
+                        <i class="fas fa-chevron-down text-blue-400 text-xs transition-transform transform group-hover:translate-y-0.5"></i>
                     </div>
-
-                    <div class="grid grid-cols-2 gap-4">
+                    
+                    <div id="calc-manual" class="hidden mt-4 grid grid-cols-2 gap-4 animate-fade-in-down">
                         <div>
-                            <label class="block text-xs font-bold text-indigo-700 dark:text-indigo-400 mb-1">Total Questões</label>
-                            <input type="number" name="total_questoes_manual" id="total_questoes_manual" 
-                                   value="{{ total_questoes_db }}" 
-                                   class="w-full rounded-lg border-indigo-200 dark:border-indigo-700 bg-white dark:bg-gray-800 text-center font-bold text-gray-700 dark:text-white focus:ring-indigo-500"
-                                   placeholder="Definir...">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1">Total Questões</label>
+                            <input type="number" name="total_questoes_manual" id="total_questoes_manual" value="{{ total_questoes_db }}" class="w-full rounded-xl border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-center font-bold text-gray-700 dark:text-white focus:ring-blue-500 transition-all text-sm py-2.5 shadow-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-indigo-700 dark:text-indigo-400 mb-1">{{ form.acertos.label }}</label>
-                            {{ form.acertos(class="w-full rounded-lg border-indigo-200 dark:border-indigo-700 bg-white dark:bg-gray-800 text-center font-bold text-indigo-700 dark:text-indigo-300 focus:ring-indigo-500", placeholder="0") }}
+                            <label class="text-[10px] font-bold text-gray-400 uppercase block mb-1">Acertos</label>
+                            {{ form.acertos(class="w-full rounded-xl border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-center font-bold text-blue-600 dark:text-blue-400 focus:ring-blue-500 transition-all text-sm py-2.5 shadow-sm", id="acertos") }}
                         </div>
                     </div>
-                    <p class="text-[10px] text-indigo-600/70 dark:text-indigo-400/70 mt-2 text-center">
-                        Preencha "Total" e "Acertos" para gerar a nota.
-                    </p>
                 </div>
 
-                <div class="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
-                    <div class="flex justify-between items-end mb-2">
-                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300">Nota Final (0 a {{ atividade.peso }})</label>
-                        <i class="fas fa-lock text-gray-300" id="lock-icon" style="display: none;"></i>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase">{{ form.status.label }}</label>
+                        {{ form.status(class="w-full rounded-xl border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm py-2.5 focus:ring-indigo-500 transition-shadow hover:shadow-sm") }}
                     </div>
-                    
-                    {{ form.nota(class="w-full text-2xl font-bold text-center rounded-xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white focus:ring-green-500 focus:border-green-500 p-3", step="0.1") }}
-                    
-                    <div class="mt-4">
-                        <label class="block text-xs font-bold text-gray-500 mb-1">{{ form.desempenho.label }}</label>
-                        <div class="flex items-center gap-2">
-                            {{ form.desempenho(class="flex-1 rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-sm") }}
-                            <span class="text-sm font-bold text-gray-500">%</span>
-                        </div>
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase">{{ form.participacao.label }}</label>
+                        {{ form.participacao(class="w-full rounded-xl border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm py-2.5 focus:ring-indigo-500 transition-shadow hover:shadow-sm") }}
                     </div>
+                    <div class="space-y-1">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase">{{ form.situacao.label }}</label>
+                        {{ form.situacao(class="w-full rounded-xl border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-sm py-2.5 focus:ring-indigo-500 transition-shadow hover:shadow-sm") }}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase mb-2">{{ form.observacoes.label }}</label>
+                    {{ form.observacoes(class="w-full rounded-2xl border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-sm p-4 h-32 resize-none focus:ring-indigo-500 transition-all focus:bg-white dark:focus:bg-gray-800", id="observacoes", placeholder="Feedback pedagógico para o aluno...") }}
                 </div>
 
             </div>
-        </div>
 
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-100 dark:border-gray-700">
-            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">{{ form.observacoes.label }}</label>
-            {{ form.observacoes(class="w-full rounded-xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-indigo-500 p-3 h-24 resize-none", placeholder="Anotações sobre o desempenho...") }}
-        </div>
+            <button type="submit" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-2xl font-bold shadow-lg shadow-indigo-200 dark:shadow-none transform transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 text-lg">
+                <i class="fas fa-save"></i> Salvar Lançamento
+            </button>
+        </form>
 
-        <button type="submit" class="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-bold shadow-lg transform transition hover:-translate-y-0.5 text-lg">
-            <i class="fas fa-save mr-2"></i> Salvar Lançamento
-        </button>
-    </form>
+        <div class="flex flex-col h-full space-y-6">
+            
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden flex flex-col flex-grow">
+                
+                <div class="flex border-b border-gray-100 dark:border-gray-700">
+                    <button onclick="switchTab('texto')" id="btn-tab-texto" class="flex-1 py-4 text-sm font-bold text-center transition-colors border-b-2 border-indigo-600 text-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/10">
+                        <i class="fas fa-keyboard mr-2"></i> Texto / Pergunta
+                    </button>
+                    <button onclick="switchTab('foto')" id="btn-tab-foto" class="flex-1 py-4 text-sm font-bold text-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors border-b-2 border-transparent">
+                        <i class="fas fa-camera mr-2"></i> Foto da Prova
+                    </button>
+                </div>
+
+                <div class="p-6 flex-grow flex flex-col">
+                    
+                    <div id="tab-texto" class="space-y-5 animate-fade-in-down">
+                        <div class="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-800/50 flex gap-3 items-start">
+                            <i class="fas fa-info-circle text-indigo-500 mt-0.5"></i>
+                            <p class="text-xs text-indigo-800 dark:text-indigo-200 leading-relaxed">
+                                Cole a pergunta da prova e a resposta escrita pelo aluno. A IA avaliará a coerência e sugerirá uma nota proporcional ao valor da questão.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-bold uppercase text-gray-400 mb-1.5 block">Pergunta da Prova</label>
+                            <textarea id="ia-questao" rows="3" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none transition-all" placeholder="Ex: Quais foram as causas da Revolução Francesa?"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="text-[10px] font-bold uppercase text-gray-400 mb-1.5 block">Resposta do Aluno</label>
+                            <textarea id="ia-resposta" rows="5" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none resize-none transition-all" placeholder="O aluno respondeu..."></textarea>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 items-end">
+                            <div>
+                                <label class="text-[10px] font-bold uppercase text-gray-400 mb-1.5 block">Valor da Questão</label>
+                                <input type="number" id="ia-valor-texto" value="10" class="w-full rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-center font-bold py-2.5 focus:ring-indigo-500">
+                            </div>
+                            <button type="button" id="btn-corrigir-texto" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl shadow-md transition-all flex items-center justify-center gap-2">
+                                <i class="fas fa-bolt"></i> Corrigir
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="tab-foto" class="hidden space-y-5 animate-fade-in-down">
+                        <div class="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-100 dark:border-purple-800/50 flex gap-3 items-start">
+                            <i class="fas fa-camera text-purple-500 mt-0.5"></i>
+                            <p class="text-xs text-purple-800 dark:text-purple-200 leading-relaxed">
+                                Envie uma foto legível da prova. A IA identificará as questões, lerá a caligrafia do aluno e corrigirá tudo automaticamente.
+                            </p>
+                        </div>
+
+                        <div class="relative group cursor-pointer">
+                            <input type="file" id="foto-prova" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20">
+                            
+                            <div id="upload-placeholder" class="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl bg-gray-50 dark:bg-gray-900/30 group-hover:border-purple-500 group-hover:bg-purple-50 dark:group-hover:bg-purple-900/10 transition-all">
+                                <div class="p-4 bg-white dark:bg-gray-800 rounded-full shadow-sm mb-3 group-hover:scale-110 transition-transform">
+                                    <i class="fas fa-cloud-upload-alt text-2xl text-purple-500"></i>
+                                </div>
+                                <p class="text-xs font-bold text-gray-500 dark:text-gray-400">Clique para enviar foto</p>
+                                <p class="text-[10px] text-gray-400 mt-1">JPG, PNG (Max 5MB)</p>
+                            </div>
+
+                            <div id="preview-container" class="hidden relative w-full h-48 rounded-2xl overflow-hidden border border-gray-200 shadow-md">
+                                <img id="foto-preview" class="w-full h-full object-cover">
+                                <button type="button" onclick="limparFoto(event)" class="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-lg shadow-lg transition-colors z-30">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-[10px] font-bold uppercase text-gray-400 mb-1.5 block">Gabarito / Contexto (Opcional)</label>
+                            <textarea id="ia-contexto-foto" rows="2" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-3 text-xs focus:ring-2 focus:ring-purple-500 outline-none resize-none transition-all" placeholder="Ex: Q1 é B, Q2 é C. Na Q3 aceite respostas parciais."></textarea>
+                        </div>
+
+                        <button type="button" id="btn-corrigir-foto" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                            <i class="fas fa-magic"></i> Analisar Prova com IA
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+
+            <div id="resultado-correcao" class="hidden bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-3xl p-6 shadow-lg animate-fade-in-up">
+                <div class="flex justify-between items-start mb-4">
+                    <h4 class="font-bold text-green-800 dark:text-green-400 flex items-center gap-2">
+                        <i class="fas fa-robot"></i> Resultado da Correção
+                    </h4>
+                    <span class="text-[10px] font-mono bg-white dark:bg-green-900/40 px-2 py-1 rounded text-green-600 dark:text-green-300 border border-green-100 dark:border-green-800" id="origem-resultado">IA</span>
+                </div>
+                
+                <div class="flex items-stretch gap-4 mb-4">
+                    <div class="flex-1 bg-white dark:bg-green-900/40 p-4 rounded-2xl border border-green-100 dark:border-green-800 text-center flex flex-col justify-center">
+                        <span class="block text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">Nota Sugerida</span>
+                        <span class="text-4xl font-black text-green-600 dark:text-green-300" id="ia-nota-sugerida">--</span>
+                    </div>
+                    <button type="button" id="btn-aplicar-nota" class="px-4 bg-green-600 hover:bg-green-700 text-white font-bold rounded-2xl shadow-md transition-colors text-xs uppercase flex flex-col justify-center items-center gap-2 hover:shadow-lg active:scale-95">
+                        <i class="fas fa-check-circle text-2xl"></i>
+                        <span>Aplicar</span>
+                    </button>
+                </div>
+                
+                <div class="bg-white dark:bg-green-900/40 p-4 rounded-2xl border border-green-100 dark:border-green-800">
+                    <span class="block text-[10px] font-bold text-green-600 dark:text-green-400 uppercase mb-2">Análise & Feedback</span>
+                    <div class="text-sm text-green-800 dark:text-green-200 leading-relaxed max-h-40 overflow-y-auto custom-scrollbar pr-2" id="ia-feedback-sugerido">
+                        ...
+                    </div>
+                    <button type="button" id="btn-aplicar-feedback" class="mt-3 w-full py-2 text-xs font-bold text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-800/50 hover:bg-green-200 dark:hover:bg-green-800 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <i class="fas fa-paste"></i> Copiar para Observações
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </div>
 
 {% endblock %} 
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const acertosInput = document.getElementById('acertos');
-        const totalInput = document.getElementById('total_questoes_manual');
-        const notaInput = document.getElementById('nota');
-        const desempenhoInput = document.getElementById('desempenho');
-        const pesoMax = {{ atividade.peso }};
+    // --- LÓGICA DE ABAS ---
+    function switchTab(tab) {
+        document.getElementById('tab-texto').classList.add('hidden');
+        document.getElementById('tab-foto').classList.add('hidden');
+        document.getElementById('tab-' + tab).classList.remove('hidden');
 
-        function calcularNota() {
-            const acertos = parseFloat(acertosInput.value);
-            const total = parseFloat(totalInput.value);
+        const btnTexto = document.getElementById('btn-tab-texto');
+        const btnFoto = document.getElementById('btn-tab-foto');
 
-            if (!isNaN(acertos) && !isNaN(total) && total > 0) {
-                if (acertos > total) {
-                    alert('Número de acertos não pode ser maior que o total de questões!');
-                    acertosInput.value = total;
-                    return;
-                }
-
-                // Cálculo Regra de 3
-                let notaCalculada = (acertos / total) * pesoMax;
-                let desempenhoCalc = (acertos / total) * 100;
-
-                // Atualiza campos
-                notaInput.value = notaCalculada.toFixed(1);
-                desempenhoInput.value = Math.round(desempenhoCalc);
-                
-                // UX: Visual de campo calculado
-                notaInput.classList.add('bg-green-50', 'text-green-700', 'border-green-300');
-                setTimeout(() => notaInput.classList.remove('bg-green-50', 'text-green-700', 'border-green-300'), 1000);
-            }
+        if(tab === 'texto') {
+            btnTexto.className = "flex-1 py-4 text-sm font-bold text-center transition-colors border-b-2 border-indigo-600 text-indigo-600 bg-indigo-50/50 dark:bg-indigo-900/10";
+            btnFoto.className = "flex-1 py-4 text-sm font-bold text-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors border-b-2 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800";
+        } else {
+            btnFoto.className = "flex-1 py-4 text-sm font-bold text-center transition-colors border-b-2 border-purple-600 text-purple-600 bg-purple-50/50 dark:bg-purple-900/10";
+            btnTexto.className = "flex-1 py-4 text-sm font-bold text-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors border-b-2 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800";
         }
+    }
 
-        if (acertosInput && totalInput) {
-            acertosInput.addEventListener('input', calcularNota);
-            totalInput.addEventListener('input', calcularNota);
+    // --- UPLOAD E PREVIEW ---
+    const fotoInput = document.getElementById('foto-prova');
+    const previewContainer = document.getElementById('preview-container');
+    const uploadPlaceholder = document.getElementById('upload-placeholder');
+    const fotoPreview = document.getElementById('foto-preview');
+
+    fotoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                fotoPreview.src = e.target.result;
+                uploadPlaceholder.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+            }
+            reader.readAsDataURL(file);
         }
     });
+
+    function limparFoto(e) {
+        if(e) e.preventDefault();
+        fotoInput.value = '';
+        previewContainer.classList.add('hidden');
+        uploadPlaceholder.classList.remove('hidden');
+    }
+
+    // --- LÓGICA DE CORREÇÃO ---
+    const pesoMax = {{ atividade.peso }};
+    const notaInput = document.getElementById('nota');
+    const desempenhoInput = document.getElementById('desempenho');
+    const obsInput = document.getElementById('observacoes');
+    
+    // Resultados
+    const resultadoBox = document.getElementById('resultado-correcao');
+    const iaNotaSugerida = document.getElementById('ia-nota-sugerida');
+    const iaFeedbackSugerido = document.getElementById('ia-feedback-sugerido');
+    const origemTag = document.getElementById('origem-resultado');
+
+    function exibirResultado(nota, feedback, origem) {
+        iaNotaSugerida.innerText = parseFloat(nota).toFixed(1);
+        iaFeedbackSugerido.innerText = feedback;
+        origemTag.innerText = origem;
+        
+        // Remove hidden e anima
+        resultadoBox.classList.remove('hidden');
+        resultadoBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // 1. CORRIGIR TEXTO
+    document.getElementById('btn-corrigir-texto').addEventListener('click', async function() {
+        const btn = this;
+        const questao = document.getElementById('ia-questao').value;
+        const resposta = document.getElementById('ia-resposta').value;
+        const valor = document.getElementById('ia-valor-texto').value;
+
+        if(!questao || !resposta) { Swal.fire('Ops', 'Preencha Pergunta e Resposta.', 'warning'); return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analisando...';
+
+        try {
+            const res = await fetch("{{ url_for('alunos.corrigir_resposta_ia') }}", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ questao, resposta, valor_max: valor })
+            });
+            const data = await res.json();
+            if(data.status === 'success') exibirResultado(data.nota, data.feedback, 'TEXTO');
+            else Swal.fire('Erro IA', data.message, 'error');
+        } catch(e) { console.error(e); Swal.fire('Erro', 'Falha na conexão.', 'error'); } 
+        finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-bolt"></i> Corrigir'; }
+    });
+
+    // 2. CORRIGIR FOTO (COM CSRF FIX)
+    document.getElementById('btn-corrigir-foto').addEventListener('click', async function() {
+        const btn = this;
+        const file = fotoInput.files[0];
+        const contexto = document.getElementById('ia-contexto-foto').value;
+
+        if(!file) { Swal.fire('Ops', 'Selecione uma foto primeiro.', 'warning'); return; }
+
+        // --- CORREÇÃO: Captura o token CSRF do formulário ---
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando e Analisando...';
+
+        const formData = new FormData();
+        formData.append('imagem_prova', file);
+        formData.append('contexto', contexto);
+        formData.append('valor_total', pesoMax);
+
+        try {
+            const res = await fetch("{{ url_for('alunos.corrigir_prova_foto') }}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken // <--- ADICIONADO: Envia a chave de segurança
+                },
+                body: formData
+            });
+
+            // Verifica se a resposta é JSON antes de tentar ler
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Resposta inválida do servidor (provavelmente erro 400/500 HTML)");
+            }
+
+            const data = await res.json();
+            
+            if(data.status === 'success') {
+                const feedbackCompleto = `[Resumo]\n${data.resumo_correcao}\n\n[Feedback]\n${data.feedback_geral || ''}`;
+                exibirResultado(data.nota_calculada, feedbackCompleto, 'FOTO');
+            } else { 
+                Swal.fire('Erro IA', data.message, 'error'); 
+            }
+        } catch(e) { 
+            console.error(e); 
+            Swal.fire('Erro', 'Falha no envio da imagem. Verifique o console.', 'error'); 
+        } 
+        finally { 
+            btn.disabled = false; 
+            btn.innerHTML = '<i class="fas fa-magic"></i> Analisar Prova com IA'; 
+        }
+    });
+
+    // 3. APLICAR VALORES AO FORM
+    document.getElementById('btn-aplicar-nota').addEventListener('click', function() {
+        const nota = parseFloat(iaNotaSugerida.innerText);
+        if(!isNaN(nota)) {
+            notaInput.value = nota.toFixed(1);
+            // Calcula %
+            const p = (nota / pesoMax) * 100;
+            desempenhoInput.value = Math.min(Math.round(p), 100);
+            
+            // Visual Feedback
+            notaInput.classList.add('ring-4', 'ring-green-300');
+            setTimeout(() => notaInput.classList.remove('ring-4', 'ring-green-300'), 500);
+        }
+    });
+
+    document.getElementById('btn-aplicar-feedback').addEventListener('click', function() {
+        const novoTexto = iaFeedbackSugerido.innerText;
+        const atual = obsInput.value;
+        obsInput.value = atual ? atual + "\n\n[IA]: " + novoTexto : "[IA]: " + novoTexto;
+        
+        // Visual Feedback
+        obsInput.classList.add('border-green-400');
+        setTimeout(() => obsInput.classList.remove('border-green-400'), 500);
+    });
+
+    // 4. CALCULADORA MANUAL
+    const acertosInput = document.getElementById('acertos');
+    const totalManualInput = document.getElementById('total_questoes_manual');
+    
+    function calcManual() {
+        const acertos = parseFloat(acertosInput.value);
+        const total = parseFloat(totalManualInput.value);
+        if(acertos >= 0 && total > 0) {
+            const n = (acertos/total) * pesoMax;
+            notaInput.value = n.toFixed(1);
+            desempenhoInput.value = Math.min(Math.round((acertos/total)*100), 100);
+        }
+    }
+    if(acertosInput && totalManualInput) {
+        acertosInput.addEventListener('input', calcManual);
+        totalManualInput.addEventListener('input', calcManual);
+    }
+
 </script>
 {% endblock %}

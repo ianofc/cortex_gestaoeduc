@@ -8,9 +8,18 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / '.env')
 
 class Config:
-    # --- Banco de Dados ---
-    # Garante caminho absoluto para o SQLite
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{BASE_DIR / 'gestao_alunos.db'}"
+    # --- Banco de Dados (Lógica Híbrida) ---
+    # 1. Tenta pegar a URL do Supabase/Postgres do arquivo .env
+    db_url = os.environ.get('DATABASE_URL')
+
+    # 2. Correção de compatibilidade: O SQLAlchemy precisa de 'postgresql://', 
+    # mas alguns provedores (como o Supabase antigo) retornam 'postgres://'
+    if db_url and db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+    # 3. Se db_url existir, usa Postgres. Se não, usa o SQLite local.
+    SQLALCHEMY_DATABASE_URI = db_url or f"sqlite:///{BASE_DIR / 'gestao_alunos.db'}"
+    
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # --- Segurança ---

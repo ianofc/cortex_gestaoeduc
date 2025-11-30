@@ -122,6 +122,9 @@ class Atividade(db.Model):
     tipo = db.Column(db.String(50), default='Atividade') # Ex: Prova, Trabalho, Caderno
     peso = db.Column(db.Float) # Representa o valor total (ex: 10.0)
     
+    # NOVO CAMPO: UNIDADE
+    unidade = db.Column(db.String(20), default='3ª Unidade') 
+    
     data = db.Column(db.Date)
     descricao = db.Column(db.Text)
     

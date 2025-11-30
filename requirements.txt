@@ -18,3 +18,4 @@ Flask-Moment
 Flask-Mail
 Flask-Migrate
 Email-validator
+psycopg2-binary

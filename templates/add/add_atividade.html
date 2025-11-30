@@ -36,7 +36,20 @@
                             {{ form.titulo(class="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all outline-none", id="titulo", placeholder="Ex: Prova de Física - Dinâmica") }}
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            
+                            <div>
+                                <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                    {{ form.unidade.label.text }}
+                                </label>
+                                <div class="relative">
+                                    {{ form.unidade(class="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 appearance-none outline-none cursor-pointer") }}
+                                    <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                                        <i class="fas fa-chevron-down text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div>
                                 <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
                                     {{ form.data.label.text }}
@@ -49,7 +62,7 @@
                                     {{ form.tipo.label.text }}
                                 </label>
                                 <div class="relative">
-                                    {{ form.tipo(class="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 appearance-none outline-none cursor-pointer") }}
+                                    {{ form.tipo(class="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 appearance-none outline-none cursor-pointer", id="tipo_atividade") }}
                                     <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
                                         <i class="fas fa-chevron-down text-xs"></i>
                                     </div>
@@ -69,8 +82,11 @@
                             </div>
                         </div>
 
-                        <div class="hidden">
-                            {{ form.num_questoes(value=1) }}
+                        <div class="hidden" id="num_questoes_container">
+                            <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                {{ form.num_questoes.label.text }}
+                            </label>
+                            {{ form.num_questoes(class="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 outline-none", placeholder="Ex: 10") }}
                         </div>
 
                         <div>
@@ -101,8 +117,8 @@
                             <div>
                                 <label class="text-[10px] font-bold uppercase text-indigo-200 mb-1 block">Prompt / Instrução</label>
                                 <textarea id="ia-tipo-questoes" rows="3"
-                                       class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder-indigo-300 focus:ring-2 focus:ring-white/50 focus:border-transparent outline-none resize-none"
-                                       placeholder="Ex: 5 questões de múltipla escolha sobre Revolução Francesa com gabarito."></textarea>
+                                     class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm text-white placeholder-indigo-300 focus:ring-2 focus:ring-white/50 focus:border-transparent outline-none resize-none"
+                                     placeholder="Ex: 5 questões de múltipla escolha sobre Revolução Francesa com gabarito."></textarea>
                             </div>
                             
                             <button type="button" id="btn-gerar-questoes" 
@@ -128,7 +144,7 @@
                                     (PDF, DOCX, Imagens)
                                 </p>
                             </div>
-                            {{ form.arquivo_anexo(class="hidden", multiple=True) }}
+                            {{ form.arquivo_anexo(class="hidden") }}
                         </div>
                     </label>
                     <p class="text-[10px] text-gray-400 mt-2 text-center">Arquivos ilimitados via editor. Anexo principal aqui.</p>
@@ -153,11 +169,27 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        const tipoSelect = document.getElementById('tipo_atividade');
+        const numQuestoesContainer = document.getElementById('num_questoes_container');
+        
+        function toggleNumQuestoes() {
+            if (tipoSelect.value === 'Prova') {
+                numQuestoesContainer.classList.remove('hidden');
+            } else {
+                numQuestoesContainer.classList.add('hidden');
+            }
+        }
+
+        tipoSelect.addEventListener('change', toggleNumQuestoes);
+        toggleNumQuestoes(); // Executa ao iniciar
+
+        // Lógica da IA (Mantida igual, apenas resumida para foco)
         const btnGerar = document.getElementById('btn-gerar-questoes');
         const promptInput = document.getElementById('ia-tipo-questoes');
+        const tituloInput = document.getElementById('titulo');
 
         btnGerar.addEventListener('click', async function() {
-            const tema = document.getElementById('titulo').value;
+            const tema = tituloInput.value;
             const instrucao = promptInput.value;
             
             if (!tema && !instrucao) {
@@ -165,7 +197,6 @@
                 return;
             }
 
-            // Feedback Visual
             const originalText = btnGerar.innerHTML;
             btnGerar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando...';
             btnGerar.disabled = true;
@@ -176,39 +207,31 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         tema: tema, 
-                        tipo: instrucao + " (Responda em formato HTML bonito, com <h3> para títulos, <ul> para listas e <strong> para ênfases)" 
+                        tipo: instrucao + " (Responda em formato HTML bonito)" 
                     })
                 });
 
                 const data = await response.json();
 
                 if (data.status === 'success') {
-                    // Inserir no CKEditor
                     if (CKEDITOR && CKEDITOR.instances['descricao']) {
                         CKEDITOR.instances['descricao'].setData(data.questoes);
                     } else {
                         document.getElementById('descricao').value = data.questoes;
                     }
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Conteúdo Gerado!',
-                        text: 'A IA criou o conteúdo com sucesso.',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
+                    Swal.fire({icon: 'success', title: 'Conteúdo Gerado!', showConfirmButton: false, timer: 1500});
                 } else {
                     throw new Error(data.message);
                 }
 
             } catch (error) {
                 console.error(error);
-                Swal.fire('Erro', 'Não foi possível gerar o conteúdo. Tente novamente.', 'error');
+                Swal.fire('Erro', 'Não foi possível gerar o conteúdo.', 'error');
             } finally {
                 btnGerar.innerHTML = originalText;
                 btnGerar.disabled = false;
             }
         });
     });
-</script>
+</script> 
 {% endblock %}

@@ -1,7 +1,6 @@
 # forms.py
 
 from flask_wtf import FlaskForm
-# CORREÇÃO: Adicionado RadioField aqui no topo
 from wtforms import StringField, SubmitField, TextAreaField, SelectField, DateField, FloatField, IntegerField, PasswordField, BooleanField, RadioField
 from wtforms.validators import DataRequired, InputRequired, Length, NumberRange, EqualTo, ValidationError, Optional, Email
 
@@ -19,8 +18,6 @@ class RegisterForm(FlaskForm):
     email = StringField('Email', 
                         validators=[DataRequired(), Email(), Length(max=120)])
     
-    # CORREÇÃO: Importação removida daqui de dentro.
-    # O campo agora usa o RadioField importado no topo do arquivo.
     tipo_conta = RadioField('Eu sou:', choices=[('professor', 'Professor'), ('aluno', 'Aluno')], default='professor', validators=[DataRequired()])
     escola = SelectField('Escola', coerce=int, validators=[Optional()])
 
@@ -86,6 +83,16 @@ class EditarAlunoForm(FlaskForm):
 class AtividadeForm(FlaskForm):
     titulo = StringField('Título', validators=[DataRequired(), Length(max=100)])
     
+    # SELETOR DE UNIDADE (NOVO)
+    unidade = SelectField('Unidade Escolar', choices=[
+        ('1ª Unidade', '1ª Unidade'),
+        ('2ª Unidade', '2ª Unidade'),
+        ('3ª Unidade', '3ª Unidade'),
+        ('4ª Unidade', '4ª Unidade'),
+        ('Recuperação', 'Recuperação'),
+        ('Exame Final', 'Exame Final')  
+    ], default='3ª Unidade', validators=[DataRequired()])
+
     TIPOS_ATIVIDADE = [
         ('Atividade', 'Exercícios / Tarefas'),
         ('Prova', 'Prova / Avaliação'),
@@ -100,7 +107,7 @@ class AtividadeForm(FlaskForm):
     
     valor_total = FloatField('Valor Total da Atividade (Pontos)', 
                       validators=[InputRequired(message="O valor total é obrigatório."), 
-                                  NumberRange(min=0.1, max=10.0, message="O valor deve estar entre 0.1 e 10.0.")], 
+                                  NumberRange(min=0.0, max=10.0, message="O valor deve estar entre 0.0 e 10.0.")], 
                       default=10.0)
     
     num_questoes = IntegerField('Número de Questões (Obrigatório para Prova)', 

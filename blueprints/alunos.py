@@ -2,7 +2,8 @@
 
 import os
 import requests 
-import json     
+import json 
+import base64    
 from datetime import date, datetime 
 from io import BytesIO
 
@@ -10,9 +11,6 @@ from flask import (
     Blueprint, render_template, redirect, url_for, 
     send_file, flash, jsonify, send_from_directory, request, current_app
 )
-
-from extensions import csrf
-
 import pandas as pd
 from werkzeug.utils import secure_filename
 from sqlalchemy import func, distinct, case
@@ -28,7 +26,8 @@ from docx.shared import Cm, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_ORIENT
 
-# Imports de Módulos Locais
+# Imports Locais e Extensões
+from extensions import csrf 
 from models import (
     db, Turma, Aluno, Atividade, Presenca, DiarioBordo, Material, BlocoAula, Horario
 )
@@ -59,9 +58,34 @@ def turma(id_turma):
         alunos_query = alunos_query.filter(Aluno.nome.ilike(f'%{q_aluno}%'))
     
     alunos = alunos_query.order_by(Aluno.nome).all()
+    
     # Carrega atividades ordenadas por data
     atividades = Atividade.query.filter_by(id_turma=id_turma).order_by(Atividade.data.desc()).all()
     
+    # --- NOVA LÓGICA: Agrupamento por Unidade ---
+    atividades_por_unidade = {}
+    totais_por_unidade = {}
+    ordem_unidades = [
+        '1ª Unidade', 
+        '2ª Unidade', 
+        '3ª Unidade',
+        '4ª Unidade', 
+        'Recuperação',
+        'Exame Final' 
+    ]
+    
+    for a in atividades:
+        # Se não tiver unidade definida, joga para a 3ª (padrão atual)
+        u = a.unidade if a.unidade else '3ª Unidade'
+        
+        if u not in atividades_por_unidade:
+            atividades_por_unidade[u] = []
+            totais_por_unidade[u] = 0.0
+        
+        atividades_por_unidade[u].append(a)
+        totais_por_unidade[u] += (a.peso or 0)
+    # ---------------------------------------------
+
     ids_alunos = [aluno.id for aluno in alunos]
     
     presencas_turma = []
@@ -102,7 +126,10 @@ def turma(id_turma):
         'geral/turma.html', 
         turma=turma, 
         alunos_com_media=alunos_com_media, 
-        atividades=atividades, 
+        atividades=atividades,
+        atividades_por_unidade=atividades_por_unidade, # Passa o agrupamento
+        totais_por_unidade=totais_por_unidade,         # Passa os totais
+        ordem_unidades=ordem_unidades,                 # Passa a ordem de exibição
         q=q_aluno,
         total_max_score=total_max_score
     )
@@ -115,8 +142,8 @@ def aluno(id_aluno):
         flash('Acesso não autorizado a este aluno.', 'danger')
         return redirect(url_for('core.index'))
     
-    # 1. Busca TODAS as atividades da turma (ordenadas pela data mais recente)
-    atividades = Atividade.query.filter_by(id_turma=aluno.id_turma).order_by(Atividade.data.desc()).all()
+    # 1. Busca TODAS as atividades da turma (ordenadas pela unidade e depois data)
+    atividades = Atividade.query.filter_by(id_turma=aluno.id_turma).order_by(Atividade.unidade, Atividade.data.desc()).all()
     
     # 2. Busca as presenças existentes deste aluno
     presencas = Presenca.query.filter_by(id_aluno=id_aluno).all()
@@ -242,7 +269,8 @@ def add_atividade(id_turma):
 
         atividade = Atividade(
             id_turma=id_turma, 
-            titulo=form.titulo.data, 
+            titulo=form.titulo.data,
+            unidade=form.unidade.data, # <--- SALVA A UNIDADE AQUI
             data=form.data.data, 
             peso=form.valor_total.data, 
             tipo=form.tipo.data,        
@@ -253,6 +281,7 @@ def add_atividade(id_turma):
         
         db.session.add(atividade)
         db.session.commit()
+        flash(f'Atividade criada na {atividade.unidade}!', 'success')
         return redirect(url_for('alunos.turma', id_turma=id_turma))
     
     ai_desc = request.args.get('ai_desc', None)
@@ -261,8 +290,10 @@ def add_atividade(id_turma):
         
     return render_template('add/add_atividade.html', turma=turma, form=form)
 
+
 @alunos_bp.route('/registrar_presenca/<int:id_aluno>/<int:id_atividade>', methods=['GET', 'POST'])
 @login_required 
+@csrf.exempt
 def registrar_presenca(id_aluno, id_atividade):
     aluno = Aluno.query.get_or_404(id_aluno)
     atividade = Atividade.query.get_or_404(id_atividade)
@@ -274,9 +305,6 @@ def registrar_presenca(id_aluno, id_atividade):
     form = PresencaForm(obj=presenca) 
     
     if form.validate_on_submit():
-        # O cálculo agora é feito preferencialmente no Front-end (JS) e enviado no campo 'nota'.
-        # Mas vamos manter uma lógica de backup no backend caso o JS falhe e os acertos sejam enviados.
-        
         if form.nota.data is None:
              form.nota.data = 0.0
 
@@ -299,9 +327,6 @@ def registrar_presenca(id_aluno, id_atividade):
             flash(f'Registro criado! Nota: {nova_presenca.nota}', 'success')
         
         db.session.commit()
-        
-        # Redireciona de volta para a mesma página para facilitar lançamento contínuo? 
-        # Ou para a turma? O usuário pediu "individual", então talvez voltar pra turma seja melhor.
         return redirect(url_for('alunos.turma', id_turma=aluno.id_turma))
 
     return render_template('geral/registrar_presenca.html', aluno=aluno, atividade=atividade, form=form)
@@ -334,7 +359,7 @@ def edit_atividade(id_atividade):
     
     if form.validate_on_submit():
         
-        # Lógica de Upload do Anexo (Salva na pasta DOCS)
+        # Lógica de Upload do Anexo
         arquivo = request.files.get('arquivo_anexo')
         if arquivo and arquivo.filename != '' and allowed_file(arquivo.filename):
             docs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs')
@@ -342,12 +367,11 @@ def edit_atividade(id_atividade):
                 os.makedirs(docs_folder)
 
             if atividade.path_arquivo_anexo:
-                # Tenta apagar na pasta docs
+                # Tenta apagar arquivo antigo
                 old_path = os.path.join(docs_folder, atividade.path_arquivo_anexo)
                 if os.path.exists(old_path):
                     os.remove(old_path)
                 else:
-                    # Tenta apagar na raiz (legado)
                     old_path_root = os.path.join(current_app.config['UPLOAD_FOLDER'], atividade.path_arquivo_anexo)
                     if os.path.exists(old_path_root):
                         os.remove(old_path_root)
@@ -356,7 +380,6 @@ def edit_atividade(id_atividade):
             _, ext_seguro = os.path.splitext(filename_seguro)
             filename_final = f"atividade_{atividade.id_turma}_{int(datetime.now().timestamp())}{ext_seguro}"
             
-            # Salva na pasta docs
             filepath = os.path.join(docs_folder, filename_final)
             arquivo.save(filepath)
             
@@ -366,6 +389,7 @@ def edit_atividade(id_atividade):
         form.populate_obj(atividade)
         
         atividade.peso = form.valor_total.data
+        atividade.unidade = form.unidade.data # <--- ATUALIZA A UNIDADE AQUI
 
         descricao_form_data = form.descricao.data
 
@@ -420,19 +444,17 @@ def delete_atividade(id_atividade):
     id_turma = atividade.id_turma
     try:
         if atividade.path_arquivo_anexo:
-            # Tenta deletar de docs
             filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], 'docs', atividade.path_arquivo_anexo)
             if os.path.exists(filepath):
                 os.remove(filepath)
             else:
-                # Tenta deletar da raiz (legado)
                 filepath_root = os.path.join(current_app.config['UPLOAD_FOLDER'], atividade.path_arquivo_anexo)
                 if os.path.exists(filepath_root):
                     os.remove(filepath_root)
         
         db.session.delete(atividade)
         db.session.commit()
-        flash(f'Atividade "{atividade.titulo}" e todos os seus registos de notas/presença foram deletados.', 'success')
+        flash(f'Atividade "{atividade.titulo}" deletada.', 'success')
     except Exception as e:
         db.session.rollback()
         flash(f'Erro ao deletar atividade: {e}', 'danger')
@@ -528,7 +550,8 @@ def gradebook(id_turma):
         return redirect(url_for('core.index'))
         
     alunos = Aluno.query.filter_by(id_turma=id_turma).order_by(Aluno.nome).all()
-    atividades = Atividade.query.filter_by(id_turma=id_turma).order_by(Atividade.data).all()
+    # Ordena por Unidade e Data
+    atividades = Atividade.query.filter_by(id_turma=id_turma).order_by(Atividade.unidade, Atividade.data).all()
     
     presencas_db = []
     if alunos:
@@ -544,7 +567,7 @@ def gradebook(id_turma):
 
 @alunos_bp.route('/gradebook/salvar', methods=['POST'])
 @login_required
-@csrf.exempt  # <--- ADICIONADO: Permite salvar via JS sem token complicado
+@csrf.exempt
 def salvar_gradebook():
     data = request.json
     try:
@@ -572,7 +595,6 @@ def salvar_gradebook():
     try:
         if campo == 'nota':
             if valor is not None and str(valor).strip() != '':
-                # --- CORREÇÃO: Substitui vírgula por ponto para evitar erro ---
                 valor_str = str(valor).replace(',', '.')
                 valor_float = float(valor_str)
                 
@@ -612,7 +634,6 @@ def dashboard(id_turma):
     
     dados_desempenho = []
     
-    # Se não houver alunos ou atividades, retorna dados vazios para evitar erros
     if not alunos or not atividades:
         return render_template(
             'geral/dashboard_turma.html', 
@@ -641,7 +662,6 @@ def dashboard(id_turma):
 
     for aluno in alunos:
         presencas_aluno = presencas_por_aluno.get(aluno.id, [])
-        # Calcula média simples de desempenho (assumindo que presenca.desempenho é 0-100)
         desempenho_medio = (
             sum(p.desempenho for p in presencas_aluno if p.desempenho is not None) / len(presencas_aluno)
             if presencas_aluno else 0
@@ -1092,3 +1112,123 @@ def listar_alunos():
         alunos_list.extend(turma.alunos)
         
     return render_template('list/listar_alunos.html', alunos=alunos_list)
+
+@alunos_bp.route('/corrigir_resposta_ia', methods=['POST'])
+@login_required
+def corrigir_resposta_ia():
+    api_key = current_app.config.get('GOOGLE_API_KEY')
+    if not api_key:
+        return jsonify({"status": "error", "message": "API Key não configurada."}), 500
+
+    data = request.json
+    questao = data.get('questao', '')
+    resposta_aluno = data.get('resposta', '')
+    valor_max = data.get('valor_max', 10.0)
+
+    if not questao or not resposta_aluno:
+        return jsonify({"status": "error", "message": "Questão e Resposta são obrigatórias."}), 400
+
+    prompt = f"""
+    Aja como um professor especialista corrigindo uma prova subjetiva (dissertativa).
+    Sua tarefa é avaliar a resposta de um aluno para uma questão específica.
+
+    --- DADOS DA CORREÇÃO ---
+    PERGUNTA DA PROVA: "{questao}"
+    VALOR MÁXIMO DA QUESTÃO: {valor_max} pontos.
+    
+    --- RESPOSTA DO ALUNO ---
+    "{resposta_aluno}"
+    -------------------------
+
+    Avalie com rigor acadêmico, mas justo. Se a resposta estiver parcialmente correta, dê nota parcial.
+    
+    Responda OBRIGATORIAMENTE um objeto JSON (sem markdown, apenas o JSON puro) com este formato:
+    {{
+        "nota": 0.0,  // (Float com uma casa decimal, ex: 8.5)
+        "feedback": "Explicação curta (max 2 frases) para o aluno sobre o motivo da nota."
+    }}
+    """
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={api_key}"
+    headers = {"Content-Type": "application/json"}
+    payload = {"contents": [{"parts": [{"text": prompt}]}]}
+
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(payload), timeout=30)
+        response.raise_for_status()
+        
+        texto_ia = response.json()['candidates'][0]['content']['parts'][0]['text']
+        texto_ia = texto_ia.replace('```json', '').replace('```', '').strip()
+        
+        resultado = json.loads(texto_ia)
+        return jsonify({"status": "success", "nota": resultado['nota'], "feedback": resultado['feedback']})
+        
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@alunos_bp.route('/corrigir_prova_foto', methods=['POST'])
+@login_required
+def corrigir_prova_foto():
+    api_key = current_app.config.get('GOOGLE_API_KEY')
+    if not api_key:
+        return jsonify({"status": "error", "message": "API Key não configurada."}), 500
+
+    # Recebe a imagem e dados
+    arquivo = request.files.get('imagem_prova')
+    gabarito_ou_contexto = request.form.get('contexto', '')
+    valor_total = request.form.get('valor_total', 10.0)
+
+    if not arquivo:
+        return jsonify({"status": "error", "message": "Nenhuma imagem enviada."}), 400
+
+    # Converte imagem para Base64
+    imagem_base64 = base64.b64encode(arquivo.read()).decode('utf-8')
+    mime_type = arquivo.mimetype # ex: image/jpeg
+
+    prompt = f"""
+    Aja como um professor corrigindo uma prova real baseada nesta imagem.
+    
+    DADOS DA PROVA:
+    - Valor Total da Prova: {valor_total} pontos.
+    - Gabarito/Contexto (Opcional): "{gabarito_ou_contexto}"
+
+    TAREFA:
+    1. Identifique as questões na imagem (Múltipla escolha e Dissertativas).
+    2. Verifique as respostas do aluno (marcadas ou escritas).
+    3. Corrija cada questão. Se for subjetiva, avalie a coerência.
+    4. Calcule a NOTA FINAL somando os acertos.
+
+    Retorne APENAS um JSON (sem markdown) neste formato:
+    {{
+        "nota_calculada": 0.0,
+        "resumo_correcao": "Q1: Correta. Q2: Errou (marcou B, era C). Q3: Parcial (esqueceu X).",
+        "feedback_geral": "Bom trabalho, mas atenção em..."
+    }}
+    """
+
+    # CORREÇÃO: USANDO MODELO 2.5 COMO SOLICITADO
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={api_key}"
+    headers = {"Content-Type": "application/json"}
+    
+    # Payload específico para envio de imagem (Multimodal)
+    data = {
+        "contents": [{
+            "parts": [
+                {"text": prompt},
+                {"inline_data": {"mime_type": mime_type, "data": imagem_base64}}
+            ]
+        }]
+    }
+
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(data), timeout=60)
+        response.raise_for_status()
+        
+        texto_ia = response.json()['candidates'][0]['content']['parts'][0]['text']
+        texto_ia = texto_ia.replace('```json', '').replace('```', '').strip()
+        resultado = json.loads(texto_ia)
+        
+        return jsonify({"status": "success", **resultado})
+        
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
