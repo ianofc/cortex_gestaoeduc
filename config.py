@@ -21,6 +21,16 @@ class Config:
     SQLALCHEMY_DATABASE_URI = db_url or f"sqlite:///{BASE_DIR / 'gestao_alunos.db'}"
     
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # --- OTIMIZAÇÃO DE CONEXÃO (EVITA QUEDAS) ---
+    # Essencial para Supabase Pooler e Servidores em Nuvem
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,      # Testa a conexão antes de usar (Evita o erro "closed connection")
+        "pool_recycle": 300,        # Renova a conexão a cada 5 minutos (evita timeout do banco)
+        "pool_size": 10,            # Mantém até 10 conexões abertas
+        "max_overflow": 20,         # Permite abrir mais 20 se precisar muito
+        "pool_timeout": 30          # Espera no máximo 30s por uma conexão livre
+    }
     
     # --- Segurança ---
     SECRET_KEY = os.environ.get('SECRET_KEY') or os.urandom(24)

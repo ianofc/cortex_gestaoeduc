@@ -43,6 +43,8 @@ alunos_bp = Blueprint('alunos', __name__, url_prefix='/')
 
 # ------------------- ROTAS DE TURMAS, ALUNOS E ATIVIDADES (CRUD) -------------------
 
+# NO SEU ARQUIVO blueprints/alunos.py (Substitua as rotas correspondentes)
+
 @alunos_bp.route('/turma/<int:id_turma>')
 @login_required 
 def turma(id_turma):
@@ -59,67 +61,71 @@ def turma(id_turma):
     
     alunos = alunos_query.order_by(Aluno.nome).all()
     
-    # Carrega atividades ordenadas por data
+    # Carrega atividades
     atividades = Atividade.query.filter_by(id_turma=id_turma).order_by(Atividade.data.desc()).all()
     
-    # --- NOVA LÓGICA: Agrupamento por Unidade ---
-    atividades_por_unidade = {}
-    totais_por_unidade = {}
+    # --- LÓGICA DE UNIDADES ---
     ordem_unidades = [
-        '1ª Unidade', 
-        '2ª Unidade', 
-        '3ª Unidade',
-        '4ª Unidade', 
-        'Recuperação',
-        'Exame Final' 
+        '1ª Unidade', '2ª Unidade', '3ª Unidade', '4ª Unidade', 
+        'Recuperação', 'Exame Final'
     ]
     
+    atividades_por_unidade = {}
+    totais_por_unidade = {}
+    
+    # Agrupa atividades
     for a in atividades:
-        # Se não tiver unidade definida, joga para a 3ª (padrão atual)
-        u = a.unidade if a.unidade else '3ª Unidade'
-        
+        u = a.unidade if a.unidade else '1ª Unidade' # Default para 1ª se vazio
         if u not in atividades_por_unidade:
             atividades_por_unidade[u] = []
             totais_por_unidade[u] = 0.0
-        
         atividades_por_unidade[u].append(a)
         totais_por_unidade[u] += (a.peso or 0)
-    # ---------------------------------------------
 
+    # DESCUBRA A ÚLTIMA UNIDADE ATIVA (Para mostrar no acumulado)
+    unidade_focada = '1ª Unidade' # Padrão
+    # Percorre a ordem de trás para frente. A primeira que tiver dados é a atual.
+    for u in reversed(ordem_unidades):
+        if u in atividades_por_unidade:
+            unidade_focada = u
+            break
+            
+    # Carrega presenças
     ids_alunos = [aluno.id for aluno in alunos]
-    
     presencas_turma = []
     if ids_alunos:
-        # Otimização com joinedload para evitar N+1 queries
         presencas_turma = Presenca.query.join(Atividade).filter(
             Atividade.id_turma == id_turma,
             Presenca.id_aluno.in_(ids_alunos)
         ).options(joinedload(Presenca.atividade)).all() 
 
-    # Soma o Valor Máximo de Pontos (Peso) de todas as atividades
-    total_max_score = sum(a.peso for a in atividades if a.peso is not None)
-
-    # Organiza presenças por aluno em um dicionário
+    # Mapeia presenças
     presencas_por_aluno = {}
     for p in presencas_turma:
         if p.id_aluno not in presencas_por_aluno:
             presencas_por_aluno[p.id_aluno] = []
         presencas_por_aluno[p.id_aluno].append(p)
 
+    total_max_score = sum(a.peso for a in atividades if a.peso is not None)
+
     alunos_com_media = []
     for aluno in alunos:
         presencas_aluno = presencas_por_aluno.get(aluno.id, [])
-        total_pontos_obtidos = 0
+        
+        # --- CÁLCULO INTELIGENTE ---
+        # Soma apenas as notas da "Unidade Focada"
+        total_pontos_focados = 0
         
         for p in presencas_aluno:
-            if p.nota is not None:
-                total_pontos_obtidos += p.nota 
-        
-        media_final_pontos = total_pontos_obtidos 
+            # Verifica se a atividade pertence à unidade ativa
+            unidade_ativ = p.atividade.unidade if p.atividade.unidade else '1ª Unidade'
             
+            if unidade_ativ == unidade_focada and p.nota is not None:
+                total_pontos_focados += p.nota 
+        
         alunos_com_media.append({
             'aluno': aluno,
-            'media': media_final_pontos
+            'media': total_pontos_focados # Agora mostra só o acumulado da unidade atual
         })
         
     return render_template(
@@ -127,9 +133,10 @@ def turma(id_turma):
         turma=turma, 
         alunos_com_media=alunos_com_media, 
         atividades=atividades,
-        atividades_por_unidade=atividades_por_unidade, # Passa o agrupamento
-        totais_por_unidade=totais_por_unidade,         # Passa os totais
-        ordem_unidades=ordem_unidades,                 # Passa a ordem de exibição
+        atividades_por_unidade=atividades_por_unidade,
+        totais_por_unidade=totais_por_unidade,
+        ordem_unidades=ordem_unidades,
+        unidade_focada=unidade_focada, # Passamos qual unidade está sendo exibida na lista
         q=q_aluno,
         total_max_score=total_max_score
     )
@@ -139,35 +146,62 @@ def turma(id_turma):
 def aluno(id_aluno):
     aluno = Aluno.query.get_or_404(id_aluno)
     if not aluno.turma or aluno.turma.autor != current_user:
-        flash('Acesso não autorizado a este aluno.', 'danger')
+        flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('core.index'))
     
-    # 1. Busca TODAS as atividades da turma (ordenadas pela unidade e depois data)
-    atividades = Atividade.query.filter_by(id_turma=aluno.id_turma).order_by(Atividade.unidade, Atividade.data.desc()).all()
-    
-    # 2. Busca as presenças existentes deste aluno
+    # Busca atividades e presenças
+    atividades = Atividade.query.filter_by(id_turma=aluno.id_turma).order_by(Atividade.data.desc()).all()
     presencas = Presenca.query.filter_by(id_aluno=id_aluno).all()
-    
-    # 3. Cria um "Mapa" (Dicionário) para acesso rápido: { id_atividade: objeto_presenca }
     presencas_map = {p.id_atividade: p for p in presencas}
     
-    # 4. Cálculos de Média
-    total_pontos_obtidos = 0.0
-    total_max_score = sum(a.peso for a in atividades if a.peso is not None)
+    # --- ESTRUTURAÇÃO DO BOLETIM POR UNIDADE ---
+    ordem_unidades = [
+        '1ª Unidade', '2ª Unidade', '3ª Unidade', '4ª Unidade', 
+        'Recuperação', 'Exame Final'
+    ]
     
-    for p in presencas:
-        if p.nota is not None:
-            total_pontos_obtidos += p.nota
+    # Dicionário mestre: { '1ª Unidade': {'atividades': [], 'total_obtido': 0, 'total_max': 0} }
+    boletim = {}
     
-    media_final = total_pontos_obtidos
-    
+    # Inicializa
+    for u in ordem_unidades:
+        boletim[u] = {'atividades': [], 'total_obtido': 0.0, 'total_max': 0.0, 'tem_dados': False}
+        
+    media_geral_acumulada = 0.0
+    total_geral_max = 0.0
+
+    for ativ in atividades:
+        u = ativ.unidade if ativ.unidade else '1ª Unidade'
+        if u not in boletim: u = '1ª Unidade' # Fallback
+        
+        # Dados da atividade
+        p = presencas_map.get(ativ.id)
+        nota = p.nota if (p and p.nota is not None) else 0.0
+        status = p.status if p else 'Pendente'
+        
+        # Adiciona ao boletim
+        boletim[u]['atividades'].append({
+            'atividade': ativ,
+            'presenca': p,
+            'nota': nota
+        })
+        
+        # Somatórios da Unidade
+        boletim[u]['total_max'] += (ativ.peso or 0)
+        boletim[u]['total_obtido'] += nota
+        boletim[u]['tem_dados'] = True
+        
+        # Somatórios Gerais
+        total_geral_max += (ativ.peso or 0)
+        media_geral_acumulada += nota
+
     return render_template(
         'geral/aluno.html', 
         aluno=aluno, 
-        atividades=atividades,      # Passamos a lista completa de atividades
-        presencas_map=presencas_map,# Passamos o mapa de presenças
-        media_final=media_final,
-        total_max_score=total_max_score
+        boletim=boletim, # Passamos a estrutura organizada
+        ordem_unidades=ordem_unidades,
+        media_geral_acumulada=media_geral_acumulada,
+        total_geral_max=total_geral_max
     )
 
 @alunos_bp.route('/add_aluno/<int:id_turma>', methods=['GET', 'POST'])
@@ -548,14 +582,55 @@ def gradebook(id_turma):
     if turma.autor != current_user:
         flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('core.index'))
-        
-    alunos = Aluno.query.filter_by(id_turma=id_turma).order_by(Aluno.nome).all()
-    # Ordena por Unidade e Data
-    atividades = Atividade.query.filter_by(id_turma=id_turma).order_by(Atividade.unidade, Atividade.data).all()
     
+    # 1. Definir a Lista COMPLETA de Unidades (Não depende do banco)
+    lista_unidades = [
+        '1ª Unidade', 
+        '2ª Unidade', 
+        '3ª Unidade', 
+        '4ª Unidade', 
+        'Recuperação', 
+        'Exame Final',
+        'Todas' # Opção para ver o ano todo
+    ]
+    
+    # 2. Capturar a escolha do usuário (ou definir padrão)
+    unidade_selecionada = request.args.get('unidade')
+    
+    # Lógica inteligente de padrão:
+    # Se não escolheu nada, tenta pegar a unidade da atividade mais recente cadastrada.
+    # Se não tiver atividades, vai para a '1ª Unidade'.
+    if not unidade_selecionada:
+        ultima_atividade = Atividade.query.filter_by(id_turma=id_turma).order_by(Atividade.data.desc()).first()
+        if ultima_atividade and ultima_atividade.unidade:
+            unidade_selecionada = ultima_atividade.unidade
+        else:
+            unidade_selecionada = '1ª Unidade'
+
+    # 3. Buscar Alunos
+    alunos = Aluno.query.filter_by(id_turma=id_turma).order_by(Aluno.nome).all()
+    
+    # 4. Buscar Atividades (COM FILTRO REAL)
+    query_atividades = Atividade.query.filter_by(id_turma=id_turma)
+    
+    # Se NÃO for "Todas", aplica o filtro estrito
+    if unidade_selecionada != 'Todas':
+        query_atividades = query_atividades.filter_by(unidade=unidade_selecionada)
+    
+    # Ordena por Data (para ficar cronológico na tabela)
+    atividades = query_atividades.order_by(Atividade.data).all()
+    
+    # 5. Buscar Presenças (Notas)
+    # Busca notas apenas dos alunos e atividades filtradas para otimizar
     presencas_db = []
-    if alunos:
-        presencas_db = Presenca.query.filter(Presenca.id_aluno.in_([a.id for a in alunos])).all()
+    if alunos and atividades:
+        ids_atividades = [a.id for a in atividades]
+        ids_alunos = [a.id for a in alunos]
+        
+        presencas_db = Presenca.query.filter(
+            Presenca.id_aluno.in_(ids_alunos),
+            Presenca.id_atividade.in_(ids_atividades)
+        ).all()
         
     presencas_map = { (p.id_aluno, p.id_atividade): p for p in presencas_db }
 
@@ -563,7 +638,9 @@ def gradebook(id_turma):
                            turma=turma, 
                            alunos=alunos, 
                            atividades=atividades, 
-                           presencas_map=presencas_map)
+                           presencas_map=presencas_map,
+                           unidade_atual=unidade_selecionada, # Envia a seleção atual
+                           lista_unidades=lista_unidades)     # Envia a lista completa
 
 @alunos_bp.route('/gradebook/salvar', methods=['POST'])
 @login_required

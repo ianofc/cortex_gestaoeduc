@@ -19,3 +19,4 @@ Flask-Mail
 Flask-Migrate
 Email-validator
 psycopg2-binary
+pg8000

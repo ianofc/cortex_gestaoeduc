@@ -5,7 +5,8 @@ from io import BytesIO
 import docx
 from datetime import datetime
 from flask import current_app
-from models import db, Notificacao
+# ATUALIZADO: Adicionei Presenca e Atividade aos imports
+from models import db, Notificacao, Presenca, Atividade 
 
 # Import condicional do PyPDF2, essencial para ler PDFs
 try:
@@ -15,7 +16,7 @@ except ImportError:
     print("AVISO: PyPDF2 não instalado. A leitura de PDF falhará. Instale com: pip install PyPDF2")
     PdfReader = None
 
-# --- SISTEMA DE NOTIFICAÇÕES (NOVO) ---
+# --- SISTEMA DE NOTIFICAÇÕES ---
 
 def enviar_notificacao(id_user, texto, link=None):
     """
@@ -135,7 +136,7 @@ def obter_resumo_ia(texto_fonte, api_key, tipo_fonte):
     ---
     """
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={api_key}"
     headers = {"Content-Type": "application/json"}
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
@@ -147,3 +148,76 @@ def obter_resumo_ia(texto_fonte, api_key, tipo_fonte):
     except Exception as e:
         print(f"Erro ao resumir: {e}")
         return f"(Erro ao resumir {tipo_fonte})"
+
+# --- CÁLCULO ACADÊMICO (NOVO) ---
+
+def calcular_boletim_aluno(aluno_id):
+    """
+    Calcula a média do aluno separada por Unidade/Etapa.
+    Retorna um dicionário com as médias de cada unidade e a média final global.
+    Estrutura de retorno:
+    {
+        'detalhe': {
+            '1ª Unidade': {'media': 7.5, 'soma_notas': 15, ...},
+            '2ª Unidade': {'media': 8.0, 'soma_notas': 8, ...}
+        },
+        'media_final': 7.7
+    }
+    """
+    # 1. Buscar todas as notas lançadas para o aluno
+    # Fazemos um JOIN com Atividade para saber a qual Unidade a nota pertence
+    presencas = db.session.query(Presenca).join(Atividade).filter(
+        Presenca.id_aluno == aluno_id,
+        Presenca.nota != None  # Ignora atividades sem nota lançada
+    ).all()
+
+    boletim = {}
+
+    # 2. Agrupar notas por Unidade
+    for p in presencas:
+        # Pega a unidade da atividade (ou define 'Geral' se estiver vazio)
+        unidade = p.atividade.unidade if p.atividade.unidade else 'Geral'
+        
+        # Pega o peso (se não tiver peso, assume 1.0)
+        peso = p.atividade.peso if p.atividade.peso else 1.0
+        
+        # Pega a nota
+        nota = p.nota
+        
+        if unidade not in boletim:
+            boletim[unidade] = {
+                'soma_notas_ponderadas': 0, 
+                'soma_pesos': 0, 
+                'media': 0
+            }
+        
+        # Acumula para o cálculo da média ponderada DAQUELA unidade
+        boletim[unidade]['soma_notas_ponderadas'] += (nota * peso)
+        boletim[unidade]['soma_pesos'] += peso
+
+    # 3. Calcular a Média de cada Unidade individualmente
+    soma_medias_unidades = 0
+    total_unidades_calculadas = 0
+
+    for unidade, dados in boletim.items():
+        if dados['soma_pesos'] > 0:
+            # Fórmula: Soma (Nota * Peso) / Soma (Pesos)
+            media_unidade = dados['soma_notas_ponderadas'] / dados['soma_pesos']
+            
+            # Arredonda para 1 casa decimal (ex: 7.56 vira 7.6)
+            dados['media'] = round(media_unidade, 1)
+            
+            # Adiciona ao acumulador para a média final
+            soma_medias_unidades += dados['media']
+            total_unidades_calculadas += 1
+
+    # 4. Calcular a Média Final Global (Média das Médias das Unidades)
+    media_final = 0
+    if total_unidades_calculadas > 0:
+        media_final = soma_medias_unidades / total_unidades_calculadas
+        media_final = round(media_final, 1)
+
+    return {
+        'detalhe': boletim,
+        'media_final': media_final
+    }

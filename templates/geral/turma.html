@@ -10,7 +10,7 @@
             <nav class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
                 <a href="{{ url_for('core.listar_turmas') }}" class="hover:text-indigo-600 transition-colors">Minhas Turmas</a>
                 <i class="fas fa-chevron-right text-[10px] opacity-50"></i>
-                <span class="font-medium text-gray-700 dark:text-gray-300">Gerenciar</span>
+                <span class="font-medium text-gray-700 dark:text-gray-300">Painel Geral</span>
             </nav>
             
             <div class="flex items-center gap-4">
@@ -28,6 +28,9 @@
                         <span class="flex items-center gap-1">
                             <i class="fas fa-users"></i> {{ alunos_com_media|length }} Alunos
                         </span>
+                        <span class="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded text-xs">
+                             Max Pontos: {{ total_max_score }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -41,6 +44,7 @@
             </a>
             
             <form action="{{ url_for('alunos.deletar_turma', id_turma=turma.id) }}" method="POST" onsubmit="return confirm('ATENÇÃO CRÍTICA:\n\nTem certeza que deseja EXCLUIR a turma \'{{ turma.nome }}\'?\n\n- Todo o histórico de notas será perdido.\n- Os alunos ficarão sem turma.\n\nEssa ação não pode ser desfeita.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit" 
                         class="flex items-center justify-center w-10 h-10 text-red-400 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:text-red-600 hover:bg-red-50 hover:border-red-200 hover:shadow-md transition-all duration-200" 
                         title="Excluir Turma">
@@ -53,43 +57,38 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         
         <a href="{{ url_for('alunos.add_aluno', id_turma=turma.id) }}" class="group relative flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div class="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
-            <div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center mb-3 text-xl group-hover:scale-110 transition-transform relative z-10">
+            <div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center mb-3 text-xl group-hover:scale-110 transition-transform">
                 <i class="fas fa-user-plus"></i>
             </div>
-            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 relative z-10 uppercase tracking-wide">Novo Aluno</span>
+            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Novo Aluno</span>
         </a>
 
         <a href="{{ url_for('alunos.add_atividade', id_turma=turma.id) }}" class="group relative flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div class="absolute inset-0 bg-gradient-to-br from-purple-50 to-fuchsia-50 dark:from-purple-900/10 dark:to-fuchsia-900/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
-            <div class="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3 text-xl group-hover:scale-110 transition-transform relative z-10">
+            <div class="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-3 text-xl group-hover:scale-110 transition-transform">
                 <i class="fas fa-plus-circle"></i>
             </div>
-            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 relative z-10 uppercase tracking-wide">Atividade</span>
+            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Atividade</span>
         </a>
 
         <a href="{{ url_for('planos.planejamento', id_turma=turma.id) }}" class="group relative flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div class="absolute inset-0 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/10 dark:to-blue-900/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
-            <div class="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 text-xl group-hover:scale-110 transition-transform relative z-10">
+            <div class="w-12 h-12 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 text-xl group-hover:scale-110 transition-transform">
                 <i class="fas fa-book-reader"></i>
             </div>
-            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 relative z-10 uppercase tracking-wide">Planejamento</span>
+            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Planejamento</span>
         </a>
 
-        <a href="{{ url_for('alunos.gradebook', id_turma=turma.id) }}" class="group relative flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
-            <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3 text-xl group-hover:scale-110 transition-transform relative z-10">
+        <a href="{{ url_for('alunos.gradebook', id_turma=turma.id) }}" class="group relative flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 ring-2 ring-indigo-50 dark:ring-indigo-900/20">
+            <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-3 text-xl group-hover:scale-110 transition-transform">
                 <i class="fas fa-th"></i>
             </div>
-            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 relative z-10 uppercase tracking-wide">Matriz Notas</span>
+            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Matriz Notas</span>
         </a>
 
         <a href="{{ url_for('alunos.dashboard', id_turma=turma.id) }}" class="group relative flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-            <div class="absolute inset-0 bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/10 dark:to-red-900/10 opacity-0 group-hover:opacity-100 rounded-2xl transition-opacity"></div>
-            <div class="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-3 text-xl group-hover:scale-110 transition-transform relative z-10">
+            <div class="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center mb-3 text-xl group-hover:scale-110 transition-transform">
                 <i class="fas fa-chart-pie"></i>
             </div>
-            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 relative z-10 uppercase tracking-wide">Estatísticas</span>
+            <span class="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-wide">Estatísticas</span>
         </a>
 
         <div class="flex flex-col p-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700 justify-between">
@@ -139,23 +138,20 @@
                         </div>
                     </a>
                     
-                    <div class="flex flex-col items-end flex-shrink-0 pl-2">
-                        <span class="text-[10px] uppercase text-gray-400 font-bold tracking-wider mb-1">Média</span>
-                        <div class="flex items-center justify-center min-w-[3rem] px-2 py-1 rounded-lg text-sm font-bold border shadow-sm
-                            {% if item.media >= 6.0 %}bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800
-                            {% elif item.media >= 4.0 %}bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800
-                            {% else %}bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800{% endif %}">
+                    <div class="flex flex-col items-end flex-shrink-0 pl-2 text-right">
+                        <span class="text-[10px] uppercase text-gray-400 font-bold tracking-wider leading-tight">
+                            Acumulado<br>
+                            <span class="text-indigo-500 dark:text-indigo-400">{{ unidade_focada }}</span>
+                        </span>
+                        <div class="flex items-center justify-center min-w-[3rem] mt-1 px-2 py-1 rounded-lg text-sm font-bold border shadow-sm bg-gray-50 dark:bg-gray-700/50 dark:border-gray-600 text-gray-700 dark:text-gray-200">
                             {{ "%.1f"|format(item.media) }}
                         </div>
                     </div>
                 </div>
                 {% else %}
                 <div class="flex flex-col items-center justify-center h-64 text-gray-400 text-center p-6">
-                    <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4 text-gray-300">
-                        <i class="fas fa-user-slash text-2xl"></i>
-                    </div>
+                    <i class="fas fa-user-slash text-3xl mb-3 opacity-30"></i>
                     <p class="font-medium">Nenhum aluno encontrado.</p>
-                    <p class="text-xs opacity-70 mt-1">Adicione alunos ou ajuste a busca.</p>
                 </div>
                 {% endfor %}
             </div>
@@ -165,42 +161,45 @@
             
             <div class="p-6 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 z-10 flex justify-between items-center">
                 <h3 class="text-xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                    Atividades
-                    <span class="text-xs font-bold bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 px-2 py-1 rounded-md">{{ atividades|length }}</span>
+                    Cronograma
                 </h3>
                 <a href="{{ url_for('alunos.add_atividade', id_turma=turma.id) }}" class="text-sm font-bold text-purple-600 hover:text-purple-700 flex items-center gap-1 hover:underline">
-                    <i class="fas fa-plus"></i> Nova
+                    <i class="fas fa-plus"></i> Nova Atividade
                 </a>
             </div>
 
             <div class="flex-grow overflow-y-auto custom-scrollbar p-6">
                 {% if atividades %}
+                    
                     {% for unidade in ordem_unidades %}
                         {% if atividades_por_unidade.get(unidade) %}
                         
                         <div class="mb-10 last:mb-0">
-                            <h4 class="text-xs font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-100 dark:border-gray-700 pb-2 flex justify-between items-end">
-                                <span>{{ unidade }}</span>
-                                <span class="bg-gray-50 dark:bg-gray-700/50 px-2 py-1 rounded text-[10px] text-gray-500 dark:text-gray-400 normal-case font-semibold">
+                            <div class="flex items-center justify-between mb-6 pb-2 border-b border-gray-100 dark:border-gray-700">
+                                <h4 class="text-sm font-extrabold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                    {{ unidade }}
+                                </h4>
+                                <span class="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full text-xs font-bold border border-indigo-100 dark:border-indigo-800">
                                     Total: {{ "%.1f"|format(totais_por_unidade[unidade]) }} pts
                                 </span>
-                            </h4>
+                            </div>
                             
-                            <div class="space-y-6 relative pl-6">
+                            <div class="space-y-6 relative pl-4 border-l-2 border-gray-100 dark:border-gray-700 ml-2">
                                 {% for atividade in atividades_por_unidade[unidade] %}
-                                <div class="relative group">
-                                    <div class="absolute left-0 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700 group-last:bottom-auto group-last:h-full"></div>
-                                    <div class="absolute left-[-5px] top-6 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-gray-800 shadow-sm z-10
-                                        {% if atividade.tipo == 'Prova' %}bg-red-500
-                                        {% elif atividade.tipo == 'Trabalho' %}bg-blue-500
-                                        {% else %}bg-purple-500{% endif %}">
+                                <div class="relative group pl-6">
+                                    
+                                    <div class="absolute left-[-1.6rem] top-6 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800 shadow-sm z-10
+                                        {% if atividade.tipo == 'Prova' %}bg-red-500 ring-2 ring-red-100 dark:ring-red-900/30
+                                        {% elif atividade.tipo == 'Trabalho' %}bg-blue-500 ring-2 ring-blue-100 dark:ring-blue-900/30
+                                        {% else %}bg-purple-500 ring-2 ring-purple-100 dark:ring-purple-900/30{% endif %}">
                                     </div>
 
-                                    <div class="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all relative overflow-visible">
+                                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-700 transition-all relative overflow-visible">
                                         
                                         <div class="flex justify-between items-start mb-3">
                                             <div>
-                                                <div class="flex items-center gap-2 mb-1.5">
+                                                <div class="flex items-center gap-2 mb-2">
                                                     <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md 
                                                         {% if atividade.tipo == 'Prova' %}bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400
                                                         {% elif atividade.tipo == 'Trabalho' %}bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400
@@ -209,7 +208,7 @@
                                                     </span>
                                                     <span class="text-xs font-medium text-gray-400 flex items-center gap-1">
                                                         <i class="far fa-calendar-alt"></i> 
-                                                        {{ atividade.data.strftime('%d/%m/%Y') if atividade.data else 'Sem data' }}
+                                                        {{ atividade.data.strftime('%d/%m/%Y') if atividade.data else 'S/ Data' }}
                                                     </span>
                                                 </div>
                                                 <h4 class="font-bold text-gray-800 dark:text-white text-lg leading-tight group-hover:text-indigo-600 transition-colors">
@@ -225,7 +224,9 @@
                                                     <a href="{{ url_for('alunos.edit_atividade', id_atividade=atividade.id) }}" class="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-indigo-600 flex items-center gap-2">
                                                         <i class="fas fa-pen text-xs"></i> Editar
                                                     </a>
+                                                    
                                                     <form action="{{ url_for('alunos.delete_atividade', id_atividade=atividade.id) }}" method="POST" onsubmit="return confirm('Tem certeza?');">
+                                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                                         <button type="submit" class="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2">
                                                             <i class="fas fa-trash text-xs"></i> Excluir
                                                         </button>
@@ -237,12 +238,12 @@
                                         <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-50 dark:border-gray-700/50">
                                             <div class="flex flex-col">
                                                 <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Peso</span>
-                                                <span class="font-bold text-gray-900 dark:text-white text-lg">{{ atividade.peso }} <span class="text-xs font-normal text-gray-400">pts</span></span>
+                                                <span class="font-bold text-gray-900 dark:text-white text-lg">{{ "%.1f"|format(atividade.peso) }} <span class="text-xs font-normal text-gray-400">pts</span></span>
                                             </div>
 
                                             <a href="{{ url_for('alunos.gradebook', id_turma=turma.id) }}" 
-                                            class="py-2 px-4 bg-gray-100 hover:bg-indigo-600 text-gray-600 hover:text-white dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-indigo-600 text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2">
-                                                <i class="fas fa-table"></i> Gradebook
+                                               class="py-2 px-4 bg-gray-50 hover:bg-indigo-600 text-gray-600 hover:text-white dark:bg-gray-700/50 dark:text-gray-300 dark:hover:bg-indigo-600 text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-2 group-btn">
+                                                <i class="fas fa-pen group-btn-hover:animate-bounce"></i> Lançar Notas
                                             </a>
                                         </div>
 
@@ -260,6 +261,7 @@
                         </div>
                         <h4 class="font-bold text-gray-600 dark:text-gray-400 text-lg">Nenhuma atividade</h4>
                         <p class="text-sm opacity-70 mt-1">Crie atividades para lançar notas.</p>
+                        <a href="{{ url_for('alunos.add_atividade', id_turma=turma.id) }}" class="mt-4 text-indigo-600 font-bold text-sm hover:underline">Criar Primeira</a>
                     </div>
                 {% endif %}
             </div>
@@ -273,7 +275,7 @@
 <script>
     function toggleDropdown(id) {
         const dropdown = document.getElementById('dropdown-' + id);
-        // Fecha outros
+        // Fecha outros abertos
         document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
             if(el.id !== 'dropdown-' + id) el.classList.add('hidden');
         });

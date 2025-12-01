@@ -30,9 +30,9 @@ def run_migration():
         return
 
     # 1. Limpa o banco de destino
-    if os.path.exists(DEST_DB_PATH):
-        os.remove(DEST_DB_PATH)
-        print(f"Base de dados de destino '{DEST_DB_PATH}' apagada para recriação limpa.")
+    #if os.path.exists(DEST_DB_PATH):
+     #   os.remove(DEST_DB_PATH)
+      #  print(f"Base de dados de destino '{DEST_DB_PATH}' apagada para recriação limpa.")
 
     # 2. Conecta à origem
     source_conn = sqlite3.connect(SOURCE_DB_PATH)
