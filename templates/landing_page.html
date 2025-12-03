@@ -17,6 +17,9 @@
     <!-- Alpine.js -->
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js"></script>
 
+    <!-- Link para o CSS global -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -54,46 +57,6 @@
             }
         }
     </script>
-    <style>
-        /* --- Efeitos de Texto --- */
-        .gradient-text {
-            background: linear-gradient(to right, #a78bfa, #22d3ee);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            color: transparent; 
-        }
-
-        /* --- Efeitos de Fundo (Blobs "Vivos") --- */
-        .blob {
-            position: absolute;
-            filter: blur(80px);
-            z-index: -1;
-            opacity: 0.4;
-            border-radius: 50%;
-            animation: breathe 10s infinite ease-in-out;
-        }
-
-        @keyframes breathe {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(30px, -50px) scale(1.1); }
-            66% { transform: translate(-20px, 20px) scale(0.9); }
-        }
-
-        /* --- Scrollbar Customizada --- */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
-        
-        /* Ajustes Glassmorphism */
-        .glass-nav {
-            background: rgba(15, 23, 42, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-    </style>
 </head>
 <body class="bg-lumina-dark text-gray-100 font-sans antialiased overflow-x-hidden selection:bg-lumina-500 selection:text-white">
 
@@ -105,22 +68,29 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
                 <!-- Logo -->
-                <div class="flex-shrink-0 flex items-center gap-3">
-                    <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-lumina-600 to-lumina-900 shadow-lg shadow-lumina-500/20">
+                <a href="{{ url_for('core.index') }}" class="flex-shrink-0 flex items-center gap-3 group">
+                    <div class="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-lumina-600 to-lumina-900 shadow-lg shadow-lumina-500/20 group-hover:scale-105 transition duration-300">
                         <i class="fas fa-brain text-white text-lg"></i>
                     </div>
-                    <span class="font-bold text-xl tracking-tight text-white">Cortex <span class="text-cyan-400 font-light">Lumina</span></span>
-                </div>
+                    <span class="font-bold text-xl tracking-tight text-white group-hover:text-cyan-300 transition">Cortex <span class="text-cyan-400 font-light opacity-80">Lumina</span></span>
+                </a>
                 
                 <!-- Desktop Menu -->
                 <div class="hidden md:block">
                     <div class="ml-10 flex items-baseline space-x-6">
+                        <!-- Links internos e externos -->
                         <a href="#funcionalidades" class="text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Anatomia</a>
-                        <a href="#ia" class="text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Inteligência</a>
-                        <a href="#seguranca" class="text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Segurança</a>
+                        
+                        <!-- Páginas Dedicadas -->
+                        <a href="{{ url_for('core.intelligence') }}" class="text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Inteligência</a>
+                        <a href="{{ url_for('core.security') }}" class="text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Segurança</a>
+                        <a href="{{ url_for('core.pricing') }}" class="text-cyan-300 hover:text-cyan-100 hover:bg-cyan-900/20 px-3 py-2 rounded-lg text-sm font-medium transition-colors">Planos</a>
+                        
                         <div class="h-6 w-px bg-gray-700 mx-2"></div>
-                        <a href="/login" class="text-gray-300 hover:text-white font-medium text-sm px-3 py-2">Login</a>
-                        <a href="/register" class="bg-lumina-600 hover:bg-lumina-500 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-lumina-600/20 transition-all hover:shadow-lumina-600/40 hover:-translate-y-0.5 text-sm font-bold">Começar Agora</a>
+                        
+                        <!-- Rotas de Autenticação -->
+                        <a href="{{ url_for('auth.login') }}" class="text-gray-300 hover:text-white font-medium text-sm px-3 py-2">Login</a>
+                        <a href="{{ url_for('auth.register') }}" class="bg-lumina-600 hover:bg-lumina-500 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-lumina-600/20 transition-all hover:shadow-lumina-600/40 hover:-translate-y-0.5 text-sm font-bold">Começar Agora</a>
                     </div>
                 </div>
 
@@ -145,11 +115,12 @@
              class="md:hidden glass-nav border-t border-gray-800 absolute w-full" style="display: none;">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
                 <a href="#funcionalidades" @click="mobileMenuOpen = false" class="text-gray-300 hover:text-white hover:bg-white/5 block px-3 py-3 rounded-md text-base font-medium">Anatomia</a>
-                <a href="#ia" @click="mobileMenuOpen = false" class="text-gray-300 hover:text-white hover:bg-white/5 block px-3 py-3 rounded-md text-base font-medium">Inteligência</a>
-                <a href="#seguranca" @click="mobileMenuOpen = false" class="text-gray-300 hover:text-white hover:bg-white/5 block px-3 py-3 rounded-md text-base font-medium">Segurança</a>
+                <a href="{{ url_for('core.intelligence') }}" class="text-gray-300 hover:text-white hover:bg-white/5 block px-3 py-3 rounded-md text-base font-medium">Inteligência</a>
+                <a href="{{ url_for('core.security') }}" class="text-gray-300 hover:text-white hover:bg-white/5 block px-3 py-3 rounded-md text-base font-medium">Segurança</a>
+                <a href="{{ url_for('core.pricing') }}" class="text-cyan-400 font-bold block px-3 py-3 rounded-md text-base">Ver Planos</a>
                 <div class="border-t border-gray-700 my-2"></div>
-                <a href="/login" class="text-gray-300 hover:text-white block px-3 py-3 rounded-md text-base font-medium">Acessar Conta</a>
-                <a href="/register" class="bg-lumina-600 text-white block px-3 py-3 rounded-md text-base font-bold text-center mt-4">Criar Conta Grátis</a>
+                <a href="{{ url_for('auth.login') }}" class="text-gray-300 hover:text-white block px-3 py-3 rounded-md text-base font-medium">Acessar Conta</a>
+                <a href="{{ url_for('auth.register') }}" class="bg-lumina-600 text-white block px-3 py-3 rounded-md text-base font-bold text-center mt-4">Criar Conta Grátis</a>
             </div>
         </div>
     </nav>
@@ -179,15 +150,17 @@
             </p>
             
             <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4 px-4">
-                <a href="/register" class="w-full sm:w-auto px-8 py-4 bg-lumina-600 hover:bg-lumina-500 text-white font-bold rounded-xl shadow-lg shadow-lumina-500/30 transition transform hover:-translate-y-1 text-center">
+                <!-- Rota para a página de preços -->
+                <a href="{{ url_for('core.pricing') }}" class="w-full sm:w-auto px-8 py-4 bg-lumina-600 hover:bg-lumina-500 text-white font-bold rounded-xl shadow-lg shadow-lumina-500/30 transition transform hover:-translate-y-1 text-center">
                     Ativar Córtex
                 </a>
-                <a href="#demo" class="w-full sm:w-auto px-8 py-4 bg-gray-800/50 hover:bg-gray-800 border border-gray-700 hover:border-gray-600 text-white font-medium rounded-xl transition text-center backdrop-blur-sm">
-                    Ver Demo ao Vivo
+                <!-- Link para a página de DEMO INTERATIVA -->
+                <a href="{{ url_for('core.demo') }}" class="w-full sm:w-auto px-8 py-4 bg-gray-800/50 hover:bg-gray-800 border border-gray-700 hover:border-gray-600 text-white font-medium rounded-xl transition text-center backdrop-blur-sm flex items-center justify-center gap-2 group">
+                    <i class="fas fa-play text-xs text-cyan-400 group-hover:text-white transition"></i> Ver Demo ao Vivo
                 </a>
             </div>
 
-            <!-- Dashboard Preview Mockup (Responsivo) -->
+            <!-- Dashboard Preview Mockup (Visual apenas, a demo real está no link acima) -->
             <div class="mt-20 relative mx-auto max-w-6xl rounded-2xl border border-gray-800 bg-gray-900/60 backdrop-blur-md shadow-2xl overflow-hidden group perspective-1000 transform transition hover:border-gray-700">
                 <!-- Browser Bar -->
                 <div class="w-full h-10 bg-gray-800/80 border-b border-gray-700 flex items-center px-4 gap-2">
@@ -197,13 +170,12 @@
                         <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
                     </div>
                     <div class="ml-4 flex-1">
-                        <div class="w-full max-w-sm h-6 bg-gray-900/50 rounded-md mx-auto"></div>
+                        <div class="w-full max-w-sm h-6 bg-gray-900/50 rounded-md mx-auto flex items-center justify-center text-xs text-gray-600">cortexlumina.com/dashboard</div>
                     </div>
                 </div>
                 
-                <!-- Content Mockup -->
+                <!-- Content Mockup Image (Via CSS/HTML puro) -->
                 <div class="p-6 md:p-10 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 opacity-90 group-hover:opacity-100 transition duration-500">
-                    <!-- Chart Widget -->
                     <div class="lg:col-span-2 bg-gray-800/50 rounded-xl p-5 border border-gray-700/50 shadow-inner">
                         <div class="flex justify-between items-center mb-6">
                             <div>
@@ -215,57 +187,29 @@
                             </div>
                         </div>
                         <div class="w-full h-48 bg-gradient-to-t from-lumina-900/20 to-transparent flex items-end justify-between px-2 pb-2 gap-2">
-                            <div class="w-full bg-lumina-500/80 h-[40%] rounded-t-sm hover:h-[45%] transition-all duration-300"></div>
-                            <div class="w-full bg-lumina-500/80 h-[65%] rounded-t-sm hover:h-[70%] transition-all duration-300"></div>
-                            <div class="w-full bg-lumina-500/80 h-[55%] rounded-t-sm hover:h-[60%] transition-all duration-300"></div>
-                            <div class="w-full bg-lumina-500/80 h-[85%] rounded-t-sm hover:h-[90%] transition-all duration-300 shadow-[0_0_15px_rgba(139,92,246,0.3)]"></div>
-                            <div class="w-full bg-lumina-500/80 h-[60%] rounded-t-sm hover:h-[65%] transition-all duration-300"></div>
+                            <div class="w-full bg-lumina-500/80 h-[40%] rounded-t-sm"></div>
+                            <div class="w-full bg-lumina-500/80 h-[65%] rounded-t-sm"></div>
+                            <div class="w-full bg-lumina-500/80 h-[55%] rounded-t-sm"></div>
+                            <div class="w-full bg-lumina-500/80 h-[85%] rounded-t-sm"></div>
+                            <div class="w-full bg-lumina-500/80 h-[60%] rounded-t-sm"></div>
                         </div>
                     </div>
                     
-                    <!-- AI Chat Widget -->
-                    <div class="bg-gray-800/50 rounded-xl p-5 border border-gray-700/50 relative overflow-hidden flex flex-col">
-                        <div class="flex items-center gap-2 mb-4">
-                            <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                            <h3 class="text-sm font-semibold text-gray-300">Cortex Assistente</h3>
+                    <div class="bg-gray-800/50 rounded-xl p-5 border border-gray-700/50 relative overflow-hidden flex flex-col justify-center items-center text-center">
+                        <div class="w-16 h-16 rounded-full bg-cyan-900/50 flex items-center justify-center mb-4">
+                            <i class="fas fa-robot text-cyan-400 text-2xl"></i>
                         </div>
-                        
-                        <div class="space-y-4 flex-1 overflow-y-auto custom-scrollbar">
-                            <div class="flex gap-3">
-                                <div class="w-8 h-8 rounded-full bg-cyan-900/50 flex items-center justify-center flex-shrink-0 border border-cyan-500/30">
-                                    <i class="fas fa-robot text-cyan-400 text-xs"></i>
-                                </div>
-                                <div class="p-3 bg-gray-700/40 rounded-r-xl rounded-bl-xl text-xs text-gray-300 leading-relaxed border border-gray-700/30">
-                                    <span class="text-cyan-400 font-bold block mb-1">Análise Concluída:</span> 
-                                    Detectei 3 alunos com queda de rendimento em Biologia. Sugiro agendar reforço.
-                                </div>
-                            </div>
-                            
-                            <div class="flex gap-3">
-                                <div class="w-8 h-8 rounded-full bg-cyan-900/50 flex items-center justify-center flex-shrink-0 border border-cyan-500/30">
-                                    <i class="fas fa-robot text-cyan-400 text-xs"></i>
-                                </div>
-                                <div class="p-3 bg-gray-700/40 rounded-r-xl rounded-bl-xl text-xs text-gray-300 leading-relaxed border border-gray-700/30">
-                                    Plano de aula sobre "Genética Mendeliana" gerado. Deseja ver os slides?
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Input Fake -->
-                        <div class="mt-4 pt-3 border-t border-gray-700/50">
-                            <div class="h-8 bg-gray-900/50 rounded-lg w-full"></div>
-                        </div>
-                        
-                        <!-- Glow Effect -->
-                        <div class="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-50"></div>
+                        <h3 class="text-white font-bold mb-2">IA Assistente</h3>
+                        <p class="text-gray-400 text-xs">"Detectei 3 alunos com risco de evasão."</p>
+                        <a href="{{ url_for('core.intelligence') }}" class="mt-4 text-xs text-lumina-400 hover:text-white transition font-bold">Saiba mais &rarr;</a>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Features Section -->
-    <section id="funcionalidades" class="py-24 bg-lumina-surface border-t border-gray-800">
+    <!-- Features Section (Com Links para as Páginas) -->
+    <section id="funcionalidades" class="py-24 bg-lumina-surface border-t border-gray-800 scroll-mt-20">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-20">
                 <h2 class="text-3xl md:text-5xl font-bold mb-6">Anatomia do Sistema</h2>
@@ -273,38 +217,44 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
-                <!-- Card 1 -->
-                <div class="bg-gray-800/50 p-8 rounded-3xl border border-gray-700/50 hover:bg-gray-800 hover:border-lumina-500/50 transition duration-300 group hover:-translate-y-2">
+                <!-- Card 1: Link para Inteligência -->
+                <a href="{{ url_for('core.intelligence') }}" class="block bg-gray-800/50 p-8 rounded-3xl border border-gray-700/50 hover:bg-gray-800 hover:border-lumina-500/50 transition duration-300 group hover:-translate-y-2">
                     <div class="w-14 h-14 bg-lumina-900/30 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition duration-300 border border-lumina-500/20">
                         <i class="fas fa-wand-magic-sparkles text-lumina-400 text-2xl"></i>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4 text-white">IA Generativa</h3>
+                    <h3 class="text-2xl font-bold mb-4 text-white flex items-center gap-2">
+                        IA Generativa <i class="fas fa-arrow-right text-sm opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-2 group-hover:translate-x-0 text-lumina-400"></i>
+                    </h3>
                     <p class="text-gray-400 leading-relaxed">
                         Não perca tempo digitando. Nossa IA cria esboços de planos de aula, sugere atividades criativas e adapta conteúdos em segundos.
                     </p>
-                </div>
+                </a>
 
-                <!-- Card 2 -->
-                <div class="bg-gray-800/50 p-8 rounded-3xl border border-gray-700/50 hover:bg-gray-800 hover:border-cyan-500/50 transition duration-300 group hover:-translate-y-2">
+                <!-- Card 2: Dashboards (Pode apontar para Demo ou Pricing) -->
+                <a href="{{ url_for('core.demo') }}" class="block bg-gray-800/50 p-8 rounded-3xl border border-gray-700/50 hover:bg-gray-800 hover:border-cyan-500/50 transition duration-300 group hover:-translate-y-2">
                     <div class="w-14 h-14 bg-cyan-900/20 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition duration-300 border border-cyan-500/20">
                         <i class="fas fa-chart-pie text-cyan-400 text-2xl"></i>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4 text-white">Dashboards Vivos</h3>
+                    <h3 class="text-2xl font-bold mb-4 text-white flex items-center gap-2">
+                        Dashboards Vivos <i class="fas fa-arrow-right text-sm opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-2 group-hover:translate-x-0 text-cyan-400"></i>
+                    </h3>
                     <p class="text-gray-400 leading-relaxed">
                         Esqueça relatórios estáticos. Visualize a "saúde" da escola em tempo real: frequência, notas e engajamento em gráficos interativos.
                     </p>
-                </div>
+                </a>
 
-                <!-- Card 3 -->
-                <div class="bg-gray-800/50 p-8 rounded-3xl border border-gray-700/50 hover:bg-gray-800 hover:border-green-500/50 transition duration-300 group hover:-translate-y-2">
+                <!-- Card 3: Link para Segurança -->
+                <a href="{{ url_for('core.security') }}" class="block bg-gray-800/50 p-8 rounded-3xl border border-gray-700/50 hover:bg-gray-800 hover:border-green-500/50 transition duration-300 group hover:-translate-y-2">
                     <div class="w-14 h-14 bg-green-900/20 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 transition duration-300 border border-green-500/20">
                         <i class="fas fa-shield-halved text-green-400 text-2xl"></i>
                     </div>
-                    <h3 class="text-2xl font-bold mb-4 text-white">Núcleo Seguro</h3>
+                    <h3 class="text-2xl font-bold mb-4 text-white flex items-center gap-2">
+                        Núcleo Seguro <i class="fas fa-arrow-right text-sm opacity-0 group-hover:opacity-100 transition-opacity transform -translate-x-2 group-hover:translate-x-0 text-green-400"></i>
+                    </h3>
                     <p class="text-gray-400 leading-relaxed">
                         Seus dados protegidos por criptografia de ponta e controle de acesso hierárquico. O que acontece na escola, fica no sistema.
                     </p>
-                </div>
+                </a>
             </div>
         </div>
     </section>
@@ -365,12 +315,6 @@
                         <p class="pl-12">self.sugerir_intervencao()</p>
                         <p class="pl-8 py-2"></p>
                         <p class="pl-8"><span class="text-lumina-500">return</span> <span class="text-green-300">"Escola Saudável"</span></p>
-                        
-                        <div class="mt-6 p-4 bg-black/40 rounded-lg border border-gray-700/50 text-xs text-gray-400 font-mono">
-                            <span class="text-green-400">➜</span> &nbsp;Sistema iniciado...<br>
-                            <span class="text-green-400">➜</span> &nbsp;Conectando neurônios digitais...<br>
-                            <span class="text-cyan-400">✔</span> &nbsp;Cortex Lumina Online.
-                        </div>
                     </div>
                 </div>
             </div>
@@ -386,10 +330,12 @@
                 Junte-se às escolas que estão deixando a era do papel e entrando na era da inteligência de dados.
             </p>
             <div class="flex flex-col sm:flex-row justify-center gap-4">
-                <a href="/register" class="px-8 py-4 bg-gradient-to-r from-lumina-600 to-lumina-800 text-white font-bold rounded-xl shadow-lg hover:shadow-lumina-500/50 transition duration-300 text-lg hover:-translate-y-1">
+                <!-- Registro (Auth Blueprint) -->
+                <a href="{{ url_for('auth.register') }}" class="px-8 py-4 bg-gradient-to-r from-lumina-600 to-lumina-800 text-white font-bold rounded-xl shadow-lg hover:shadow-lumina-500/50 transition duration-300 text-lg hover:-translate-y-1">
                     <i class="fas fa-rocket mr-2"></i> Solicitar Acesso Beta
                 </a>
-                <a href="mailto:contato@cortexlumina.com" class="px-8 py-4 bg-transparent border border-gray-600 hover:border-white text-white font-medium rounded-xl transition duration-300 text-lg">
+                <!-- Contato (Core Blueprint) -->
+                <a href="{{ url_for('core.contact') }}" class="px-8 py-4 bg-transparent border border-gray-600 hover:border-white text-white font-medium rounded-xl transition duration-300 text-lg">
                     Falar com Especialista
                 </a>
             </div>
@@ -407,10 +353,9 @@
                 <span class="font-bold text-gray-400">Cortex Lumina &copy; 2025</span>
             </div>
             <div class="flex flex-wrap justify-center gap-8 text-sm text-gray-500">
-                <a href="#" class="hover:text-white transition">Privacidade</a>
+                <a href="{{ url_for('core.security') }}" class="hover:text-white transition">Privacidade e Segurança</a>
+                <a href="{{ url_for('core.contact') }}" class="hover:text-white transition">Suporte</a>
                 <a href="#" class="hover:text-white transition">Termos</a>
-                <a href="#" class="hover:text-white transition">Suporte</a>
-                <a href="#" class="hover:text-white transition">Twitter</a>
             </div>
         </div>
     </footer>

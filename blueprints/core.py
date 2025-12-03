@@ -6,11 +6,9 @@ from werkzeug.utils import secure_filename
 from flask_login import login_required, current_user
 
 # --- IMPORTS DE MODELOS E FORMS ---
-# O bloco try/except garante compatibilidade se rodar direto ou via pacote
 try:
     from models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao
     from forms import TurmaForm, LembreteForm, UserProfileForm, EscolaForm, CoordenadorForm, ProfessorForm
-    # Tenta importar utils, se não existir define uma função dummy para não quebrar
     try:
         from utils import enviar_notificacao
     except ImportError:
@@ -29,36 +27,59 @@ core_bp = Blueprint('core', __name__)
 # ------------------- SEGURANÇA: BLOQUEIO DE ALUNOS -------------------
 @core_bp.before_request
 def restrict_student_access():
-    """
-    Verifica se o usuário logado é um aluno. Se for, impede o acesso
-    às rotas do 'core' (painel do professor/admin) e redireciona
-    para o portal do aluno.
-    """
-    # Verifica se a rota atual é endpoint estático para não bloquear assets
     if request.endpoint and 'static' in request.endpoint:
         return
 
     if current_user.is_authenticated and getattr(current_user, 'is_aluno', False):
-        # Evita loop de redirecionamento se já estiver indo para o portal
         if request.endpoint != 'portal.dashboard':
             flash('Acesso redirecionado para o Portal do Aluno.', 'info')
-            # Certifique-se de que a rota 'portal.dashboard' existe no blueprint de aluno
-            # Se não existir, redireciona para logout ou home segura
             return redirect(url_for('portal.dashboard'))
 
-# ------------------- ROTAS PRINCIPAIS (DASHBOARD) -------------------
+# ------------------- ROTAS INSTITUCIONAIS (SITE PÚBLICO) -------------------
 
-# 1. ROTA PÚBLICA (Landing Page)
 @core_bp.route('/')
 def index():
-    # Se o usuário JÁ está logado -> Vai direto para o Dashboard
     if current_user.is_authenticated:
         return redirect(url_for('core.dashboard'))
-    
-    # Renderiza a Landing Page pública
-    return render_template('landing.html') 
+    return render_template('landing_page.html') 
 
-# 2. O DASHBOARD (Antigo Index - Painel Administrativo)
+@core_bp.route('/planos')
+def pricing():
+    return render_template('pricing.html')
+
+@core_bp.route('/checkout')
+def checkout():
+    # Captura parâmetros da URL
+    plan = request.args.get('plan', 'starter')
+    cycle = request.args.get('cycle', 'monthly')
+    
+    # Preços para exibição (Simulação)
+    prices = {
+        'starter': {'monthly': '39,00', 'annual': '29,00'},
+        'pro': {'monthly': '199,00', 'annual': '149,00'}
+    }
+    price = prices.get(plan, {}).get(cycle, '0,00')
+    
+    return render_template('checkout.html', plan_name=plan, cycle=cycle, price=price)
+
+@core_bp.route('/demo')
+def demo():
+    return render_template('demo.html')
+
+@core_bp.route('/inteligencia')
+def intelligence():
+    return render_template('intelligence.html')
+
+@core_bp.route('/seguranca')
+def security():
+    return render_template('security.html')
+
+@core_bp.route('/contato')
+def contact():
+    return render_template('contact.html')
+
+# ------------------- SISTEMA INTERNO (DASHBOARD) -------------------
+
 @core_bp.route('/dashboard', methods=['GET', 'POST'])
 @login_required 
 def dashboard():
@@ -70,7 +91,6 @@ def dashboard():
         db.session.add(novo_lembrete)
         db.session.commit()
         
-        # Envia notificação
         enviar_notificacao(
             current_user.id, 
             f"Novo lembrete criado: {novo_lembrete.texto[:15]}...", 
@@ -119,12 +139,9 @@ def dashboard():
                            dias_semana_widget=dias_semana
                            )
 
-# ------------------- DASHBOARD GLOBAL (ESTATÍSTICAS) -------------------
-
 @core_bp.route('/dashboard/global')
 @login_required
 def dashboard_global():
-    # Rota renomeada para evitar conflito com a função dashboard() acima
     total_turmas = Turma.query.filter_by(autor=current_user).count()
     
     total_alunos = db.session.query(func.count(Aluno.id))\
@@ -231,7 +248,7 @@ def ler_todas_notificacoes():
     flash('Todas as notificações marcadas como lidas.', 'success')
     return redirect(request.referrer or url_for('core.index'))
 
-# ------------------- GESTÃO DE TURMAS (CRUD) -------------------
+# ------------------- GESTÃO DE TURMAS E ATIVIDADES -------------------
 
 @core_bp.route('/add_turma', methods=['GET', 'POST'])
 @login_required
@@ -248,7 +265,6 @@ def add_turma():
         db.session.commit()
         flash('Turma criada com sucesso!', 'success')
         return redirect(url_for('core.index'))
-    
     return render_template('add/add_turma.html', form=form, title="Adicionar Turma")
 
 @core_bp.route('/turma/editar/<int:id>', methods=['GET', 'POST'])
@@ -283,84 +299,6 @@ def excluir_turma(id):
     flash('Turma excluída com sucesso.', 'success')
     return redirect(url_for('core.listar_turmas'))
 
-# ------------------- PERFIL DE USUÁRIO -------------------
-
-@core_bp.route('/perfil/editar', methods=['GET', 'POST'])
-@login_required
-def edit_perfil():
-    form = UserProfileForm(original_username=current_user.username)
-    
-    if request.method == 'GET':
-        form.username.data = current_user.username
-        form.email_contato.data = current_user.email_contato
-        form.telefone.data = current_user.telefone
-        form.genero.data = current_user.genero 
-
-    if form.validate_on_submit():
-        foto_upload = request.files.get('foto_perfil')
-        
-        if foto_upload and foto_upload.filename != '':
-            imgs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'imgs')
-            
-            if not os.path.exists(imgs_folder):
-                os.makedirs(imgs_folder)
-
-            if current_user.foto_perfil_path:
-                old_path = os.path.join(imgs_folder, current_user.foto_perfil_path)
-                if os.path.exists(old_path):
-                    os.remove(old_path)
-                    
-            filename_seguro = secure_filename(foto_upload.filename)
-            _, ext_seguro = os.path.splitext(filename_seguro)
-            filename_final = f"perfil_{current_user.id}_{int(datetime.now().timestamp())}{ext_seguro}"
-            
-            filepath = os.path.join(imgs_folder, filename_final)
-            
-            foto_upload.save(filepath)
-            
-            current_user.foto_perfil_path = filename_final
-
-        current_user.username = form.username.data
-        current_user.email_contato = form.email_contato.data
-        current_user.telefone = form.telefone.data
-        current_user.genero = form.genero.data 
-        
-        db.session.commit()
-        flash('Perfil e preferências atualizados com sucesso!', 'success')
-        return redirect(url_for('core.edit_perfil'))
-
-    return render_template('edit/edit_perfil.html', form=form, title="Editar Perfil")
-
-# ------------------- LEMBRETES -------------------
-
-@core_bp.route('/lembrete/<int:id>/concluir', methods=['POST'])
-@login_required
-def concluir_lembrete(id):
-    lembrete = Lembrete.query.get_or_404(id)
-    if lembrete.autor != current_user:
-        flash('Não autorizado.', 'danger')
-        return redirect(url_for('core.index'))
-    
-    lembrete.status = 'Concluido'
-    db.session.commit()
-    flash('Lembrete concluído.', 'info')
-    return redirect(url_for('core.index'))
-
-@core_bp.route('/lembrete/<int:id>/deletar', methods=['POST'])
-@login_required
-def deletar_lembrete(id):
-    lembrete = Lembrete.query.get_or_404(id)
-    if lembrete.autor != current_user:
-        flash('Não autorizado.', 'danger')
-        return redirect(url_for('core.index'))
-        
-    db.session.delete(lembrete)
-    db.session.commit()
-    flash('Lembrete deletado.', 'info')
-    return redirect(url_for('core.index'))
-
-# ------------------- ROTAS DE LISTAGEM -------------------
-
 @core_bp.route('/turmas/listar')
 @login_required
 def listar_turmas():
@@ -371,19 +309,11 @@ def listar_turmas():
 @login_required
 def listar_atividades():
     turmas_ids = [t.id for t in current_user.turmas]
-    
     if not turmas_ids:
         atividades = []
     else:
         atividades = Atividade.query.filter(Atividade.id_turma.in_(turmas_ids)).order_by(Atividade.data.desc()).all()
-        
     return render_template('list/listar_atividades.html', atividades=atividades)
-
-@core_bp.route('/professores')
-@login_required
-def listar_professores():
-    professores = User.query.filter_by(is_professor=True).all()
-    return render_template('list/listar_professores.html', professores=professores)
 
 @core_bp.route('/atividade/excluir/<int:id>')
 @login_required
@@ -398,24 +328,91 @@ def excluir_atividade(id):
     flash('Atividade removida com sucesso.', 'success')
     return redirect(url_for('core.listar_atividades'))
 
+# ------------------- PERFIL E LEMBRETES -------------------
+
+@core_bp.route('/perfil/editar', methods=['GET', 'POST'])
+@login_required
+def edit_perfil():
+    form = UserProfileForm(original_username=current_user.username)
+    if request.method == 'GET':
+        form.username.data = current_user.username
+        form.email_contato.data = current_user.email_contato
+        form.telefone.data = current_user.telefone
+        form.genero.data = current_user.genero 
+
+    if form.validate_on_submit():
+        foto_upload = request.files.get('foto_perfil')
+        if foto_upload and foto_upload.filename != '':
+            imgs_folder = os.path.join(current_app.config['UPLOAD_FOLDER'], 'imgs')
+            if not os.path.exists(imgs_folder):
+                os.makedirs(imgs_folder)
+            if current_user.foto_perfil_path:
+                old_path = os.path.join(imgs_folder, current_user.foto_perfil_path)
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+            filename_seguro = secure_filename(foto_upload.filename)
+            _, ext_seguro = os.path.splitext(filename_seguro)
+            filename_final = f"perfil_{current_user.id}_{int(datetime.now().timestamp())}{ext_seguro}"
+            filepath = os.path.join(imgs_folder, filename_final)
+            foto_upload.save(filepath)
+            current_user.foto_perfil_path = filename_final
+
+        current_user.username = form.username.data
+        current_user.email_contato = form.email_contato.data
+        current_user.telefone = form.telefone.data
+        current_user.genero = form.genero.data 
+        db.session.commit()
+        flash('Perfil e preferências atualizados com sucesso!', 'success')
+        return redirect(url_for('core.edit_perfil'))
+
+    return render_template('edit/edit_perfil.html', form=form, title="Editar Perfil")
+
+@core_bp.route('/lembrete/<int:id>/concluir', methods=['POST'])
+@login_required
+def concluir_lembrete(id):
+    lembrete = Lembrete.query.get_or_404(id)
+    if lembrete.autor != current_user:
+        flash('Não autorizado.', 'danger')
+        return redirect(url_for('core.index'))
+    lembrete.status = 'Concluido'
+    db.session.commit()
+    flash('Lembrete concluído.', 'info')
+    return redirect(url_for('core.index'))
+
+@core_bp.route('/lembrete/<int:id>/deletar', methods=['POST'])
+@login_required
+def deletar_lembrete(id):
+    lembrete = Lembrete.query.get_or_404(id)
+    if lembrete.autor != current_user:
+        flash('Não autorizado.', 'danger')
+        return redirect(url_for('core.index'))
+    db.session.delete(lembrete)
+    db.session.commit()
+    flash('Lembrete deletado.', 'info')
+    return redirect(url_for('core.index'))
+
+# ------------------- ADMINISTRAÇÃO (ESCOLAS E USUÁRIOS) -------------------
+
+@core_bp.route('/professores')
+@login_required
+def listar_professores():
+    professores = User.query.filter_by(is_professor=True).all()
+    return render_template('list/listar_professores.html', professores=professores)
+
 @core_bp.route('/usuario/excluir/<int:id>')
 @login_required
 def excluir_usuario(id):
     if not getattr(current_user, 'is_admin', False):
          flash('Acesso negado. Apenas administradores podem excluir usuários.', 'danger')
          return redirect(url_for('core.index'))
-
     user = User.query.get_or_404(id)
     if user.id == current_user.id:
         flash('Você não pode excluir a si mesmo!', 'danger')
         return redirect(request.referrer)
-        
     db.session.delete(user)
     db.session.commit()
     flash('Usuário removido com sucesso.', 'success')
     return redirect(request.referrer)
-
-# ------------------- ESCOLAS E COORDENADORES (NOVAS) -------------------
 
 @core_bp.route('/escolas/listar')
 @login_required
@@ -423,7 +420,6 @@ def listar_escolas():
     if not getattr(current_user, 'is_admin', False):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
-        
     escolas = Escola.query.all()
     return render_template('list/listar_escola.html', escolas=escolas)
 
@@ -433,7 +429,6 @@ def add_escola():
     if not getattr(current_user, 'is_admin', False):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
-        
     form = EscolaForm()
     if form.validate_on_submit():
         escola = Escola(
@@ -446,7 +441,6 @@ def add_escola():
         db.session.commit()
         flash('Escola cadastrada com sucesso!', 'success')
         return redirect(url_for('core.listar_escolas'))
-        
     return render_template('add/add_escola.html', form=form)
 
 @core_bp.route('/escola/editar/<int:id>', methods=['GET', 'POST'])
@@ -455,16 +449,13 @@ def editar_escola(id):
     if not getattr(current_user, 'is_admin', False):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
-        
     escola = Escola.query.get_or_404(id)
     form = EscolaForm(obj=escola)
-    
     if form.validate_on_submit():
         form.populate_obj(escola)
         db.session.commit()
         flash('Escola atualizada com sucesso!', 'success')
         return redirect(url_for('core.listar_escolas'))
-        
     return render_template('edit/edit_escola.html', form=form, escola=escola)
 
 @core_bp.route('/escola/excluir/<int:id>')
@@ -473,14 +464,11 @@ def excluir_escola(id):
     if not getattr(current_user, 'is_admin', False):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
-        
     escola = Escola.query.get_or_404(id)
     db.session.delete(escola)
     db.session.commit()
     flash('Escola excluída.', 'success')
     return redirect(url_for('core.listar_escolas'))
-
-# --- COORDENADORES ---
 
 @core_bp.route('/coordenadores/listar')
 @login_required
@@ -488,7 +476,6 @@ def listar_coordenadores():
     if not getattr(current_user, 'is_admin', False):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
-        
     coordenadores = User.query.filter_by(is_coordenador=True).all()
     return render_template('list/listar_coordenadores.html', coordenadores=coordenadores)
 
@@ -498,28 +485,23 @@ def add_coordenador():
     if not getattr(current_user, 'is_admin', False):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
-        
     form = CoordenadorForm()
-    # Popula o select de escolas
     form.escola_id.choices = [(e.id, e.nome) for e in Escola.query.all()]
-    
     if form.validate_on_submit():
-        from app import bcrypt # Import tardio para evitar circularidade se necessário
+        from app import bcrypt 
         hashed_pw = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
-        
         novo_coord = User(
             username=form.nome.data,
             email_contato=form.email.data,
             password_hash=hashed_pw,
             is_coordenador=True,
-            is_professor=False, # Coordenador não dá aula por padrão
+            is_professor=False,
             escola_id=form.escola_id.data
         )
         db.session.add(novo_coord)
         db.session.commit()
         flash('Coordenador cadastrado!', 'success')
         return redirect(url_for('core.listar_coordenadores'))
-        
     return render_template('add/add_coordenador.html', form=form)
 
 @core_bp.route('/coordenador/editar/<int:id>', methods=['GET', 'POST'])
@@ -528,11 +510,10 @@ def editar_coordenador(id):
     if not getattr(current_user, 'is_admin', False):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
-        
     coord = User.query.get_or_404(id)
     form = CoordenadorForm(obj=coord)
     form.escola_id.choices = [(e.id, e.nome) for e in Escola.query.all()]
-    form.senha.validators = [] # Senha opcional na edição
+    form.senha.validators = [] 
     
     if request.method == 'GET':
         form.nome.data = coord.username
@@ -543,42 +524,33 @@ def editar_coordenador(id):
         coord.username = form.nome.data
         coord.email_contato = form.email.data
         coord.escola_id = form.escola_id.data
-        
         if form.senha.data:
             from app import bcrypt
             coord.password_hash = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
-            
         db.session.commit()
         flash('Coordenador atualizado!', 'success')
         return redirect(url_for('core.listar_coordenadores'))
-        
     return render_template('edit/edit_coordenador.html', form=form, coord=coord)
 
 @core_bp.route('/professor/adicionar', methods=['GET', 'POST'])
 @login_required
 def add_professor():
-    # Qualquer admin ou coordenador pode adicionar professor
     if not (getattr(current_user, 'is_admin', False) or getattr(current_user, 'is_coordenador', False)):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
-    
     form = ProfessorForm()
-    
     if form.validate_on_submit():
         from app import bcrypt
         hashed_pw = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
-        
         novo_prof = User(
             username=form.nome.data,
             email_contato=form.email.data,
             password_hash=hashed_pw,
             is_professor=True,
-            # Vincula à mesma escola do coordenador se quem cria for coordenador
             escola_id=current_user.escola_id if getattr(current_user, 'is_coordenador', False) else None
         )
         db.session.add(novo_prof)
         db.session.commit()
         flash('Professor cadastrado!', 'success')
         return redirect(url_for('core.listar_professores'))
-        
     return render_template('add/add_professor.html', form=form)
