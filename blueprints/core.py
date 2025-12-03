@@ -1,20 +1,32 @@
 import os
-from datetime import date, datetime 
+from datetime import datetime
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from sqlalchemy import func, case
-from werkzeug.utils import secure_filename 
-
-# Imports de Módulos Locais
-from models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao
-from forms import TurmaForm, LembreteForm, UserProfileForm, EscolaForm, CoordenadorForm, ProfessorForm
-from utils import enviar_notificacao 
-
+from werkzeug.utils import secure_filename
 from flask_login import login_required, current_user
 
-core_bp = Blueprint('core', __name__, url_prefix='/')
+# --- IMPORTS DE MODELOS E FORMS ---
+# O bloco try/except garante compatibilidade se rodar direto ou via pacote
+try:
+    from models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao
+    from forms import TurmaForm, LembreteForm, UserProfileForm, EscolaForm, CoordenadorForm, ProfessorForm
+    # Tenta importar utils, se não existir define uma função dummy para não quebrar
+    try:
+        from utils import enviar_notificacao
+    except ImportError:
+        def enviar_notificacao(user_id, msg, link): pass
+except ImportError:
+    from ..models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao
+    from ..forms import TurmaForm, LembreteForm, UserProfileForm, EscolaForm, CoordenadorForm, ProfessorForm
+    try:
+        from ..utils import enviar_notificacao
+    except ImportError:
+        def enviar_notificacao(user_id, msg, link): pass
 
+# Definimos o Blueprint
+core_bp = Blueprint('core', __name__)
 
-# --- SEGURANÇA: BLOQUEIO DE ALUNOS ---
+# ------------------- SEGURANÇA: BLOQUEIO DE ALUNOS -------------------
 @core_bp.before_request
 def restrict_student_access():
     """
@@ -22,16 +34,34 @@ def restrict_student_access():
     às rotas do 'core' (painel do professor/admin) e redireciona
     para o portal do aluno.
     """
+    # Verifica se a rota atual é endpoint estático para não bloquear assets
+    if request.endpoint and 'static' in request.endpoint:
+        return
+
     if current_user.is_authenticated and getattr(current_user, 'is_aluno', False):
-        flash('Acesso redirecionado para o Portal do Aluno.', 'info')
-        # Certifique-se de que a rota 'portal.dashboard' existe no seu blueprint de aluno
-        return redirect(url_for('portal.dashboard'))
+        # Evita loop de redirecionamento se já estiver indo para o portal
+        if request.endpoint != 'portal.dashboard':
+            flash('Acesso redirecionado para o Portal do Aluno.', 'info')
+            # Certifique-se de que a rota 'portal.dashboard' existe no blueprint de aluno
+            # Se não existir, redireciona para logout ou home segura
+            return redirect(url_for('portal.dashboard'))
 
 # ------------------- ROTAS PRINCIPAIS (DASHBOARD) -------------------
 
-@core_bp.route('/', methods=['GET', 'POST'])
-@login_required 
+# 1. ROTA PÚBLICA (Landing Page)
+@core_bp.route('/')
 def index():
+    # Se o usuário JÁ está logado -> Vai direto para o Dashboard
+    if current_user.is_authenticated:
+        return redirect(url_for('core.dashboard'))
+    
+    # Renderiza a Landing Page pública
+    return render_template('landing.html') 
+
+# 2. O DASHBOARD (Antigo Index - Painel Administrativo)
+@core_bp.route('/dashboard', methods=['GET', 'POST'])
+@login_required 
+def dashboard():
     lembrete_form = LembreteForm(prefix='lembrete')
 
     if lembrete_form.validate_on_submit() and request.form.get('submit_lembrete'):
@@ -40,15 +70,15 @@ def index():
         db.session.add(novo_lembrete)
         db.session.commit()
         
-        # --- GATILHO DE TESTE DA NOTIFICAÇÃO ---
+        # Envia notificação
         enviar_notificacao(
             current_user.id, 
             f"Novo lembrete criado: {novo_lembrete.texto[:15]}...", 
-            url_for('core.index')
+            url_for('core.dashboard') 
         )
         
         flash('Lembrete salvo!', 'success')
-        return redirect(url_for('core.index'))
+        return redirect(url_for('core.dashboard'))
 
     q = request.args.get('q', '') 
     
@@ -89,88 +119,12 @@ def index():
                            dias_semana_widget=dias_semana
                            )
 
-# ------------------- GESTÃO DE NOTIFICAÇÕES -------------------
+# ------------------- DASHBOARD GLOBAL (ESTATÍSTICAS) -------------------
 
-@core_bp.route('/notificacao/<int:id>/ler')
+@core_bp.route('/dashboard/global')
 @login_required
-def ler_notificacao(id):
-    notificacao = Notificacao.query.get_or_404(id)
-    if notificacao.destinatario != current_user:
-        flash('Acesso negado.', 'danger')
-        return redirect(url_for('core.index'))
-    
-    notificacao.lida = True
-    db.session.commit()
-    
-    if notificacao.link:
-        return redirect(notificacao.link)
-    return redirect(request.referrer or url_for('core.index'))
-
-@core_bp.route('/notificacoes/ler_todas')
-@login_required
-def ler_todas_notificacoes():
-    Notificacao.query.filter_by(destinatario=current_user, lida=False).update({'lida': True})
-    db.session.commit()
-    flash('Todas as notificações marcadas como lidas.', 'success')
-    return redirect(request.referrer or url_for('core.index'))
-
-# ------------------- GESTÃO DE TURMAS (CRUD) -------------------
-
-@core_bp.route('/add_turma', methods=['GET', 'POST'])
-@login_required
-def add_turma():
-    form = TurmaForm()
-    if form.validate_on_submit():
-        nova_turma = Turma(
-            nome=form.nome.data, 
-            descricao=form.descricao.data, 
-            turno=form.turno.data,
-            autor=current_user 
-        )
-        db.session.add(nova_turma)
-        db.session.commit()
-        flash('Turma criada com sucesso!', 'success')
-        return redirect(url_for('core.index'))
-    
-    return render_template('add/add_turma.html', form=form, title="Adicionar Turma")
-
-@core_bp.route('/turma/editar/<int:id>', methods=['GET', 'POST'])
-@login_required
-def editar_turma(id):
-    turma = Turma.query.get_or_404(id)
-    if turma.autor != current_user:
-        flash('Não autorizado.', 'danger')
-        return redirect(url_for('core.index'))
-
-    form = TurmaForm(obj=turma)
-    if form.validate_on_submit():
-        turma.nome = form.nome.data
-        turma.descricao = form.descricao.data
-        turma.turno = form.turno.data
-        db.session.commit()
-        flash('Turma atualizada!', 'success')
-        return redirect(url_for('core.listar_turmas'))
-    
-    return render_template('edit/edit_turma.html', form=form, turma=turma)
-
-@core_bp.route('/turma/excluir/<int:id>')
-@login_required
-def excluir_turma(id):
-    turma = Turma.query.get_or_404(id)
-    if turma.autor != current_user:
-        flash('Não autorizado.', 'danger')
-        return redirect(url_for('core.index'))
-        
-    db.session.delete(turma)
-    db.session.commit()
-    flash('Turma excluída com sucesso.', 'success')
-    return redirect(url_for('core.listar_turmas'))
-
-# ------------------- DASHBOARD GLOBAL -------------------
-
-@core_bp.route('/dashboard')
-@login_required
-def dashboard():
+def dashboard_global():
+    # Rota renomeada para evitar conflito com a função dashboard() acima
     total_turmas = Turma.query.filter_by(autor=current_user).count()
     
     total_alunos = db.session.query(func.count(Aluno.id))\
@@ -251,6 +205,83 @@ def dashboard():
                            dados_combinados=dados_graficos, 
                            top_alunos=top_alunos_data
                            )
+
+# ------------------- GESTÃO DE NOTIFICAÇÕES -------------------
+
+@core_bp.route('/notificacao/<int:id>/ler')
+@login_required
+def ler_notificacao(id):
+    notificacao = Notificacao.query.get_or_404(id)
+    if notificacao.destinatario != current_user:
+        flash('Acesso negado.', 'danger')
+        return redirect(url_for('core.index'))
+    
+    notificacao.lida = True
+    db.session.commit()
+    
+    if notificacao.link:
+        return redirect(notificacao.link)
+    return redirect(request.referrer or url_for('core.index'))
+
+@core_bp.route('/notificacoes/ler_todas')
+@login_required
+def ler_todas_notificacoes():
+    Notificacao.query.filter_by(destinatario=current_user, lida=False).update({'lida': True})
+    db.session.commit()
+    flash('Todas as notificações marcadas como lidas.', 'success')
+    return redirect(request.referrer or url_for('core.index'))
+
+# ------------------- GESTÃO DE TURMAS (CRUD) -------------------
+
+@core_bp.route('/add_turma', methods=['GET', 'POST'])
+@login_required
+def add_turma():
+    form = TurmaForm()
+    if form.validate_on_submit():
+        nova_turma = Turma(
+            nome=form.nome.data, 
+            descricao=form.descricao.data, 
+            turno=form.turno.data,
+            autor=current_user 
+        )
+        db.session.add(nova_turma)
+        db.session.commit()
+        flash('Turma criada com sucesso!', 'success')
+        return redirect(url_for('core.index'))
+    
+    return render_template('add/add_turma.html', form=form, title="Adicionar Turma")
+
+@core_bp.route('/turma/editar/<int:id>', methods=['GET', 'POST'])
+@login_required
+def editar_turma(id):
+    turma = Turma.query.get_or_404(id)
+    if turma.autor != current_user:
+        flash('Não autorizado.', 'danger')
+        return redirect(url_for('core.index'))
+
+    form = TurmaForm(obj=turma)
+    if form.validate_on_submit():
+        turma.nome = form.nome.data
+        turma.descricao = form.descricao.data
+        turma.turno = form.turno.data
+        db.session.commit()
+        flash('Turma atualizada!', 'success')
+        return redirect(url_for('core.listar_turmas'))
+    
+    return render_template('edit/edit_turma.html', form=form, turma=turma)
+
+@core_bp.route('/turma/excluir/<int:id>')
+@login_required
+def excluir_turma(id):
+    turma = Turma.query.get_or_404(id)
+    if turma.autor != current_user:
+        flash('Não autorizado.', 'danger')
+        return redirect(url_for('core.index'))
+        
+    db.session.delete(turma)
+    db.session.commit()
+    flash('Turma excluída com sucesso.', 'success')
+    return redirect(url_for('core.listar_turmas'))
 
 # ------------------- PERFIL DE USUÁRIO -------------------
 
@@ -473,7 +504,7 @@ def add_coordenador():
     form.escola_id.choices = [(e.id, e.nome) for e in Escola.query.all()]
     
     if form.validate_on_submit():
-        from app import bcrypt
+        from app import bcrypt # Import tardio para evitar circularidade se necessário
         hashed_pw = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
         
         novo_coord = User(
