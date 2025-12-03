@@ -1,0 +1,219 @@
+{% extends "layouts/base_app.html" %}
+
+{% block title %}Painel da Coordenação{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Header com Breadcrumb e Ações (Estilo Padrão) -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
+        <div>
+            <nav class="flex text-sm font-medium text-gray-500 mb-1" aria-label="Breadcrumb">
+                <ol class="flex items-center space-x-2">
+                    <li><a href="#" class="hover:text-blue-600">Cortex</a></li>
+                    <li><span class="text-gray-300">/</span></li>
+                    <li class="text-blue-600" aria-current="page">Coordenação</li>
+                </ol>
+            </nav>
+            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Visão Geral Pedagógica</h1>
+            <p class="text-gray-500 mt-1">Acompanhe o desempenho escolar e gerencie pendências acadêmicas.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="inline-flex items-center rounded-md bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                <i class="fas fa-calendar mr-1.5"></i> Ano Letivo 2025
+            </span>
+            <button class="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium rounded-lg text-sm px-4 py-2.5 text-center inline-flex items-center shadow-sm transition-all">
+                <i class="fas fa-download mr-2"></i> Relatório Geral
+            </button>
+        </div>
+    </div>
+
+    <!-- Cards de Métricas (Stats) com Design Moderno -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <!-- Card: Planos Pendentes -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-start justify-between hover:shadow-md transition-shadow cursor-pointer border-l-4 border-l-yellow-400">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Planos de Aula</p>
+                <h3 class="text-3xl font-bold text-gray-900 mt-2">12</h3>
+                <p class="text-xs text-yellow-600 mt-1 font-medium">Aguardando Aprovação</p>
+            </div>
+            <div class="p-3 bg-yellow-50 rounded-lg text-yellow-600">
+                <i class="fas fa-file-signature text-xl"></i>
+            </div>
+        </div>
+
+        <!-- Card: Ocorrências -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-start justify-between hover:shadow-md transition-shadow border-l-4 border-l-red-400">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Ocorrências</p>
+                <h3 class="text-3xl font-bold text-gray-900 mt-2">3</h3>
+                <p class="text-xs text-red-600 mt-1 font-medium">Registradas Hoje</p>
+            </div>
+            <div class="p-3 bg-red-50 rounded-lg text-red-600">
+                <i class="fas fa-exclamation-circle text-xl"></i>
+            </div>
+        </div>
+
+        <!-- Card: Frequência -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-start justify-between hover:shadow-md transition-shadow border-l-4 border-l-green-400">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Frequência Média</p>
+                <h3 class="text-3xl font-bold text-gray-900 mt-2">94%</h3>
+                <p class="text-xs text-green-600 mt-1 font-medium">+2% vs semana anterior</p>
+            </div>
+            <div class="p-3 bg-green-50 rounded-lg text-green-600">
+                <i class="fas fa-chart-line text-xl"></i>
+            </div>
+        </div>
+
+        <!-- Card: Alunos Ativos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex items-start justify-between hover:shadow-md transition-shadow border-l-4 border-l-blue-400">
+            <div>
+                <p class="text-sm font-medium text-gray-500">Total de Alunos</p>
+                <h3 class="text-3xl font-bold text-gray-900 mt-2">1,240</h3>
+                <p class="text-xs text-blue-600 mt-1 font-medium">Matriculados</p>
+            </div>
+            <div class="p-3 bg-blue-50 rounded-lg text-blue-600">
+                <i class="fas fa-user-graduate text-xl"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid Principal: Tabelas e Listas -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Coluna Esquerda: Tarefas Pendentes (Planos) -->
+        <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-gray-800">
+                    <i class="fas fa-tasks mr-2 text-blue-500"></i>Pendências de Aprovação
+                </h2>
+                <a href="#" class="text-sm text-blue-600 hover:text-blue-800 font-medium">Ver todas</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider border-b border-gray-100">
+                            <th class="px-6 py-4 font-semibold">Professor</th>
+                            <th class="px-6 py-4 font-semibold">Disciplina</th>
+                            <th class="px-6 py-4 font-semibold">Data Envio</th>
+                            <th class="px-6 py-4 font-semibold">Status</th>
+                            <th class="px-6 py-4 text-right">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+                        <!-- Item 1 -->
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-bold">
+                                    JP
+                                </div>
+                                <span class="font-medium text-gray-900">João Pereira</span>
+                            </td>
+                            <td class="px-6 py-4">Matemática (9º Ano A)</td>
+                            <td class="px-6 py-4 text-gray-500">Hoje, 09:30</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-inset ring-yellow-600/20">Análise</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-blue-600 hover:text-blue-900 font-medium text-xs border border-blue-200 rounded px-2 py-1 hover:bg-blue-50">
+                                    Revisar
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Item 2 -->
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-xs font-bold">
+                                    AM
+                                </div>
+                                <span class="font-medium text-gray-900">Ana Maria</span>
+                            </td>
+                            <td class="px-6 py-4">História (8º Ano B)</td>
+                            <td class="px-6 py-4 text-gray-500">Ontem, 16:45</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center rounded-full bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-700 ring-1 ring-inset ring-yellow-600/20">Análise</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-blue-600 hover:text-blue-900 font-medium text-xs border border-blue-200 rounded px-2 py-1 hover:bg-blue-50">
+                                    Revisar
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Item 3 -->
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center text-xs font-bold">
+                                    CS
+                                </div>
+                                <span class="font-medium text-gray-900">Carlos Silva</span>
+                            </td>
+                            <td class="px-6 py-4">Geografia (1º EM)</td>
+                            <td class="px-6 py-4 text-gray-500">01/12/2025</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">Atrasado</span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <button class="text-blue-600 hover:text-blue-900 font-medium text-xs border border-blue-200 rounded px-2 py-1 hover:bg-blue-50">
+                                    Cobrar
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Coluna Direita: Atividades Recentes / Feed -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col">
+            <div class="p-6 border-b border-gray-100">
+                <h2 class="text-lg font-bold text-gray-800">
+                    <i class="fas fa-history mr-2 text-gray-400"></i>Últimas Atividades
+                </h2>
+            </div>
+            <div class="p-6 flex-1 overflow-y-auto max-h-[400px]">
+                <ul role="list" class="space-y-6">
+                    <li class="relative flex gap-x-4">
+                        <div class="absolute left-0 top-0 flex w-6 justify-center -bottom-6">
+                            <div class="w-px bg-gray-200"></div>
+                        </div>
+                        <div class="relative flex h-6 w-6 flex-none items-center justify-center bg-white">
+                            <div class="h-1.5 w-1.5 rounded-full bg-gray-100 ring-1 ring-gray-300"></div>
+                        </div>
+                        <p class="flex-auto py-0.5 text-xs leading-5 text-gray-500">
+                            <span class="font-medium text-gray-900">Roberto Santos</span> lançou notas do <span class="font-medium text-gray-900">3º Bimestre</span>.
+                        </p>
+                        <time datetime="2023-01-23T10:32" class="flex-none py-0.5 text-xs leading-5 text-gray-500">30m atrás</time>
+                    </li>
+                    <li class="relative flex gap-x-4">
+                        <div class="absolute left-0 top-0 flex w-6 justify-center -bottom-6">
+                            <div class="w-px bg-gray-200"></div>
+                        </div>
+                        <div class="relative flex h-6 w-6 flex-none items-center justify-center bg-white">
+                            <div class="h-1.5 w-1.5 rounded-full bg-gray-100 ring-1 ring-gray-300"></div>
+                        </div>
+                        <p class="flex-auto py-0.5 text-xs leading-5 text-gray-500">
+                            <span class="font-medium text-gray-900">Julia Costa</span> registrou uma ocorrência disciplinar.
+                        </p>
+                        <time datetime="2023-01-23T11:03" class="flex-none py-0.5 text-xs leading-5 text-gray-500">1h atrás</time>
+                    </li>
+                    <li class="relative flex gap-x-4">
+                        <div class="absolute left-0 top-0 flex w-6 justify-center -bottom-6">
+                            <div class="w-px bg-gray-200"></div>
+                        </div>
+                        <div class="relative flex h-6 w-6 flex-none items-center justify-center bg-white">
+                            <div class="h-1.5 w-1.5 rounded-full bg-gray-100 ring-1 ring-gray-300"></div>
+                        </div>
+                        <p class="flex-auto py-0.5 text-xs leading-5 text-gray-500">
+                            <span class="font-medium text-gray-900">Diretoria</span> agendou Conselho de Classe.
+                        </p>
+                        <time datetime="2023-01-23T11:24" class="flex-none py-0.5 text-xs leading-5 text-gray-500">2h atrás</time>
+                    </li>
+                </ul>
+            </div>
+            <div class="p-4 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+                <a href="#" class="block text-center text-sm font-medium text-gray-500 hover:text-gray-700">Ver histórico completo</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

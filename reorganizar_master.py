@@ -179,7 +179,7 @@ def create_app(config_class=Config):
     migrate.init_app(app, db)
 
     # Registrar Blueprints (Você precisará atualizar os imports dentro deles)
-    # from app.blueprints.core import core_bp
+    # from app.app.blueprints.core import core_bp
     # app.register_blueprint(core_bp)
 
     return app

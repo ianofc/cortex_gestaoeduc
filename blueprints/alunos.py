@@ -26,7 +26,7 @@ from docx.shared import Cm, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_ORIENT
 
-# Imports Locais e Extensões (Ajustados para a pasta 'app')
+# --- CORREÇÃO DE IMPORTS (Apontando para app.*) ---
 from app.extensions import csrf 
 from app.models.base_legacy import (
     db, Turma, Aluno, Atividade, Presenca, DiarioBordo, Material, BlocoAula, Horario
@@ -503,6 +503,7 @@ def editar_aluno(id_aluno):
         return redirect(url_for('core.index'))
     
     form = EditarAlunoForm(obj=aluno)
+    # CORREÇÃO DE IMPORT LOCAL:
     from app.models.base_legacy import Turma 
     form.turma.query_factory = lambda: Turma.query.filter_by(autor=current_user).order_by(Turma.nome)
     
@@ -539,6 +540,7 @@ def editar_turma(id_turma):
         flash('Não autorizado.', 'danger')
         return redirect(url_for('core.index'))
     
+    # CORREÇÃO DE IMPORT LOCAL:
     from app.forms.forms_legacy import TurmaForm 
     form = TurmaForm(obj=turma)
     if form.validate_on_submit():

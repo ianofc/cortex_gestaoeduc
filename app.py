@@ -8,16 +8,24 @@ from flask_moment import Moment
 from flask_migrate import Migrate
 
 # --- IMPORTAÇÃO DAS EXTENSÕES ---
-from extensions import bcrypt, csrf 
+# (Ajustado para a nova pasta 'app')
+from app.extensions import bcrypt, csrf 
 
-# Imports de Módulos Locais
-from models import db, User, Notificacao # Adicionado Notificacao
-from blueprints.auth import auth_bp
-from blueprints.core import core_bp
-from blueprints.planos import planos_bp
-from blueprints.alunos import alunos_bp
-from blueprints.backup import backup_bp
-from blueprints.portal import portal_bp 
+# Imports de Módulos Locais (Ajustados para a nova estrutura)
+# O models.py original virou app.models.base_legacy na migração
+from app.models.base_legacy import db, User, Notificacao 
+from app.blueprints.auth import auth_bp
+from app.blueprints.core import core_bp
+from app.blueprints.planos import planos_bp
+from app.blueprints.alunos import alunos_bp
+from app.blueprints.backup import backup_bp
+from app.blueprints.portal import portal_bp 
+
+# Tenta importar a coordenação (novo módulo)
+try:
+    from app.blueprints.coordenacao import coordenacao_bp
+except ImportError:
+    coordenacao_bp = None
 
 # --- APPLICATION FACTORY ---
 
@@ -50,11 +58,15 @@ def create_app(config_class=Config):
     @app.context_processor
     def inject_notificacoes():
         if current_user.is_authenticated:
-            # Conta notificações não lidas
-            nao_lidas = Notificacao.query.filter_by(destinatario=current_user, lida=False).count()
-            # Pega as 5 mais recentes
-            recentes = Notificacao.query.filter_by(destinatario=current_user).order_by(Notificacao.data_criacao.desc()).limit(5).all()
-            return dict(num_notificacoes=nao_lidas, notificacoes_topo=recentes)
+            try:
+                # Conta notificações não lidas
+                nao_lidas = Notificacao.query.filter_by(destinatario=current_user, lida=False).count()
+                # Pega as 5 mais recentes
+                recentes = Notificacao.query.filter_by(destinatario=current_user).order_by(Notificacao.data_criacao.desc()).limit(5).all()
+                return dict(num_notificacoes=nao_lidas, notificacoes_topo=recentes)
+            except Exception:
+                # Proteção caso a tabela Notificacao ainda não tenha sido criada
+                return dict(num_notificacoes=0, notificacoes_topo=[])
         return dict(num_notificacoes=0, notificacoes_topo=[])
 
     # 3. Configuração da Pasta de Upload 
@@ -71,6 +83,10 @@ def create_app(config_class=Config):
     app.register_blueprint(alunos_bp)
     app.register_blueprint(backup_bp)
     app.register_blueprint(portal_bp)
+    
+    # Registro condicional da Coordenação
+    if coordenacao_bp:
+        app.register_blueprint(coordenacao_bp)
     
     return app
 

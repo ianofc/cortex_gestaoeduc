@@ -23,15 +23,15 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet # Necessário para o PDF
 
 # --- Imports de Módulos Locais ---
-from models import (
+from app.models.base_legacy import (
     db, Turma, Aluno, Atividade, Presenca, PlanoDeAula, 
     Material, Horario, BlocoAula, DiarioBordo, Lembrete
 )
-from forms import (
+from app.forms.forms_legacy import (
     PlanoDeAulaForm, MaterialForm, DiarioForm 
 )
 # Assumindo que essas funções estão em 'utils.py'
-from utils import extrair_texto_de_ficheiro, obter_resumo_ia 
+from app.utils.helpers import extrair_texto_de_ficheiro, obter_resumo_ia 
 from flask_login import login_required, current_user
 
 # Criação do Blueprint para Planejamento, Diário e Horário
@@ -69,7 +69,7 @@ def calcular_media_desempenho_turma(id_turma):
 def planejamentos():
     turmas = Turma.query.filter_by(autor=current_user).order_by(Turma.nome).all()
     # CORREÇÃO: Template na pasta 'geral'
-    return render_template('geral/planejamentos.html', turmas=turmas)
+    return render_template('professor/planejamento/lista.html', turmas=turmas)
 
 
 @planos_bp.route('/turma/<int:id_turma>/planejamento', methods=['GET', 'POST'])
@@ -106,7 +106,7 @@ def planejamento(id_turma):
     planos = PlanoDeAula.query.filter_by(id_turma=id_turma).order_by(PlanoDeAula.data_prevista.desc()).all()
     
     # CORREÇÃO: Template na pasta 'geral'
-    return render_template('geral/planejamento.html', 
+    return render_template('professor/planejamento/editor.html', 
                            turma=turma, 
                            form=form, 
                            planos=planos,
@@ -204,7 +204,7 @@ def gerar_plano_ia(id_turma):
 
     material_form = MaterialForm()
     # CORREÇÃO: Template na pasta 'geral'
-    return render_template('geral/planejamento.html', 
+    return render_template('professor/planejamento/editor.html', 
                            turma=turma, 
                            form=form, 
                            planos=planos,
@@ -445,7 +445,7 @@ def diario_bordo():
     entradas = query.all()
     
     # CORREÇÃO: Template na pasta 'geral'
-    return render_template('geral/diario_bordo.html', 
+    return render_template('professor/turma/diario_classe.html', 
                            form=form, 
                            turmas_user=turmas_user,
                            entradas=entradas,
@@ -505,7 +505,7 @@ def gerenciar_horario():
     dias_semana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
     
     # CORREÇÃO: Template na pasta 'geral'
-    return render_template('geral/gerenciar_horario.html', 
+    return render_template('admin/configuracoes/horario.html', 
                            horario=horario,
                            blocos_map=blocos_map,
                            turmas_user=turmas_user,
@@ -594,7 +594,7 @@ def analisar_acessibilidade_ia(id_plano):
 def gerar_prova():
     turmas = Turma.query.filter_by(autor=current_user).order_by(Turma.nome).all()
     # CORREÇÃO: Template na pasta 'geral'
-    return render_template('geral/gerar_prova.html', turmas=turmas)
+    return render_template('professor/atividades/gerador_provas.html', turmas=turmas)
 
 @planos_bp.route('/api/fontes_turma/<int:id_turma>')
 @login_required
@@ -1010,4 +1010,4 @@ def listar_planos():
         planos = PlanoDeAula.query.filter(PlanoDeAula.id_turma.in_(turmas_ids)).order_by(PlanoDeAula.data_prevista.desc()).all()
         
     # CORREÇÃO: Template na pasta 'list'
-    return render_template('list/listar_planos.html', planos=planos)
+    return render_template('professor/planejamento/todos_planos.html', planos=planos)

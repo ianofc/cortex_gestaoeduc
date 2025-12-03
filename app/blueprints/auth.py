@@ -4,11 +4,11 @@ from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 
 # --- IMPORTAÇÃO DA EXTENSÃO (CORREÇÃO) ---
-from extensions import bcrypt  # Importa o bcrypt diretamente do arquivo novo
+from app.extensions import bcrypt  # Importa o bcrypt diretamente do arquivo novo
 
 # Imports Locais
-from models import db, User, Horario, BlocoAula, Aluno, Escola
-from forms import RegisterForm, LoginForm, ProfessorForm
+from app.models.base_legacy import db, User, Horario, BlocoAula, Aluno, Escola
+from app.forms.forms_legacy import RegisterForm, LoginForm, ProfessorForm
 
 # Definindo prefixo /auth para organizar as rotas (ex: /auth/login)
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
@@ -83,7 +83,7 @@ def register():
             
         return redirect(url_for('auth.login'))
     
-    return render_template('main/register.html', form=form)
+    return render_template('auth/register.html', form=form)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -119,7 +119,7 @@ def login():
         else:
             flash('Login falhou. Verifique suas credenciais.', 'danger')
             
-    return render_template('main/login.html', form=form)
+    return render_template('auth/login.html', form=form)
 
 @auth_bp.route('/logout')
 @login_required
@@ -158,4 +158,4 @@ def editar_professor(id):
             return redirect(url_for('core.listar_professores'))
         return redirect(url_for('core.index'))
         
-    return render_template('edit/edit_professor.html', form=form, professor=professor)
+    return render_template('admin/usuarios/editar_professor.html', form=form, professor=professor)

@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
-from models import Aluno, Presenca, Atividade, Turma, Notificacao, db
+from app.models.base_legacy import Aluno, Presenca, Atividade, Turma, Notificacao, db
 from sqlalchemy import func
 
 portal_bp = Blueprint('portal', __name__, url_prefix='/portal')
@@ -18,7 +18,7 @@ def dashboard():
             return redirect(url_for('core.dashboard'))
         
         flash('Este usuário não está vinculado a nenhum perfil de aluno.', 'warning')
-        return render_template('portal/sem_acesso.html')
+        return render_template('aluno/sem_acesso.html')
 
     # 2. Coletar Dados da Turma
     turma = aluno.turma
@@ -48,7 +48,7 @@ def dashboard():
     notas = [p.nota for p in aluno.presencas if p.nota is not None]
     media_geral = round(sum(notas) / len(notas), 1) if notas else 0.0
 
-    return render_template('portal/dashboard_aluno.html', 
+    return render_template('aluno/dashboard.html', 
                            aluno=aluno,
                            turma=turma,
                            freq_percent=freq_percent,

@@ -7,10 +7,10 @@ from flask_login import login_required, current_user
 
 # --- IMPORTS DE MODELOS E FORMS ---
 try:
-    from models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao
-    from forms import TurmaForm, LembreteForm, UserProfileForm, EscolaForm, CoordenadorForm, ProfessorForm
+    from app.models.base_legacy import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao
+    from app.forms.forms_legacy import TurmaForm, LembreteForm, UserProfileForm, EscolaForm, CoordenadorForm, ProfessorForm
     try:
-        from utils import enviar_notificacao
+        from app.utils.helpers import enviar_notificacao
     except ImportError:
         def enviar_notificacao(user_id, msg, link): pass
 except ImportError:
@@ -41,11 +41,11 @@ def restrict_student_access():
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('core.dashboard'))
-    return render_template('landing_page.html') 
+    return render_template('public/landing_page.html') 
 
 @core_bp.route('/planos')
 def pricing():
-    return render_template('pricing.html')
+    return render_template('public/pricing.html')
 
 @core_bp.route('/checkout')
 def checkout():
@@ -60,15 +60,15 @@ def checkout():
     }
     price = prices.get(plan, {}).get(cycle, '0,00')
     
-    return render_template('checkout.html', plan_name=plan, cycle=cycle, price=price)
+    return render_template('public/checkout.html', plan_name=plan, cycle=cycle, price=price)
 
 @core_bp.route('/demo')
 def demo():
-    return render_template('demo.html')
+    return render_template('public/demo.html')
 
 @core_bp.route('/inteligencia')
 def intelligence():
-    return render_template('intelligence.html')
+    return render_template('professor/planejamento/assistente_ia.html')
 
 @core_bp.route('/seguranca')
 def security():
@@ -76,7 +76,7 @@ def security():
 
 @core_bp.route('/contato')
 def contact():
-    return render_template('contact.html')
+    return render_template('public/contact.html')
 
 # ------------------- SISTEMA INTERNO (DASHBOARD) -------------------
 
@@ -129,7 +129,7 @@ def dashboard():
     else:
         horarios_texto = ["--:--"] * 5
     
-    return render_template('main/index.html', 
+    return render_template('layouts/base_public.html', 
                            turmas=turmas, 
                            lembrete_form=lembrete_form,
                            lembretes=lembretes,
@@ -215,7 +215,7 @@ def dashboard_global():
     top_alunos_data.sort(key=lambda x: x['percentual'], reverse=True)
     top_alunos_data = top_alunos_data[:10]
     
-    return render_template('geral/dashboard_global.html',
+    return render_template('admin/dashboard/global.html',
                            total_turmas=total_turmas,
                            total_alunos=total_alunos,
                            total_atividades=total_atividades,
@@ -265,7 +265,7 @@ def add_turma():
         db.session.commit()
         flash('Turma criada com sucesso!', 'success')
         return redirect(url_for('core.index'))
-    return render_template('add/add_turma.html', form=form, title="Adicionar Turma")
+    return render_template('admin/configuracoes/nova_turma.html', form=form, title="Adicionar Turma")
 
 @core_bp.route('/turma/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -284,7 +284,7 @@ def editar_turma(id):
         flash('Turma atualizada!', 'success')
         return redirect(url_for('core.listar_turmas'))
     
-    return render_template('edit/edit_turma.html', form=form, turma=turma)
+    return render_template('admin/configuracoes/editar_turma.html', form=form, turma=turma)
 
 @core_bp.route('/turma/excluir/<int:id>')
 @login_required
@@ -303,7 +303,7 @@ def excluir_turma(id):
 @login_required
 def listar_turmas():
     turmas = current_user.turmas 
-    return render_template('list/listar_turmas.html', turmas=turmas)
+    return render_template('admin/configuracoes/listar_turmas.html', turmas=turmas)
 
 @core_bp.route('/atividades/listar')
 @login_required
@@ -313,7 +313,7 @@ def listar_atividades():
         atividades = []
     else:
         atividades = Atividade.query.filter(Atividade.id_turma.in_(turmas_ids)).order_by(Atividade.data.desc()).all()
-    return render_template('list/listar_atividades.html', atividades=atividades)
+    return render_template('professor/atividades/listar_atividades.html', atividades=atividades)
 
 @core_bp.route('/atividade/excluir/<int:id>')
 @login_required
@@ -397,7 +397,7 @@ def deletar_lembrete(id):
 @login_required
 def listar_professores():
     professores = User.query.filter_by(is_professor=True).all()
-    return render_template('list/listar_professores.html', professores=professores)
+    return render_template('admin/usuarios/listar_professores.html', professores=professores)
 
 @core_bp.route('/usuario/excluir/<int:id>')
 @login_required
@@ -421,7 +421,7 @@ def listar_escolas():
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
     escolas = Escola.query.all()
-    return render_template('list/listar_escola.html', escolas=escolas)
+    return render_template('admin/configuracoes/listar_escolas.html', escolas=escolas)
 
 @core_bp.route('/escola/adicionar', methods=['GET', 'POST'])
 @login_required
@@ -441,7 +441,7 @@ def add_escola():
         db.session.commit()
         flash('Escola cadastrada com sucesso!', 'success')
         return redirect(url_for('core.listar_escolas'))
-    return render_template('add/add_escola.html', form=form)
+    return render_template('admin/configuracoes/nova_escola.html', form=form)
 
 @core_bp.route('/escola/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -456,7 +456,7 @@ def editar_escola(id):
         db.session.commit()
         flash('Escola atualizada com sucesso!', 'success')
         return redirect(url_for('core.listar_escolas'))
-    return render_template('edit/edit_escola.html', form=form, escola=escola)
+    return render_template('admin/configuracoes/editar_escola.html', form=form, escola=escola)
 
 @core_bp.route('/escola/excluir/<int:id>')
 @login_required
@@ -553,4 +553,4 @@ def add_professor():
         db.session.commit()
         flash('Professor cadastrado!', 'success')
         return redirect(url_for('core.listar_professores'))
-    return render_template('add/add_professor.html', form=form)
+    return render_template('admin/usuarios/novo_professor.html', form=form)

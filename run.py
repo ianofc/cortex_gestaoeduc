@@ -1,7 +1,7 @@
 # run.py
 
 from app import create_app
-from models import db 
+from app.models.base_legacy import db 
 
 # 1. Cria a instância da aplicação usando a Application Factory
 # Isso carrega a configuração e registra todas as extensões e rotas.
