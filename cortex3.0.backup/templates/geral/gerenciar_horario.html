@@ -1,0 +1,72 @@
+{% extends "main/base.html" %}
+{% block content %}
+<h2 class="text-2xl font-semibold mb-4">Gerir Horário - {{ horario.nome }}</h2>
+<p class="mb-4">Clique num bloco para atribuir uma turma ou adicionar um texto (ex: "AC").</p>
+
+<div class="overflow-x-auto bg-white p-4 rounded-lg shadow-lg">
+    <table class="min-w-full border border-gray-300 text-sm text-center">
+        <thead class="bg-gray-100">
+            <tr>
+                <th class="border px-2 py-2 font-semibold">Horário</th>
+                {% for dia in dias_semana %}
+                    <th class="border px-2 py-2 font-semibold">{{ dia }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+            {% for pos in range(1, 6) %} <tr>
+                <td class="border px-2 py-4 font-medium">{{ horarios_texto[pos-1] }}</td>
+                {% for dia in range(5) %} {% set bloco = blocos_map.get((dia, pos)) %}
+                    <td class="border px-2 py-4 h-24 cursor-pointer hover:bg-gray-100 horario-bloco" 
+                        data-id-bloco="{{ bloco.id }}"
+                        data-dia="{{ dias_semana[dia] }}"
+                        data-hora="{{ horarios_texto[pos-1] }}">
+                        <span id="display-bloco-{{ bloco.id }}" 
+                              class="font-bold 
+                              {% if bloco.turma_bloco %}text-blue-700
+                              {% elif bloco.texto_alternativo %}text-gray-700
+                              {% else %}text-gray-400{% endif %}">
+                            
+                            {% if bloco.turma_bloco %}
+                                {{ bloco.turma_bloco.nome }}
+                            {% elif bloco.texto_alternativo %}
+                                {{ bloco.texto_alternativo }}
+                            {% else %}
+                                VAGO
+                            {% endif %}
+                        </span>
+                    </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div id="horario-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center" style="display: none; z-index: 50;">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+        <h3 class="text-xl font-semibold mb-4" id="modal-title">Editar Bloco</h3>
+        <input type="hidden" id="modal-id-bloco">
+        
+        <div class="mb-4">
+            <label for="modal-turma" class="block text-sm font-medium text-gray-700">Atribuir Turma (Substitui o texto):</label>
+            <select id="modal-turma" class="mt-1 border p-2 rounded w-full">
+                <option value="None">-- Nenhuma / VAGO --</option>
+                {% for turma in turmas_user %}
+                <option value="{{ turma.id }}">{{ turma.nome }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="mb-4">
+            <label for="modal-texto" class="block text-sm font-medium text-gray-700">Ou Texto Alternativo (se nenhuma turma):</label>
+            <input type="text" id="modal-texto" class="mt-1 border p-2 rounded w-full" placeholder="Ex: AC, Reunião">
+        </div>
+        
+        <div class="flex justify-end space-x-2 mt-6">
+            <button id="modal-cancel" class="bg-gray-300 text-gray-800 p-2 rounded hover:bg-gray-400">Cancelar</button>
+            <button id="modal-save" class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Salvar</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Segurança & Privacidade | Cortex Lumina</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        lumina: {
+                            50: '#f5f3ff', 500: '#8b5cf6', 600: '#7c3aed', 900: '#4c1d95',
+                            dark: '#0f172a', surface: '#1e293b'
+                        },
+                        cyan: { 400: '#22d3ee', 500: '#06b6d4' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-lumina-dark text-gray-100 font-sans antialiased overflow-x-hidden selection:bg-green-500/30 selection:text-green-100">
+
+    <!-- Navbar Simplificada -->
+    <nav class="absolute w-full z-50 p-6">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="/" class="flex items-center gap-3 hover:opacity-80 transition group">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-lumina-600 to-cyan-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition duration-300">
+                    <i class="fas fa-brain text-white text-sm"></i>
+                </div>
+                <span class="font-bold text-xl tracking-tight">Cortex <span class="text-cyan-400 font-light">Lumina</span></span>
+            </a>
+            <a href="/" class="text-sm font-medium text-gray-400 hover:text-white transition flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/5">
+                <i class="fas fa-arrow-left"></i> Voltar para Home
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative pt-32 pb-20 overflow-hidden">
+        <!-- Blobs -->
+        <div class="blob bg-green-600/10 w-[600px] h-[600px] top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 blur-[100px]"></div>
+        
+        <div class="max-w-4xl mx-auto px-4 text-center relative z-10">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-900/30 border border-green-500/30 text-green-400 text-xs font-bold mb-6">
+                <i class="fas fa-lock"></i> LGPD Compliant
+            </div>
+            
+            <h1 class="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+                Seus dados, protegidos por uma <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-cyan-400">Fortaleza Digital</span>
+            </h1>
+            
+            <p class="text-gray-400 text-lg leading-relaxed max-w-2xl mx-auto">
+                No Cortex Lumina, a segurança não é uma funcionalidade, é a fundação. Utilizamos criptografia de nível bancário e protocolos rigorosos para garantir que o que acontece na escola, fica na escola.
+            </p>
+        </div>
+    </section>
+
+    <!-- Security Pillars Grid -->
+    <section class="py-16 relative z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                
+                <!-- Card 1 -->
+                <div class="bg-gray-800/30 backdrop-blur-md border border-gray-700 p-8 rounded-3xl hover:border-green-500/50 transition duration-300 group">
+                    <div class="w-12 h-12 bg-green-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition text-green-400">
+                        <i class="fas fa-shield-alt text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Criptografia AES-256</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Todos os dados sensíveis (notas, diários, dados pessoais) são criptografados tanto em repouso quanto em trânsito (SSL/TLS). Nem mesmo nossos engenheiros conseguem ler seus dados brutos.
+                    </p>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="bg-gray-800/30 backdrop-blur-md border border-gray-700 p-8 rounded-3xl hover:border-green-500/50 transition duration-300 group">
+                    <div class="w-12 h-12 bg-green-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition text-green-400">
+                        <i class="fas fa-server text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Infraestrutura Isolada</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Utilizamos arquitetura Multi-Tenant com isolamento lógico estrito. Os dados da Escola A nunca se misturam com os da Escola B. Hospedagem em servidores de alta disponibilidade (AWS/Google Cloud).
+                    </p>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="bg-gray-800/30 backdrop-blur-md border border-gray-700 p-8 rounded-3xl hover:border-green-500/50 transition duration-300 group">
+                    <div class="w-12 h-12 bg-green-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition text-green-400">
+                        <i class="fas fa-user-lock text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Controle de Acesso (RBAC)</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Hierarquia granular de permissões. Professores acessam apenas suas turmas; Coordenadores veem dados pedagógicos; Financeiro é restrito. Você define quem vê o quê.
+                    </p>
+                </div>
+
+                <!-- Card 4 -->
+                <div class="bg-gray-800/30 backdrop-blur-md border border-gray-700 p-8 rounded-3xl hover:border-green-500/50 transition duration-300 group">
+                    <div class="w-12 h-12 bg-green-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition text-green-400">
+                        <i class="fas fa-history text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Backups & Redundância</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Backups automáticos diários com retenção de 30 dias. Em caso de desastre, nossa redundância geográfica garante que o sistema volte ao ar em minutos, sem perda de dados.
+                    </p>
+                </div>
+
+                <!-- Card 5 -->
+                <div class="bg-gray-800/30 backdrop-blur-md border border-gray-700 p-8 rounded-3xl hover:border-green-500/50 transition duration-300 group">
+                    <div class="w-12 h-12 bg-green-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition text-green-400">
+                        <i class="fas fa-fingerprint text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Logs de Auditoria</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        O sistema "Córtex" tem memória perfeita. Todas as ações críticas (alteração de nota, exclusão de aluno) são registradas com IP, Data e Usuário, garantindo rastreabilidade total.
+                    </p>
+                </div>
+
+                <!-- Card 6 -->
+                <div class="bg-gray-800/30 backdrop-blur-md border border-gray-700 p-8 rounded-3xl hover:border-green-500/50 transition duration-300 group">
+                    <div class="w-12 h-12 bg-green-900/30 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition text-green-400">
+                        <i class="fas fa-cookie-bite text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Privacidade Primeiro</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">
+                        Não vendemos dados. Não exibimos anúncios para alunos. Os dados pertencem à escola e aos pais. Você pode solicitar a exportação ou exclusão completa a qualquer momento.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Compliance Section -->
+    <section class="py-20 border-t border-gray-800 bg-gray-900/50">
+        <div class="max-w-5xl mx-auto px-4 flex flex-col md:flex-row items-center gap-12">
+            <div class="flex-1">
+                <h2 class="text-3xl font-bold text-white mb-4">Conformidade Legal (LGPD)</h2>
+                <p class="text-gray-400 leading-relaxed mb-6">
+                    O Cortex Lumina foi desenhado desde a primeira linha de código para estar em conformidade com a <strong>Lei Geral de Proteção de Dados (13.709/2018)</strong>.
+                </p>
+                <ul class="space-y-3 text-sm text-gray-300">
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-green-500"></i> Termos de Consentimento Claros</li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-green-500"></i> Anonimização de dados para IA</li>
+                    <li class="flex items-center gap-3"><i class="fas fa-check text-green-500"></i> Encarregado de Dados (DPO) dedicado</li>
+                </ul>
+            </div>
+            <div class="flex-shrink-0 relative">
+                <div class="absolute inset-0 bg-green-500/20 blur-3xl rounded-full"></div>
+                <div class="relative bg-gray-800 border border-gray-700 p-8 rounded-2xl text-center">
+                    <i class="fas fa-file-contract text-5xl text-green-400 mb-4"></i>
+                    <h4 class="font-bold text-white">Política de Privacidade</h4>
+                    <p class="text-xs text-gray-500 mt-2 mb-4">Atualizada em Outubro 2025</p>
+                    <button class="text-green-400 text-sm font-bold hover:underline">Ler Documento PDF</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 border-t border-gray-800 text-center py-10">
+        <div class="flex flex-col items-center justify-center gap-4">
+            <div class="flex items-center gap-2 opacity-50">
+                <i class="fas fa-brain text-gray-500"></i>
+                <span class="font-bold tracking-tight text-gray-400">Cortex Lumina</span>
+            </div>
+            <p class="text-sm text-gray-600">&copy; 2025 Cortex Lumina. Segurança é nossa prioridade.</p>
+        </div>
+    </footer>
+
+</body>
+</html>

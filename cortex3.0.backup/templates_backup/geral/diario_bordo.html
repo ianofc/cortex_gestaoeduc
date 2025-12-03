@@ -1,0 +1,95 @@
+{% extends "main/base.html" %}
+{% block content %}
+<h2 class="text-2xl font-semibold mb-4">Diário de Bordo</h2>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-1">
+        <form method="POST" enctype="multipart/form-data" class="bg-white p-6 rounded shadow-lg sticky top-6">
+            {{ form.hidden_tag() }}
+            <h3 class="text-xl font-semibold mb-4">Nova Entrada</h3>
+            
+            <div class="mb-4">
+                <label class="block mb-2 font-bold text-gray-700">Turma (Opcional):</label>
+                <select name="id_turma" class="border p-2 rounded w-full">
+                    <option value="None">-- Geral / Sem Turma --</option>
+                    {% for turma in turmas_user %}
+                    <option value="{{ turma.id }}" {% if turma.id == id_turma_filtro %}selected{% endif %}>{{ turma.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block mb-2 font-bold text-gray-700">{{ form.data.label }}:<span class="text-red-500">*</span></label>
+                {{ form.data(class="border p-2 rounded w-full") }}
+            </div>
+            
+            <div class="mb-4">
+                <div class="flex justify-between items-end mb-2">
+                    <label class="font-bold text-gray-700">{{ form.anotacao.label }}:<span class="text-red-500">*</span></label>
+                    
+                    <button type="button" id="btn-sugerir-diario" 
+                            class="text-xs bg-yellow-500 text-white px-3 py-1 rounded shadow hover:bg-yellow-600 transition flex items-center"
+                            title="Preenche o texto com base no Plano de Aula e Atividades do dia selecionado">
+                        <i class="fas fa-magic mr-1"></i> Sugerir Texto (IA)
+                    </button>
+                </div>
+                {{ form.anotacao(class="border p-2 rounded w-full h-32", id="campo-anotacao") }}
+                {% for error in form.anotacao.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+            </div>
+
+            <div class="mb-6">
+                <label class="block mb-2 font-bold text-gray-700">{{ form.arquivo_anexo.label }}:</label>
+                {{ form.arquivo_anexo(class="border p-2 rounded w-full text-sm") }}
+                {% for error in form.arquivo_anexo.errors %}<span class="text-red-500 text-sm block">{{ error }}</span>{% endfor %}
+            </div>
+            {{ form.submit(class="bg-blue-600 text-white p-2 rounded hover:bg-blue-700 w-full") }}
+        </form>
+    </div>
+    
+    <div class="lg:col-span-2">
+        <h3 class="text-xl font-semibold mb-4">Entradas Anteriores</h3>
+        <div class="mb-4 flex flex-wrap gap-2 items-center">
+            <a href="{{ url_for('planos.diario_bordo') }}" 
+               class="px-3 py-1 text-sm rounded-full {% if not id_turma_filtro %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+               Todas
+            </a>
+            {% for turma in turmas_user %}
+             <a href="{{ url_for('planos.diario_bordo', id_turma=turma.id) }}" 
+                  class="px-3 py-1 text-sm rounded-full {% if id_turma_filtro == turma.id %}bg-blue-600 text-white{% else %}bg-gray-200 text-gray-700 hover:bg-gray-300{% endif %}">
+                  {{ turma.nome }}
+                </a>
+            {% endfor %}
+        </div>
+        
+        <div class="space-y-4">
+            {% for entrada in entradas %}
+            <div class="bg-white p-4 rounded-lg shadow">
+                <div class="flex justify-between items-center mb-2 border-b pb-2">
+                    <span class="font-bold text-lg">
+                        {{ entrada.data.strftime('%d/%m/%Y') }}
+                    </span>
+                    {% if entrada.turma_diario %}
+                        <span class="text-sm font-semibold text-blue-700">{{ entrada.turma_diario.nome }}</span>
+                    {% else %}
+                        <span class="text-sm text-gray-500">Geral</span>
+                    {% endif %}
+                </div>
+                <p class="text-gray-700 whitespace-pre-wrap">{{ entrada.anotacao }}</p>
+                
+                {% if entrada.path_arquivo_anexo %}
+                <div class="mt-3 pt-3 border-t">
+                    <a href="{{ url_for('planos.download_diario_anexo', filename=entrada.path_arquivo_anexo) }}" 
+                       class="text-sm text-blue-600 hover:underline font-semibold"
+                       title="Baixar anexo: {{ entrada.nome_arquivo_anexo }}">
+                        <i class="fas fa-paperclip fa-fw"></i> Baixar Anexo ({{ entrada.nome_arquivo_anexo }})
+                    </a>
+                </div>
+                {% endif %}
+                </div>
+            {% else %}
+            <p class="text-gray-500">Nenhuma entrada encontrada para este filtro.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

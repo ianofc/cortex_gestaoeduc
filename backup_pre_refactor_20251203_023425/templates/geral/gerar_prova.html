@@ -1,0 +1,249 @@
+{% extends "main/base.html" %}
+
+{% block title %}Gerador de Provas IA - Cortex{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+    
+    <div class="text-center">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 text-purple-600 mb-4 shadow-lg shadow-purple-500/20 dark:bg-purple-900/30 dark:text-purple-400">
+            <i class="fas fa-wand-magic-sparkles text-3xl"></i>
+        </div>
+        <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight mb-2">
+            IA Generator <span class="text-purple-600 dark:text-purple-400">Pro</span>
+        </h1>
+        <p class="text-lg text-gray-500 dark:text-gray-400 max-w-2xl mx-auto">
+            Crie avaliações completas em segundos usando a inteligência artificial. Selecione o conteúdo, defina o estilo e deixe a IA trabalhar.
+        </p>
+    </div>
+
+    <form method="POST" action="{{ url_for('planos.gerar_prova_docx') }}" enctype="multipart/form-data" 
+          id="form-gerar-prova" class="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+        
+        <div class="p-8 border-b border-gray-100 dark:border-gray-700">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-md">1</div>
+                <div class="flex-grow">
+                    <label for="prova-turma-select" class="block text-xl font-bold text-gray-900 dark:text-white mb-2">Qual é a turma?</label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">A IA irá buscar o contexto específico (nível, histórico) desta turma.</p>
+                    
+                    <div class="relative">
+                        <select id="prova-turma-select" name="turma" class="block w-full rounded-xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white py-4 pl-4 pr-10 focus:ring-purple-500 focus:border-purple-500 transition-shadow shadow-sm appearance-none cursor-pointer" required>
+                            <option value="">-- Selecione uma Turma --</option>
+                            {% for turma in turmas %}
+                            <option value="{{ turma.id }}">{{ turma.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="fontes-db-container" class="p-8 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30 transition-all duration-500" style="display: none;">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-md">2</div>
+                <div class="w-full">
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">O que deve cair na prova?</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">Selecione os conteúdos da base de dados que servirão de fonte.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                            <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                                <h4 class="font-bold text-gray-700 dark:text-gray-200 text-sm"><i class="fas fa-book-open mr-2 text-emerald-500"></i> Planos de Aula</h4>
+                                <span class="text-xs text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-md border border-gray-200 dark:border-gray-600">Conteúdo</span>
+                            </div>
+                            <div id="planos-container" class="max-h-60 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                                <div class="flex flex-col items-center justify-center h-32 text-gray-400 text-sm animate-pulse">
+                                    <i class="fas fa-circle-notch fa-spin mb-2"></i> Carregando...
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+                            <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 flex items-center justify-between">
+                                <h4 class="font-bold text-gray-700 dark:text-gray-200 text-sm"><i class="fas fa-tasks mr-2 text-blue-500"></i> Atividades Anteriores</h4>
+                                <span class="text-xs text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-md border border-gray-200 dark:border-gray-600">Estilo de Questões</span>
+                            </div>
+                            <div id="atividades-container" class="max-h-60 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                                <div class="flex flex-col items-center justify-center h-32 text-gray-400 text-sm animate-pulse">
+                                    <i class="fas fa-circle-notch fa-spin mb-2"></i> Carregando...
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-8 border-b border-gray-100 dark:border-gray-700">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-md">3</div>
+                <div class="w-full">
+                    <label class="block text-xl font-bold text-gray-900 dark:text-white mb-2">Material Extra (Opcional)</label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Anexe PDFs ou DOCs com textos de apoio, resumos ou capítulos de livros.</p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {% for i in range(3) %}
+                        <div class="relative group">
+                            <input type="file" name="fontes_externas" accept=".pdf,.docx,.txt" 
+                                   class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-purple-900/30 dark:file:text-purple-300 transition-all cursor-pointer border border-gray-200 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-900/50">
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-8 bg-purple-50 dark:bg-purple-900/10">
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-md">4</div>
+                <div class="w-full">
+                    <label for="instrucoes-prova" class="block text-xl font-bold text-gray-900 dark:text-white mb-2">Instruções para a IA</label>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Defina o formato exato. Ex: "10 questões múltipla escolha", "Nível difícil", "Foco no capítulo 3".</p>
+                    
+                    <textarea id="instrucoes-prova" name="instrucoes_prova" rows="4" 
+                              class="w-full rounded-xl border-purple-200 dark:border-purple-800 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm focus:border-purple-500 focus:ring-purple-500 p-4 transition-all" 
+                              placeholder="Descreva como você quer a prova...">Crie uma prova com 5 questões de escolha múltipla (A, B, C, D) e 5 questões discursivas. Inclua gabarito ao final. Nível de dificuldade: Médio.</textarea>
+                </div>
+            </div>
+        </div>
+        
+        <div class="p-6 bg-white dark:bg-gray-800 flex justify-end items-center gap-4">
+             <p class="text-xs text-gray-400 italic hidden sm:block">A geração pode levar até 2 minutos dependendo da quantidade de material.</p>
+             <button type="submit" id="btn-gerar-prova" class="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 font-bold text-lg flex items-center gap-2">
+                <i class="fas fa-magic"></i> Gerar Prova Agora
+            </button>
+        </div>
+
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const turmaSelect = document.getElementById('prova-turma-select');
+    const fontesDbContainer = document.getElementById('fontes-db-container');
+    const planosContainer = document.getElementById('planos-container');
+    const atividadesContainer = document.getElementById('atividades-container');
+    const formGerarProva = document.getElementById('form-gerar-prova');
+    const btnGerarProva = document.getElementById('btn-gerar-prova');
+
+    if (!turmaSelect) return;
+
+    turmaSelect.addEventListener('change', () => {
+        const idTurma = turmaSelect.value;
+        if (!idTurma) {
+            fontesDbContainer.style.display = 'none';
+            return;
+        }
+
+        // Mostra o container com animação suave
+        fontesDbContainer.style.display = 'block';
+        fontesDbContainer.classList.add('animate-fade-in-down');
+        
+        // Estado de Loading Visual
+        const loadingHTML = `
+            <div class="flex flex-col items-center justify-center h-32 text-purple-400 text-sm animate-pulse">
+                <i class="fas fa-circle-notch fa-spin mb-3 text-2xl"></i> 
+                <span>Buscando dados da turma...</span>
+            </div>
+        `;
+        planosContainer.innerHTML = loadingHTML;
+        atividadesContainer.innerHTML = loadingHTML;
+
+        fetch(`/api/fontes_turma/${idTurma}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
+                
+                // Renderiza Planos
+                if (data.planos && data.planos.length > 0) {
+                    planosContainer.innerHTML = data.planos.map(plano => `
+                        <label class="flex items-start p-3 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-purple-100 dark:hover:border-purple-800">
+                            <input type="checkbox" name="planos_ids" value="${plano.id}" class="mt-1 mr-3 rounded text-purple-600 focus:ring-purple-500 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                            <div class="flex-1">
+                                <span class="block text-sm font-semibold text-gray-800 dark:text-gray-200">${plano.titulo}</span>
+                                <span class="block text-xs text-gray-500 dark:text-gray-400">${plano.data}</span>
+                            </div>
+                        </label>
+                    `).join('');
+                } else {
+                    planosContainer.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-32 text-gray-400 text-sm">
+                            <i class="fas fa-folder-open mb-2 text-xl"></i>
+                            <p>Nenhum plano encontrado.</p>
+                        </div>`;
+                }
+                
+                // Renderiza Atividades
+                if (data.atividades && data.atividades.length > 0) {
+                    atividadesContainer.innerHTML = data.atividades.map(ativ => `
+                        <label class="flex items-start p-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-blue-100 dark:hover:border-blue-800">
+                            <input type="checkbox" name="atividades_ids" value="${ativ.id}" class="mt-1 mr-3 rounded text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700">
+                            <div class="flex-1">
+                                <span class="block text-sm font-semibold text-gray-800 dark:text-gray-200">${ativ.titulo}</span>
+                                <span class="block text-xs text-gray-500 dark:text-gray-400">${ativ.data}</span>
+                            </div>
+                        </label>
+                    `).join('');
+                } else {
+                    atividadesContainer.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-32 text-gray-400 text-sm">
+                            <i class="fas fa-folder-open mb-2 text-xl"></i>
+                            <p>Nenhuma atividade anterior.</p>
+                        </div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                const errorHTML = `<div class="p-4 text-red-500 text-sm text-center"><i class="fas fa-exclamation-triangle"></i> Erro ao carregar dados.</div>`;
+                planosContainer.innerHTML = errorHTML;
+                atividadesContainer.innerHTML = errorHTML;
+            });
+    });
+
+    if (formGerarProva) {
+        formGerarProva.addEventListener('submit', (event) => {
+            if (!turmaSelect.value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Selecione uma Turma',
+                    text: 'Precisamos saber para qual turma é a prova.',
+                    confirmButtonColor: '#9333ea'
+                });
+                event.preventDefault();
+                return;
+            }
+            
+            // Estado de Loading do Botão
+            btnGerarProva.disabled = true;
+            btnGerarProva.classList.add('opacity-75', 'cursor-not-allowed');
+            btnGerarProva.innerHTML = `
+                <i class="fas fa-circle-notch fa-spin text-xl"></i>
+                <div class="flex flex-col items-start ml-2 text-left leading-tight">
+                    <span>Criando Prova...</span>
+                    <span class="text-[10px] font-normal opacity-80">Isso pode levar alguns minutos.</span>
+                </div>
+            `;
+            
+            // Feedback Visual Adicional
+            Swal.fire({
+                title: 'A IA está trabalhando!',
+                text: 'Estamos lendo seus materiais e escrevendo a prova. O download iniciará automaticamente assim que terminar.',
+                imageUrl: 'https://cdn-icons-png.flaticon.com/512/4712/4712109.png',
+                imageWidth: 100,
+                imageHeight: 100,
+                showConfirmButton: false,
+                allowOutsideClick: false
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends "main/base.html" %}
+
+{% block title %}Gradebook - {{ turma.nome }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('core.listar_turmas') }}" class="hover:text-indigo-600 transition-colors">Minhas Turmas</a>
+                <i class="fas fa-chevron-right text-xs"></i>
+                <a href="{{ url_for('alunos.turma', id_turma=turma.id) }}" class="hover:text-indigo-600 transition-colors">{{ turma.nome }}</a>
+                <i class="fas fa-chevron-right text-xs"></i>
+                <span>Gradebook</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <span class="bg-indigo-100 text-indigo-600 p-1.5 rounded-lg dark:bg-indigo-900/30 dark:text-indigo-400">
+                    <i class="fas fa-table"></i>
+                </span>
+                Matriz de Notas
+            </h1>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+            
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
+                    <i class="fas fa-filter"></i>
+                </div>
+                <select onchange="window.location.href=this.value" 
+                        class="pl-10 pr-8 py-2.5 w-full sm:w-48 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block appearance-none cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors shadow-sm font-semibold">
+                    
+                    {% for u in lista_unidades %}
+                        <option value="{{ url_for('alunos.gradebook', id_turma=turma.id, unidade=u) }}" 
+                                {% if u == unidade_atual %}selected{% endif %}>
+                            {{ u }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                    <i class="fas fa-chevron-down text-xs"></i>
+                </div>
+            </div>
+
+            <a href="{{ url_for('alunos.turma', id_turma=turma.id) }}" class="px-4 py-2.5 bg-white border border-gray-300 text-gray-700 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 shadow-sm">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    {% if alunos %}
+        
+        <div class="flex flex-wrap items-center justify-between gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl text-sm text-blue-800 dark:text-blue-300">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-info-circle text-lg"></i>
+                <span>
+                    <strong>Unidade Visualizada:</strong> <span class="font-bold uppercase ml-1">{{ unidade_atual }}</span>
+                </span>
+            </div>
+            <div class="flex items-center gap-4 text-xs font-medium">
+                <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-yellow-400 rounded-full"></span> Editando</div>
+                <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-green-500 rounded-full"></span> Salvo</div>
+                <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 bg-red-500 rounded-full"></span> Erro</div>
+            </div>
+        </div>
+
+        {% if atividades %}
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden relative animate-fade-in-up">
+            <div class="overflow-x-auto custom-scrollbar" style="max-height: 70vh;"> 
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700 border-collapse" id="gradebook-table">
+                    
+                    <thead class="bg-gray-50 dark:bg-gray-900/80 sticky top-0 z-20 backdrop-blur-sm shadow-sm">
+                        <tr>
+                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider sticky left-0 z-30 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] min-w-[200px]">
+                                Aluno
+                            </th>
+                            {% for ativ in atividades %}
+                            <th class="px-4 py-4 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[180px]" title="{{ ativ.data.strftime('%d/%m/%Y') if ativ.data else '' }}">
+                                <div class="flex flex-col">
+                                    <span class="truncate block max-w-[160px] text-gray-900 dark:text-white" title="{{ ativ.titulo }}">{{ ativ.titulo }}</span>
+                                    <div class="flex justify-between mt-1">
+                                        <span class="text-[10px] text-gray-400 font-normal">{{ ativ.data.strftime('%d/%m') if ativ.data else '-' }}</span>
+                                        <span class="text-[10px] text-indigo-500 font-bold bg-indigo-50 dark:bg-indigo-900/30 px-1.5 rounded">Max: {{ ativ.peso }}</span>
+                                    </div>
+                                </div>
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+
+                    <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+                        {% for aluno in alunos %}
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors group">
+                            
+                            <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white sticky left-0 z-10 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 group-hover:bg-gray-50 dark:group-hover:bg-gray-700/30 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold border border-indigo-50 dark:border-indigo-800/50">
+                                        {{ aluno.nome[:2].upper() }}
+                                    </div>
+                                    <span class="truncate max-w-[150px]" title="{{ aluno.nome }}">{{ aluno.nome }}</span>
+                                </div>
+                            </td>
+                            
+                            {% for ativ in atividades %}
+                                {% set presenca = presencas_map.get((aluno.id, ativ.id)) %}
+                                <td class="px-3 py-3 whitespace-nowrap">
+                                    <div class="grid grid-cols-2 gap-2 w-48 bg-gray-50 dark:bg-gray-900/30 p-1.5 rounded-lg border border-transparent focus-within:border-indigo-300 dark:focus-within:border-indigo-700 focus-within:bg-indigo-50/30 dark:focus-within:bg-indigo-900/10 transition-all">
+                                        
+                                        <div class="col-span-1 relative">
+                                            <label class="block text-[8px] font-bold text-gray-400 uppercase mb-0.5 ml-0.5">Nota</label>
+                                            <input type="number" step="0.1" min="0" max="{{ ativ.peso }}" 
+                                                   value="{{ presenca.nota if presenca and presenca.nota is not none else '' }}"
+                                                   data-aluno-id="{{ aluno.id }}" 
+                                                   data-atividade-id="{{ ativ.id }}" 
+                                                   data-campo="nota"
+                                                   class="gradebook-input w-full text-xs border border-gray-300 dark:border-gray-600 rounded px-1.5 py-1 text-gray-800 dark:text-white bg-white dark:bg-gray-700 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors font-mono" 
+                                                   placeholder="-">
+                                        </div>
+                                        
+                                        <div class="col-span-1">
+                                            <label class="block text-[8px] font-bold text-gray-400 uppercase mb-0.5 ml-0.5">Situação</label>
+                                            <select data-aluno-id="{{ aluno.id }}" 
+                                                    data-atividade-id="{{ ativ.id }}" 
+                                                    data-campo="situacao"
+                                                    class="gradebook-input w-full text-[10px] border border-gray-300 dark:border-gray-600 rounded px-1 py-1 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 focus:ring-1 focus:ring-indigo-500 transition-colors cursor-pointer h-[26px]">
+                                                {% set situacao = presenca.situacao if presenca else 'Bom' %}
+                                                <option value="Excelente" {% if situacao == 'Excelente' %}selected{% endif %}>Excel.</option>
+                                                <option value="Bom" {% if situacao == 'Bom' %}selected{% endif %}>Bom</option>
+                                                <option value="Reforço" {% if situacao == 'Reforço' %}selected{% endif %}>Refor.</option>
+                                                <option value="Insatisfatório" {% if situacao == 'Insatisfatório' %}selected{% endif %}>Insat.</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% else %}
+            <div class="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4 text-gray-400">
+                    <i class="far fa-calendar-times text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 dark:text-white">Nenhuma atividade nesta unidade</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Você está visualizando a <strong>{{ unidade_atual }}</strong>.</p>
+                
+                {% if unidade_atual != 'Todas' %}
+                <a href="{{ url_for('alunos.add_atividade', id_turma=turma.id) }}" class="mt-4 text-indigo-600 hover:text-indigo-500 text-sm font-bold hover:underline">
+                    + Criar atividade para {{ unidade_atual }}
+                </a>
+                {% endif %}
+            </div>
+        {% endif %}
+
+    {% else %}
+        <div class="max-w-2xl mx-auto mt-10">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-10 text-center">
+                <div class="w-20 h-20 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-user-graduate text-3xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Turma Vazia</h3>
+                <p class="text-gray-500 dark:text-gray-400 mb-6">
+                    A turma <strong>{{ turma.nome }}</strong> ainda não possui alunos cadastrados.
+                </p>
+                <a href="{{ url_for('alunos.add_aluno', id_turma=turma.id) }}" class="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow hover:bg-indigo-700 transition-colors">
+                    Adicionar Alunos
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputs = document.querySelectorAll('.gradebook-input');
+        
+        inputs.forEach(input => {
+            input.addEventListener('change', function() {
+                const el = this;
+                const originalBg = el.style.backgroundColor;
+                
+                // Indicador visual de "salvando"
+                el.style.backgroundColor = '#FEF3C7'; // Amarelo
+                el.style.borderColor = '#F59E0B';
+
+                const payload = {
+                    id_aluno: el.dataset.alunoId,
+                    id_atividade: el.dataset.atividadeId,
+                    campo: el.dataset.campo,
+                    valor: el.value
+                };
+
+                fetch("{{ url_for('alunos.salvar_gradebook') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // Se CSRF global estiver ativo, descomente:
+                        // 'X-CSRFToken': "{{ csrf_token() }}" 
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Sucesso
+                        el.style.backgroundColor = '#D1FAE5'; // Verde
+                        el.style.borderColor = '#10B981';
+                        setTimeout(() => {
+                            el.style.backgroundColor = ''; // Volta ao original
+                            el.style.borderColor = '';
+                        }, 1500);
+                    } else {
+                        // Erro Lógico
+                        alert('Erro: ' + data.message);
+                        el.style.backgroundColor = '#FEE2E2'; // Vermelho
+                        el.style.borderColor = '#EF4444';
+                    }
+                })
+                .catch(err => {
+                    // Erro de Rede
+                    console.error(err);
+                    el.style.backgroundColor = '#FEE2E2';
+                    el.style.borderColor = '#EF4444';
+                });
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,205 @@
+{% extends "main/base.html" %}
+{% block title %}Editar Perfil | Cortex{% endblock %}
+
+{% block content %}
+
+<div class="max-w-4xl mx-auto space-y-8 animate-fade-in-down">
+    
+    <!-- Cabeçalho -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+                <span class="bg-indigo-100 text-indigo-600 p-2 rounded-xl dark:bg-indigo-900/30 dark:text-indigo-400">
+                    <i class="fas fa-user-cog"></i>
+                </span>
+                Meu Perfil
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400 mt-1 ml-14">Gerencie suas informações pessoais e configurações do sistema.</p>
+        </div>
+        
+        <a href="{{ url_for('core.index') }}" class="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-800 transition-colors shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:text-white">
+            <i class="fas fa-arrow-left mr-2"></i> Voltar
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Coluna Esquerda: Foto e Dados Básicos -->
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div class="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30">
+                    <h2 class="text-lg font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                        <i class="fas fa-id-card text-indigo-500"></i> Dados Cadastrais
+                    </h2>
+                </div>
+                
+                <div class="p-8">
+                    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="flex flex-col sm:flex-row gap-8 items-start">
+                            <!-- Foto de Perfil -->
+                            <div class="flex-shrink-0 w-full sm:w-auto flex flex-col items-center space-y-3">
+                                <div class="relative group">
+                                    {% set default_avatar = url_for('static', filename='images/default-avatar.png') %}
+                                    {% set photo_url = default_avatar %}
+                                    
+                                    {% if current_user.foto_perfil_path %}
+                                        {% set photo_url = url_for('alunos.download_material', filename=current_user.foto_perfil_path) %}
+                                    {% endif %}
+                                    
+                                    <img src="{{ photo_url }}" 
+                                         alt="Foto de Perfil" 
+                                         class="w-32 h-32 rounded-2xl object-cover border-4 border-white dark:border-gray-700 shadow-lg transition-transform transform group-hover:scale-105"
+                                         onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name={{ current_user.username }}&background=random';">
+                                    
+                                    <label for="{{ form.foto_perfil.id }}" class="absolute bottom-[-10px] right-[-10px] bg-indigo-600 text-white p-2 rounded-full cursor-pointer shadow-md hover:bg-indigo-700 transition-colors" title="Alterar Foto">
+                                        <i class="fas fa-camera"></i>
+                                    </label>
+                                </div>
+                                <div class="text-center">
+                                    <span class="text-xs text-gray-400">JPG ou PNG (Max 5MB)</span>
+                                    <!-- Input escondido mas funcional -->
+                                    <div class="hidden">
+                                        {{ form.foto_perfil() }}
+                                    </div>
+                                </div>
+                                {% for error in form.foto_perfil.errors %}
+                                    <p class="text-red-500 text-xs">{{ error }}</p>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Campos do Formulário -->
+                            <div class="flex-grow w-full space-y-5">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Nome de Usuário <span class="text-red-500">*</span></label>
+                                    {{ form.username(class="w-full rounded-xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-3 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow") }}
+                                    {% for error in form.username.errors %}<span class="text-red-500 text-xs block mt-1">{{ error }}</span>{% endfor %}
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div>
+                                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Email de Contato</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                                <i class="fas fa-envelope"></i>
+                                            </div>
+                                            {{ form.email_contato(class="w-full pl-10 rounded-xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-3 focus:ring-indigo-500 focus:border-indigo-500") }}
+                                        </div>
+                                        {% for error in form.email_contato.errors %}<span class="text-red-500 text-xs block mt-1">{{ error }}</span>{% endfor %}
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Telefone/WhatsApp</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                                <i class="fab fa-whatsapp"></i>
+                                            </div>
+                                            {{ form.telefone(class="w-full pl-10 rounded-xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-3 focus:ring-indigo-500 focus:border-indigo-500", placeholder="(XX) XXXXX-XXXX") }}
+                                        </div>
+                                        {% for error in form.telefone.errors %}<span class="text-red-500 text-xs block mt-1">{{ error }}</span>{% endfor %}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Tema do Sistema</label>
+                                    <div class="relative">
+                                        {{ form.genero(class="w-full rounded-xl border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-3 focus:ring-indigo-500 focus:border-indigo-500 appearance-none") }}
+                                        <div class="absolute inset-y-0 right-0 flex items-center px-4 pointer-events-none text-gray-500">
+                                            <i class="fas fa-chevron-down text-xs"></i>
+                                        </div>
+                                    </div>
+                                    <p class="text-[10px] text-gray-400 mt-1">Isso personaliza as cores da interface (Azul/Roxo ou Rosa/Vermelho).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                            <button type="submit" class="px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5 flex items-center gap-2">
+                                <i class="fas fa-save"></i> Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Direita: Admin Tools (Backup) -->
+        <div class="lg:col-span-1 space-y-6">
+            
+            <!-- Card de Backup -->
+            {% if current_user.is_admin %}
+            <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl shadow-lg overflow-hidden text-white relative group">
+                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <i class="fas fa-server text-9xl"></i>
+                </div>
+                
+                <div class="p-6 relative z-10">
+                    <h3 class="text-xl font-bold flex items-center gap-2 mb-4">
+                        <i class="fas fa-shield-alt text-emerald-400"></i> Zona de Segurança
+                    </h3>
+                    <p class="text-sm text-gray-300 mb-6">
+                        Gerencie os dados vitais do sistema. Faça backups regulares para evitar perda de informações.
+                    </p>
+
+                    <div class="space-y-4">
+                        <!-- Botão Download -->
+                        <a href="{{ url_for('backup.download_backup') }}" class="block w-full py-3 px-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-center font-semibold transition-all backdrop-blur-sm flex items-center justify-center gap-2 group-hover:border-emerald-500/50">
+                            <i class="fas fa-download text-emerald-400"></i> Baixar Backup Completo
+                        </a>
+
+                        <div class="border-t border-white/10 my-4"></div>
+
+                        <!-- Área de Restauração -->
+                        <div class="bg-black/20 rounded-xl p-4 border border-white/5">
+                            <h4 class="text-sm font-bold text-red-300 mb-2 flex items-center gap-2">
+                                <i class="fas fa-exclamation-triangle"></i> Restauração de Dados
+                            </h4>
+                            <p class="text-[10px] text-gray-400 mb-3">
+                                CUIDADO: Isso substituirá TODOS os dados atuais pelos do arquivo enviado. Essa ação é irreversível.
+                            </p>
+                            
+                            <form action="{{ url_for('backup.restore_backup') }}" method="POST" enctype="multipart/form-data" class="space-y-3" onsubmit="return confirm('ATENÇÃO CRÍTICA: Você está prestes a substituir todo o banco de dados do sistema.\n\nIsso apagará os dados atuais permanentemente.\n\nTem certeza absoluta que deseja continuar?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <div class="relative">
+                                    <input type="file" name="backup_file" accept=".zip" required 
+                                           class="block w-full text-xs text-gray-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-red-900/30 file:text-red-200 hover:file:bg-red-900/50 cursor-pointer bg-gray-900/50 rounded-lg border border-gray-700">
+                                </div>
+                                <button type="submit" class="w-full py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-colors shadow-lg shadow-red-900/20">
+                                    <i class="fas fa-upload mr-1"></i> Restaurar Sistema
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Card de Informações -->
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                <h3 class="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                    <i class="fas fa-info-circle text-blue-500"></i> Sobre sua Conta
+                </h3>
+                <ul class="space-y-3 text-sm">
+                    <li class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">ID do Usuário:</span>
+                        <span class="font-mono text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">#{{ current_user.id }}</span>
+                    </li>
+                    <li class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Permissão:</span>
+                        <span class="font-semibold text-indigo-600 dark:text-indigo-400">
+                            {% if current_user.is_admin %}Administrador{% else %}Professor{% endif %}
+                        </span>
+                    </li>
+                    <li class="flex justify-between">
+                        <span class="text-gray-500 dark:text-gray-400">Turmas Ativas:</span>
+                        <span class="font-bold text-gray-800 dark:text-white">{{ current_user.turmas|length }}</span>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
