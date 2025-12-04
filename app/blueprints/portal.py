@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash
 from flask_login import login_required, current_user
-from app.models.base_legacy import Aluno, Presenca, Atividade, Turma, Notificacao, db
+# CORREÇÃO: app.models em vez de app.models.base_legacy
+from app.models import Aluno, Presenca, Atividade, Turma, Notificacao, db
 from sqlalchemy import func
 
 portal_bp = Blueprint('portal', __name__, url_prefix='/portal')
@@ -9,7 +10,6 @@ portal_bp = Blueprint('portal', __name__, url_prefix='/portal')
 @login_required
 def dashboard():
     # 1. Verificar se o usuário logado é um aluno
-    # Busca um aluno que tenha o id_user_conta igual ao id do usuário atual
     aluno = Aluno.query.filter_by(id_user_conta=current_user.id).first()
 
     if not aluno:
@@ -30,19 +30,20 @@ def dashboard():
     freq_percent = round((total_presencas / total_aulas * 100), 1) if total_aulas > 0 else 100
 
     # 4. Buscar Atividades e Notas
-    # Join para pegar dados da atividade junto com a presença (nota)
     atividades_realizadas = db.session.query(Atividade, Presenca)\
         .join(Presenca, Presenca.id_atividade == Atividade.id)\
         .filter(Presenca.id_aluno == aluno.id)\
         .order_by(Atividade.data.desc()).all()
 
-    # 5. Próximas Atividades (que a turma tem, mas o aluno ainda não tem nota lançada)
-    # Subquery para excluir atividades já feitas
+    # 5. Próximas Atividades
     atividades_feitas_ids = [p.id_atividade for p in aluno.presencas]
-    proximas_atividades = Atividade.query.filter(
-        Atividade.id_turma == turma.id,
-        Atividade.id.notin_(atividades_feitas_ids)
-    ).order_by(Atividade.data).all()
+    if turma:
+        proximas_atividades = Atividade.query.filter(
+            Atividade.id_turma == turma.id,
+            Atividade.id.notin_(atividades_feitas_ids)
+        ).order_by(Atividade.data).all()
+    else:
+        proximas_atividades = []
 
     # 6. Calcular Média Geral (Simples)
     notas = [p.nota for p in aluno.presencas if p.nota is not None]

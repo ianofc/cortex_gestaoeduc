@@ -3,205 +3,302 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planos & Preços | Cortex Lumina</title>
+    <title>Planos e Preços | Cortex Lumina</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/landing.css') }}">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js" defer></script>
 
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        lumina: {
-                            50: '#f5f3ff', 500: '#8b5cf6', 600: '#7c3aed', 900: '#4c1d95',
-                            dark: '#0f172a', surface: '#1e293b'
-                        },
-                        cyan: { 400: '#22d3ee', 500: '#06b6d4' }
+                    fontFamily: {
+                        sans: ['Open Sans', 'sans-serif'],
+                        display: ['Montserrat', 'sans-serif'],
                     },
-                    boxShadow: {
-                        'neon': '0 0 20px rgba(34, 211, 238, 0.3), 0 0 60px rgba(139, 92, 246, 0.1)',
+                    colors: {
+                        brand: {
+                            base: '#4C1D95',   // Roxo Profundo
+                            primary: '#7C3AED', // Violeta Vibrante
+                            accent: '#D946EF',  // Fuchsia
+                            light: '#F5F3FF',   // Fundo Claro
+                            surface: '#ffffff',
+                            success: '#10B981'  // Verde Sucesso
+                        }
                     }
                 }
             }
         }
     </script>
+    <style>
+        .check-icon { @apply text-brand-success text-lg; }
+        .cross-icon { @apply text-gray-300 text-lg; }
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
-<body class="bg-lumina-dark text-gray-100 font-sans antialiased overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-100">
+<body class="bg-gray-50 text-gray-700 font-sans antialiased">
 
-    <!-- Navbar Minimalista (Glass) -->
-    <nav class="fixed w-full z-50 px-6 py-4 transition-all duration-300">
-        <div class="max-w-7xl mx-auto flex justify-between items-center bg-gray-900/40 backdrop-blur-md border border-white/5 rounded-2xl px-6 py-3 shadow-lg">
-            <a href="/" class="flex items-center gap-3 group">
-                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-lumina-600 to-cyan-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition duration-300">
-                    <i class="fas fa-brain text-white text-sm"></i>
+    <nav class="w-full px-6 py-4 bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <a href="{{ url_for('core.index') }}" class="flex items-center gap-2 group">
+                <div class="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white shadow-md group-hover:scale-110 transition">
+                    <i class="fas fa-brain text-sm"></i>
                 </div>
-                <span class="font-bold text-lg tracking-tight text-white group-hover:text-cyan-300 transition">Cortex <span class="font-light opacity-70">Lumina</span></span>
+                <span class="font-display font-bold text-lg tracking-tight text-brand-base">
+                    Cortex<span class="font-light text-brand-primary">Lumina</span>
+                </span>
             </a>
-            <a href="/" class="text-sm font-medium text-gray-400 hover:text-white transition flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-white/5">
+            <a href="{{ url_for('core.index') }}" class="text-sm font-bold text-gray-500 hover:text-brand-primary transition flex items-center gap-2">
                 <i class="fas fa-arrow-left"></i> Voltar
             </a>
         </div>
     </nav>
 
-    <!-- Pricing Section -->
-    <section class="relative py-32 lg:py-40 overflow-hidden min-h-screen" x-data="{ annual: true }">
-        
-        <!-- Blobs de Fundo Animados -->
-        <div class="blob bg-lumina-600/30 w-[600px] h-[600px] top-0 left-1/4 -translate-x-1/2 -translate-y-1/2 blur-[100px]"></div>
-        <div class="blob bg-cyan-600/20 w-[500px] h-[500px] bottom-0 right-0 translate-x-1/3 translate-y-1/3 blur-[100px]"></div>
+    <section class="pt-20 pb-12 px-4 text-center bg-brand-surface" x-data="{ annual: true }">
+        <div class="max-w-4xl mx-auto">
+            <span class="text-brand-primary font-bold tracking-wider uppercase text-xs mb-2 block">Investimento</span>
+            <h1 class="text-4xl md:text-5xl font-display font-black text-brand-base mb-6">
+                Escolha a potência ideal para sua escola
+            </h1>
+            <p class="text-gray-500 text-lg mb-10 max-w-2xl mx-auto">
+                Comece pequeno e escale conforme cresce. Todos os planos incluem atualizações gratuitas e segurança de dados bancária.
+            </p>
 
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            
-            <!-- Header do Pricing -->
-            <div class="text-center max-w-3xl mx-auto mb-20">
-                <h1 class="text-4xl md:text-6xl font-bold mb-6 tracking-tight leading-tight">
-                    Investimento Inteligente <br> para <span class="gradient-text">Escolas do Futuro</span>
-                </h1>
-                <p class="text-gray-400 text-lg md:text-xl mb-10 leading-relaxed">
-                    Escolha a potência cognitiva ideal para sua instituição. <br class="hidden md:block">
-                    Evolua seu plano conforme sua escola cresce.
-                </p>
-
-                <!-- Toggle Mensal/Anual -->
-                <div class="inline-flex items-center justify-center p-1.5 bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-full shadow-inner gap-2 select-none">
-                    <button 
-                        @click="annual = false"
-                        class="px-6 py-2 rounded-full text-sm font-medium transition-all duration-300"
-                        :class="!annual ? 'bg-gray-700 text-white shadow-sm' : 'text-gray-400 hover:text-white'">
-                        Mensal
-                    </button>
-                    <button 
-                        @click="annual = true"
-                        class="px-6 py-2 rounded-full text-sm font-medium transition-all duration-300 flex items-center gap-2"
-                        :class="annual ? 'bg-gradient-to-r from-lumina-600 to-lumina-500 text-white shadow-md' : 'text-gray-400 hover:text-white'">
-                        Anual
-                        <span class="text-[10px] font-bold uppercase tracking-wider bg-white/20 px-1.5 py-0.5 rounded text-white border border-white/10">-20%</span>
-                    </button>
+            <div class="inline-flex bg-brand-light p-1.5 rounded-full border border-purple-100 mb-12 relative">
+                <div class="absolute -top-3 -right-12 bg-brand-accent text-white text-[10px] font-bold px-2 py-1 rounded-lg transform rotate-12 shadow-sm animate-pulse">
+                    Economize 20%
                 </div>
+                <button @click="annual = false" 
+                        class="px-8 py-3 rounded-full text-sm font-bold transition-all duration-300"
+                        :class="!annual ? 'bg-white text-brand-base shadow-md transform scale-105' : 'text-gray-500 hover:text-brand-base'">
+                    Mensal
+                </button>
+                <button @click="annual = true" 
+                        class="px-8 py-3 rounded-full text-sm font-bold transition-all duration-300"
+                        :class="annual ? 'bg-brand-primary text-white shadow-md transform scale-105' : 'text-gray-500 hover:text-brand-base'">
+                    Anual
+                </button>
             </div>
 
-            <!-- Cards Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10 items-start">
+            <div class="grid md:grid-cols-3 gap-8 items-center max-w-7xl mx-auto text-left">
                 
-                <!-- PLANO STARTER -->
-                <div class="group relative bg-gray-900/40 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 hover:border-gray-600 transition duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-gray-900/50">
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-300 mb-2 group-hover:text-white transition">Professor Autônomo</h3>
-                        <p class="text-sm text-gray-500 h-10">Para professores particulares ou pequenas turmas experimentais.</p>
+                <div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 group hover:-translate-y-1">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                            <i class="fas fa-user-tie"></i>
+                        </div>
+                        <h3 class="font-bold text-xl text-gray-800">Starter</h3>
                     </div>
+                    <p class="text-sm text-gray-500 mb-6 h-10">Ideal para professores particulares e reforço escolar.</p>
                     
-                    <div class="flex items-baseline gap-1 mb-8">
-                        <span class="text-3xl font-bold text-gray-400">R$</span>
-                        <span class="text-5xl font-bold text-white tracking-tight" x-text="annual ? '29' : '39'"></span>
-                        <span class="text-gray-500 font-medium">/mês</span>
-                    </div>
-
-                    <!-- LINK DINÂMICO ALPINE -->
-                    <a :href="'{{ url_for('core.checkout') }}?plan=starter&cycle=' + (annual ? 'annual' : 'monthly')" class="block w-full py-4 px-6 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-500 text-white font-semibold text-center rounded-xl transition-all duration-300 mb-8">
-                        Contratar Starter
-                    </a>
-
-                    <ul class="space-y-4 text-sm text-gray-400">
-                        <li class="flex items-start gap-3"><i class="fas fa-check-circle text-gray-500 mt-1"></i> <span>Até <strong>50 Alunos</strong></span></li>
-                        <li class="flex items-start gap-3"><i class="fas fa-check-circle text-gray-500 mt-1"></i> <span>1 Professor (Admin)</span></li>
-                        <li class="flex items-start gap-3"><i class="fas fa-check-circle text-gray-500 mt-1"></i> <span>Planos de Aula Básicos</span></li>
-                        <li class="flex items-start gap-3 opacity-50"><i class="fas fa-times-circle text-gray-700 mt-1"></i> <span>IA Generativa Avançada</span></li>
-                    </ul>
-                </div>
-
-                <!-- PLANO PRO (Destaque Principal) -->
-                <div class="relative bg-gray-900/80 backdrop-blur-2xl border border-lumina-500/50 rounded-3xl p-8 shadow-neon transform md:-translate-y-6 z-10 transition duration-500 hover:scale-[1.02]">
-                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-lumina-500 to-cyan-500 text-white text-xs font-bold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg border border-white/20">
-                        Recomendado
-                    </div>
-
-                    <div class="mb-6 mt-2">
-                        <h3 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-300 mb-2">Escola em Crescimento</h3>
-                        <p class="text-sm text-gray-300 h-10">O cérebro completo. Automatize tudo e foque no ensino.</p>
-                    </div>
-                    
-                    <div class="flex items-baseline gap-1 mb-8">
-                        <span class="text-3xl font-bold text-cyan-400">R$</span>
-                        <span class="text-6xl font-bold text-white tracking-tighter" x-text="annual ? '149' : '199'"></span>
+                    <div class="flex items-baseline gap-1 mb-6">
+                        <span class="text-4xl font-black text-gray-800" x-text="annual ? 'R$ 29' : 'R$ 39'"></span>
                         <span class="text-gray-400 font-medium">/mês</span>
                     </div>
-
-                    <!-- LINK DINÂMICO ALPINE -->
-                    <a :href="'{{ url_for('core.checkout') }}?plan=pro&cycle=' + (annual ? 'annual' : 'monthly')" class="group/btn relative block w-full py-4 px-6 bg-gradient-to-r from-lumina-600 to-cyan-600 text-white font-bold text-center rounded-xl shadow-lg transition-all duration-300 hover:shadow-cyan-500/25 hover:-translate-y-1 mb-8 overflow-hidden">
-                        <div class="absolute inset-0 bg-white/20 group-hover/btn:translate-x-full transition-transform duration-500 -skew-x-12 -translate-x-full"></div>
-                        Ativar Cortex Pro
+                    
+                    <a :href="'{{ url_for('core.checkout') }}?plan=starter&cycle=' + (annual ? 'annual' : 'monthly')" class="block w-full py-3 px-6 border-2 border-gray-200 rounded-xl text-center font-bold text-gray-600 hover:border-brand-base hover:text-brand-base transition">
+                        Começar Agora
                     </a>
 
-                    <div class="space-y-4 text-sm">
-                        <p class="text-xs font-bold text-cyan-400 uppercase tracking-wider mb-3">Tudo do Starter, mais:</p>
-                        <ul class="space-y-4 text-gray-300">
-                            <li class="flex items-start gap-3"><i class="fas fa-check-circle text-cyan-400 mt-1"></i> <span class="font-semibold text-white">IA Generativa Ilimitada</span></li>
-                            <li class="flex items-start gap-3"><i class="fas fa-check-circle text-cyan-400 mt-1"></i> <span>Até <strong>500 Alunos</strong></span></li>
-                            <li class="flex items-start gap-3"><i class="fas fa-check-circle text-cyan-400 mt-1"></i> <span>10 Professores + Coordenação</span></li>
-                            <li class="flex items-start gap-3"><i class="fas fa-check-circle text-cyan-400 mt-1"></i> <span>Portal do Aluno/Responsável</span></li>
-                            <li class="flex items-start gap-3"><i class="fas fa-check-circle text-cyan-400 mt-1"></i> <span>Dashboard Preditivo (Evasão)</span></li>
+                    <div class="mt-8 space-y-4 text-sm">
+                        <p class="font-bold text-xs uppercase text-gray-400 tracking-wide">O que está incluído:</p>
+                        <ul class="space-y-3 text-gray-600">
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-green-500 mt-0.5"></i> <span>1 Professor Admin</span></li>
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-green-500 mt-0.5"></i> <span>Até 50 Alunos</span></li>
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-green-500 mt-0.5"></i> <span>Diário de Classe Digital</span></li>
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-green-500 mt-0.5"></i> <span>Suporte por Email</span></li>
                         </ul>
                     </div>
                 </div>
 
-                <!-- PLANO ENTERPRISE -->
-                <div class="group relative bg-gray-900/40 backdrop-blur-xl border border-gray-800 rounded-3xl p-8 hover:border-gray-600 transition duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-gray-900/50">
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold text-gray-300 mb-2 group-hover:text-white transition">Rede de Ensino</h3>
-                        <p class="text-sm text-gray-500 h-10">Soluções customizadas para redes municipais e grandes franquias.</p>
-                    </div>
-                    
-                    <div class="flex items-baseline gap-1 mb-8">
-                        <span class="text-4xl font-bold text-white tracking-tight">Sob Consulta</span>
+                <div class="bg-brand-base p-10 rounded-3xl shadow-2xl border-4 border-brand-primary relative transform scale-105 z-10">
+                    <div class="absolute top-0 left-1/2 -translate-x-1/2 bg-brand-primary text-white text-xs font-bold px-4 py-1.5 rounded-b-lg uppercase tracking-wider">
+                        Mais Escolhido
                     </div>
 
-                    <a href="mailto:vendas@cortexlumina.com" class="block w-full py-4 px-6 bg-transparent border border-gray-600 hover:border-white text-white font-semibold text-center rounded-xl transition-all duration-300 mb-8 hover:bg-white/5">
+                    <div class="flex items-center gap-3 mb-4 mt-2">
+                        <div class="w-10 h-10 rounded-full bg-brand-primary flex items-center justify-center text-white">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <h3 class="font-bold text-xl text-white">Pro School</h3>
+                    </div>
+                    <p class="text-sm text-purple-200 mb-6 h-10">O sistema completo para escolas em crescimento.</p>
+                    
+                    <div class="flex items-baseline gap-1 mb-6">
+                        <span class="text-5xl font-black text-white" x-text="annual ? 'R$ 149' : 'R$ 199'"></span>
+                        <span class="text-purple-300 font-medium">/mês</span>
+                    </div>
+                    
+                    <a :href="'{{ url_for('core.checkout') }}?plan=pro&cycle=' + (annual ? 'annual' : 'monthly')" class="block w-full py-4 px-6 bg-white rounded-xl text-center font-black text-brand-base hover:bg-brand-light transition shadow-lg transform hover:-translate-y-1">
+                        Assinar Plano Pro
+                    </a>
+
+                    <div class="mt-8 space-y-4 text-sm">
+                        <p class="font-bold text-xs uppercase text-purple-300 tracking-wide">Tudo do Starter, mais:</p>
+                        <ul class="space-y-3 text-white">
+                            <li class="flex items-start gap-3"><i class="fas fa-check-circle text-brand-accent mt-0.5"></i> <span><strong>IA Generativa Ilimitada</strong></span></li>
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-brand-primary mt-0.5"></i> <span>Até 500 Alunos</span></li>
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-brand-primary mt-0.5"></i> <span>10 Professores + Coordenação</span></li>
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-brand-primary mt-0.5"></i> <span>Portal do Aluno & App</span></li>
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-brand-primary mt-0.5"></i> <span>Dashboards Financeiros</span></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-white p-8 rounded-3xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 group hover:-translate-y-1">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <h3 class="font-bold text-xl text-gray-800">Enterprise</h3>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-6 h-10">Para redes de ensino, franquias e grandes colégios.</p>
+                    
+                    <div class="flex items-baseline gap-1 mb-6">
+                        <span class="text-3xl font-black text-gray-800">Personalizado</span>
+                    </div>
+                    
+                    <a href="{{ url_for('core.contact') }}" class="block w-full py-3 px-6 border-2 border-gray-200 rounded-xl text-center font-bold text-gray-600 hover:border-brand-base hover:text-brand-base transition">
                         Falar com Consultor
                     </a>
 
-                    <ul class="space-y-4 text-sm text-gray-400">
-                        <li class="flex items-start gap-3"><i class="fas fa-check-circle text-lumina-500 mt-1"></i> <span>Alunos e Professores <strong>Ilimitados</strong></span></li>
-                        <li class="flex items-start gap-3"><i class="fas fa-check-circle text-lumina-500 mt-1"></i> <span>Múltiplas Unidades (Multi-tenant)</span></li>
-                        <li class="flex items-start gap-3"><i class="fas fa-check-circle text-lumina-500 mt-1"></i> <span>API Dedicada & Integrações</span></li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- FAQ Section -->
-            <div class="mt-32 max-w-4xl mx-auto border-t border-gray-800/50 pt-20">
-                <h2 class="text-3xl font-bold text-center mb-12">Dúvidas Frequentes</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-                    <div class="bg-gray-800/20 p-6 rounded-2xl border border-gray-800 hover:bg-gray-800/40 transition duration-300">
-                        <h4 class="font-bold text-white mb-3 text-lg flex items-center gap-2">
-                            <i class="far fa-credit-card text-lumina-500"></i> Preciso de cartão?
-                        </h4>
-                        <p class="text-sm text-gray-400 leading-relaxed">Não para o teste. Você pode usar o plano Starter gratuitamente por 14 dias sem compromisso.</p>
-                    </div>
-                    <div class="bg-gray-800/20 p-6 rounded-2xl border border-gray-800 hover:bg-gray-800/40 transition duration-300">
-                        <h4 class="font-bold text-white mb-3 text-lg flex items-center gap-2">
-                            <i class="fas fa-sync-alt text-cyan-500"></i> Posso mudar de plano?
-                        </h4>
-                        <p class="text-sm text-gray-400 leading-relaxed">Sim, o upgrade ou downgrade é feito instantaneamente através do painel administrativo.</p>
+                    <div class="mt-8 space-y-4 text-sm">
+                        <p class="font-bold text-xs uppercase text-gray-400 tracking-wide">Poder ilimitado:</p>
+                        <ul class="space-y-3 text-gray-600">
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-brand-base mt-0.5"></i> <span>Alunos e Usuários <strong>Ilimitados</strong></span></li>
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-brand-base mt-0.5"></i> <span>Gestão Multi-unidade</span></li>
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-brand-base mt-0.5"></i> <span>API Dedicada & SSO</span></li>
+                            <li class="flex items-start gap-3"><i class="fas fa-check text-brand-base mt-0.5"></i> <span>Gerente de Conta Dedicado</span></li>
+                        </ul>
                     </div>
                 </div>
-            </div>
 
+            </div>
         </div>
     </section>
 
-    <!-- Footer Simples -->
-    <footer class="bg-gray-900 border-t border-gray-800 text-center py-10">
-        <div class="flex items-center justify-center gap-2 mb-4 opacity-50">
-            <i class="fas fa-brain"></i>
-            <span class="font-bold tracking-tight">Cortex Lumina</span>
+    <section class="py-20 bg-white border-t border-gray-100">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="text-3xl font-display font-bold text-center text-brand-base mb-12">Comparativo de Recursos</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="p-4 border-b-2 border-gray-100 w-1/3"></th>
+                            <th class="p-4 border-b-2 border-gray-100 text-center font-bold text-gray-700">Starter</th>
+                            <th class="p-4 border-b-2 border-brand-primary text-center font-bold text-brand-base bg-brand-light/50 rounded-t-xl">Pro School</th>
+                            <th class="p-4 border-b-2 border-gray-100 text-center font-bold text-gray-700">Enterprise</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm text-gray-600">
+                        <tr><td colspan="4" class="p-4 font-bold text-brand-primary bg-gray-50 text-xs uppercase tracking-wider">Gestão Acadêmica</td></tr>
+                        <tr>
+                            <td class="p-4 border-b border-gray-50">Diário de Classe Digital</td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-check check-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center bg-brand-light/30"><i class="fas fa-check check-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-check check-icon"></i></td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 border-b border-gray-50">Boletins Automáticos</td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-check check-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center bg-brand-light/30"><i class="fas fa-check check-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-check check-icon"></i></td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 border-b border-gray-50">Histórico Escolar</td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-minus cross-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center bg-brand-light/30"><i class="fas fa-check check-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-check check-icon"></i></td>
+                        </tr>
+
+                        <tr><td colspan="4" class="p-4 font-bold text-brand-primary bg-gray-50 text-xs uppercase tracking-wider">Inteligência Artificial</td></tr>
+                        <tr>
+                            <td class="p-4 border-b border-gray-50">Geração de Planos de Aula</td>
+                            <td class="p-4 border-b border-gray-50 text-center">5 / mês</td>
+                            <td class="p-4 border-b border-gray-50 text-center bg-brand-light/30 font-bold text-brand-primary">Ilimitado</td>
+                            <td class="p-4 border-b border-gray-50 text-center font-bold text-brand-primary">Ilimitado</td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 border-b border-gray-50">Correção Automática de Provas</td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-minus cross-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center bg-brand-light/30"><i class="fas fa-check check-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-check check-icon"></i></td>
+                        </tr>
+                        <tr>
+                            <td class="p-4 border-b border-gray-50">Predição de Evasão</td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-minus cross-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center bg-brand-light/30"><i class="fas fa-check check-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-check check-icon"></i></td>
+                        </tr>
+
+                        <tr><td colspan="4" class="p-4 font-bold text-brand-primary bg-gray-50 text-xs uppercase tracking-wider">Acesso e Suporte</td></tr>
+                        <tr>
+                            <td class="p-4 border-b border-gray-50">Portal do Aluno/Responsável</td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-minus cross-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center bg-brand-light/30"><i class="fas fa-check check-icon"></i></td>
+                            <td class="p-4 border-b border-gray-50 text-center"><i class="fas fa-check check-icon"></i></td>
+                        </tr>
+                         <tr>
+                            <td class="p-4 border-b border-gray-50">Tempo de Resposta Suporte</td>
+                            <td class="p-4 border-b border-gray-50 text-center">48h</td>
+                            <td class="p-4 border-b border-gray-50 text-center bg-brand-light/30">24h</td>
+                            <td class="p-4 border-b border-gray-50 text-center font-bold">Prioritário (4h)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
-        <p class="text-sm text-gray-500">&copy; 2025 Cortex Lumina. Todos os direitos reservados.</p>
+    </section>
+
+    <section class="py-20 bg-brand-light">
+        <div class="max-w-3xl mx-auto px-4" x-data="{ active: null }">
+            <h2 class="text-3xl font-display font-bold text-center text-brand-base mb-10">Perguntas Frequentes</h2>
+            
+            <div class="space-y-4">
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <button @click="active = (active === 1 ? null : 1)" class="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition">
+                        <span class="font-bold text-gray-700">Posso cancelar a qualquer momento?</span>
+                        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300" :class="{'rotate-180': active === 1}"></i>
+                    </button>
+                    <div x-show="active === 1" class="px-6 py-4 text-gray-600 border-t border-gray-100 text-sm leading-relaxed">
+                        Sim! Nos planos mensais, você pode cancelar quando quiser sem multa. Nos planos anuais, oferecemos garantia de reembolso de 30 dias.
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <button @click="active = (active === 2 ? null : 2)" class="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition">
+                        <span class="font-bold text-gray-700">A IA é cobrada à parte?</span>
+                        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300" :class="{'rotate-180': active === 2}"></i>
+                    </button>
+                    <div x-show="active === 2" class="px-6 py-4 text-gray-600 border-t border-gray-100 text-sm leading-relaxed">
+                        No plano Starter, há um limite de usos. No plano Pro e Enterprise, o uso da Inteligência Artificial para geração de planos e correção é ilimitado e já incluso no valor da assinatura.
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <button @click="active = (active === 3 ? null : 3)" class="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 transition">
+                        <span class="font-bold text-gray-700">Como funciona a migração de dados?</span>
+                        <i class="fas fa-chevron-down text-gray-400 transition-transform duration-300" :class="{'rotate-180': active === 3}"></i>
+                    </button>
+                    <div x-show="active === 3" class="px-6 py-4 text-gray-600 border-t border-gray-100 text-sm leading-relaxed">
+                        Nossa equipe de suporte auxilia na importação de planilhas e dados de sistemas legados gratuitamente para clientes Pro e Enterprise.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="bg-white border-t border-gray-200 py-12">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-brand-base font-bold text-xl mb-2">Cortex Lumina</p>
+            <p class="text-gray-500 text-sm">© 2025. Transformando a educação com inteligência.</p>
+        </div>
     </footer>
 
 </body>

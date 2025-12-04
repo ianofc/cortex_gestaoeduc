@@ -7,7 +7,9 @@ from wtforms.validators import DataRequired, InputRequired, Length, NumberRange,
 from flask_wtf.file import FileField, FileAllowed
 
 from wtforms_sqlalchemy.fields import QuerySelectField
-from app.models.base_legacy import Turma, Aluno, Atividade, db, User, Escola
+
+# CORREÇÃO: Importar de app.models em vez de base_legacy
+from app.models import Turma, Aluno, Atividade, db, User, Escola
 from datetime import date
 
 # --- FORMULÁRIOS DE AUTENTICAÇÃO ---

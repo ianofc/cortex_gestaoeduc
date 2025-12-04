@@ -23,7 +23,7 @@ from reportlab.lib.enums import TA_JUSTIFY, TA_LEFT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet # Necessário para o PDF
 
 # --- Imports de Módulos Locais ---
-from app.models.base_legacy import (
+from app.models import (
     db, Turma, Aluno, Atividade, Presenca, PlanoDeAula, 
     Material, Horario, BlocoAula, DiarioBordo, Lembrete
 )

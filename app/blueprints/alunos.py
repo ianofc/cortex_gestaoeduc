@@ -26,11 +26,14 @@ from docx.shared import Cm, Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_ORIENT
 
-# Imports Locais e Extensões (Ajustados para a pasta 'app')
+# Imports Locais e Extensões
 from app.extensions import csrf 
-from app.models.base_legacy import (
+
+# CORREÇÃO: Importando diretamente de app.models (sem base_legacy)
+from app.models import (
     db, Turma, Aluno, Atividade, Presenca, DiarioBordo, Material, BlocoAula, Horario
 )
+
 from app.forms.forms_legacy import (
     AlunoForm, AtividadeForm, PresencaForm, EditarAlunoForm
 )
@@ -462,7 +465,8 @@ def edit_atividade(id_atividade):
         flash(f'Atividade "{atividade.titulo}" atualizada com sucesso!', 'success')
         return redirect(url_for('alunos.turma', id_turma=atividade.id_turma))
 
-    return render_template('professor/atividades/editar_atividade.html', form=form, atividade=atividade)
+    # CORREÇÃO: Template na pasta edit/
+    return render_template('edit/edit_atividade.html', form=form, atividade=atividade)
 
 
 @alunos_bp.route('/atividade/<int:id_atividade>/deletar', methods=['POST'])
@@ -503,7 +507,6 @@ def editar_aluno(id_aluno):
         return redirect(url_for('core.index'))
     
     form = EditarAlunoForm(obj=aluno)
-    from app.models.base_legacy import Turma 
     form.turma.query_factory = lambda: Turma.query.filter_by(autor=current_user).order_by(Turma.nome)
     
     if form.validate_on_submit():
@@ -515,7 +518,8 @@ def editar_aluno(id_aluno):
         db.session.commit()
         return redirect(url_for('alunos.aluno', id_aluno=aluno.id))
     
-    return render_template('admin/usuarios/editar_aluno.html', aluno=aluno, form=form)
+    # CORREÇÃO: Template na pasta edit/
+    return render_template('edit/edit_aluno.html', aluno=aluno, form=form)
 
 @alunos_bp.route('/aluno/<int:id_aluno>/deletar', methods=['POST'])
 @login_required 
@@ -539,6 +543,7 @@ def editar_turma(id_turma):
         flash('Não autorizado.', 'danger')
         return redirect(url_for('core.index'))
     
+    # CORREÇÃO DE IMPORT LOCAL:
     from app.forms.forms_legacy import TurmaForm 
     form = TurmaForm(obj=turma)
     if form.validate_on_submit():
@@ -547,7 +552,8 @@ def editar_turma(id_turma):
         flash(f'Turma {turma.nome} atualizada com sucesso!', 'success')
         return redirect(url_for('alunos.turma', id_turma=turma.id))
     
-    return render_template('admin/configuracoes/editar_turma.html', turma=turma, form=form)
+    # CORREÇÃO: Template na pasta edit/
+    return render_template('edit/edit_turma.html', turma=turma, form=form)
 
 @alunos_bp.route('/turma/<int:id_turma>/deletar', methods=['POST'])
 @login_required 

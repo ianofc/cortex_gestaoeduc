@@ -3,17 +3,14 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request,
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import or_
 
-# --- IMPORTAÇÃO DA EXTENSÃO (CORREÇÃO) ---
-from app.extensions import bcrypt  # Importa o bcrypt diretamente do arquivo novo
+from app.extensions import bcrypt, db
+from app.models.users import User, Role, Escola
+from app.models.academic import Aluno, Horario, BlocoAula
+from app.forms.forms_legacy import RegisterForm, LoginForm
 
-# Imports Locais
-from app.models.base_legacy import db, User, Horario, BlocoAula, Aluno, Escola
-from app.forms.forms_legacy import RegisterForm, LoginForm, ProfessorForm
+from datetime import datetime
 
-# Definindo prefixo /auth para organizar as rotas (ex: /auth/login)
 auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
-
-# --- ROTAS DE AUTENTICAÇÃO ---
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -22,64 +19,59 @@ def register():
     
     form = RegisterForm()
     
-    # Popula as escolas dinamicamente no SelectField do formulário
-    escolas = Escola.query.all()
-    form.escola.choices = [(e.id, e.nome) for e in escolas]
-    if not escolas:
-        form.escola.choices = [(0, 'Nenhuma escola cadastrada')]
+    try:
+        escolas = Escola.query.all()
+        form.escola.choices = [(e.id, e.nome) for e in escolas]
+    except:
+        form.escola.choices = [(1, 'Escola Padrão')]
 
     if form.validate_on_submit():
-        # Acesso seguro ao Bcrypt (CORRIGIDO: usa o objeto importado diretamente)
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         
-        # Determina o papel do usuário
-        tipo = form.tipo_conta.data # 'professor' ou 'aluno'
-        escola_id = form.escola.data if form.escola.data != 0 else None
+        role_name = form.tipo_conta.data 
+        role = Role.query.filter_by(name=role_name).first()
+        if not role: role = Role.query.filter_by(name='aluno').first()
+
+        # Gerar matrícula provisória se não informada
+        # Formato ex: 2025 + ID (será atualizado no commit)
         
         user = User(
             username=form.username.data, 
-            email_contato=form.email.data, 
+            email=form.email.data,
             password_hash=hashed_password,
-            # Define as flags com base na escolha
-            is_professor=(tipo == 'professor'),
-            is_student=(tipo == 'aluno'),
-            escola_id=escola_id
+            nome=form.username.data,
+            role=role,
+            escola_id=form.escola.data if form.escola.data != 0 else None
         )
         db.session.add(user)
-        db.session.commit() # Commit para gerar o ID do User
+        db.session.commit()
         
-        # --- LÓGICA ESPECÍFICA POR TIPO ---
+        # ATUALIZA MATRÍCULA PÓS-COMMIT (Para usar o ID)
+        if role.name == 'aluno':
+            user.matricula = f"{datetime.now().year}{user.id}"
+        else:
+            # Matrícula de Staff: PROF-123, DIR-123
+            prefixo = role.name[:3].upper()
+            user.matricula = f"{prefixo}-{user.id}"
         
-        if user.is_student:
-            # Se for ALUNO: Cria a ficha acadêmica automaticamente
+        db.session.commit()
+        
+        # Pós-Cadastro
+        if role.name == 'aluno':
             novo_aluno = Aluno(
-                nome=user.username,
-                matricula=f"AUTO-{user.id}", # Matrícula provisória
-                id_user_conta=user.id,       # Vínculo com o login
-                id_turma=None                # Sem turma inicialmente
+                nome=user.nome,
+                matricula=user.matricula, # Sincroniza
+                id_user_conta=user.id
             )
             db.session.add(novo_aluno)
             db.session.commit()
-            flash('Conta de aluno criada! Aguarde a enturmação pela secretaria.', 'success')
+            flash(f'Conta criada! Sua matrícula é: {user.matricula}', 'success')
             
-        elif user.is_professor:
-            # Se for PROFESSOR: Cria o horário padrão (Lógica original mantida)
+        elif role.name == 'professor':
             novo_horario = Horario(nome=f"Horário de {user.username}", autor=user)
             db.session.add(novo_horario)
-            
-            horarios_texto_padrao = ["13:10", "14:00", "14:50", "16:00", "16:50"]
-            for dia in range(5): 
-                for pos in range(1, 6):
-                    bloco = BlocoAula(
-                        horario=novo_horario, 
-                        dia_semana=dia, 
-                        posicao_aula=pos,
-                        texto_horario=horarios_texto_padrao[pos-1]
-                    )
-                    db.session.add(bloco)
-            
             db.session.commit()
-            flash('Conta de professor criada! Você já pode fazer o login.', 'success')
+            flash(f'Professor cadastrado. Matrícula funcional: {user.matricula}', 'success')
             
         return redirect(url_for('auth.login'))
     
@@ -88,36 +80,36 @@ def register():
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        # Se já estiver logado, redireciona baseado no tipo
-        if getattr(current_user, 'is_student', False):
-            return redirect(url_for('portal.dashboard'))
+        if current_user.has_role('aluno'): return redirect(url_for('portal.dashboard'))
+        elif current_user.has_role('professor'): return redirect(url_for('professor.dashboard'))
         return redirect(url_for('core.index')) 
         
     form = LoginForm()
     if form.validate_on_submit():
-        login_input = form.login.data # Pode ser email ou username
+        login_input = form.login.data.strip()
         
-        # Busca por email OU username
+        # QUERY SIMPLIFICADA: Tudo na tabela User
         user = User.query.filter(
             or_(
-                User.email_contato == login_input,
-                User.username == login_input
+                User.email == login_input,       # Email
+                User.username == login_input,    # Username
+                User.matricula == login_input    # Matrícula (Agora funciona p/ todos)
             )
         ).first()
         
-        # Acesso seguro ao Bcrypt (CORRIGIDO: usa o objeto importado diretamente)
         if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
             login_user(user, remember=form.remember.data)
+            flash(f'Bem-vindo, {user.nome or user.username}!', 'success')
             
-            # Redirecionamento Inteligente pós-login
-            if getattr(user, 'is_student', False):
-                return redirect(url_for('portal.dashboard'))
-            
-            flash(f'Bem-vindo de volta, {user.username}!', 'success')
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('core.index'))
+            if next_page: return redirect(next_page)
+                
+            if user.has_role('aluno'): return redirect(url_for('portal.dashboard'))
+            elif user.has_role('professor'): return redirect(url_for('professor.dashboard'))
+            elif user.has_role('coordenador'): return redirect(url_for('coordenacao.dashboard'))
+            else: return redirect(url_for('core.index'))
         else:
-            flash('Login falhou. Verifique suas credenciais.', 'danger')
+            flash('Credenciais inválidas.', 'danger')
             
     return render_template('auth/login.html', form=form)
 
@@ -125,37 +117,5 @@ def login():
 @login_required
 def logout():
     logout_user()
-    flash('Você saiu da sua conta.', 'info')
+    flash('Até logo!', 'info')
     return redirect(url_for('auth.login'))
-
-@auth_bp.route('/professor/editar/<int:id>', methods=['GET', 'POST'])
-@login_required
-def editar_professor(id):
-    # Rota administrativa para editar professores
-    # Apenas admin ou o próprio professor
-    if not current_user.is_admin and current_user.id != id:
-        flash('Acesso negado.', 'danger')
-        return redirect(url_for('core.index'))
-
-    professor = User.query.get_or_404(id)
-    form = ProfessorForm(obj=professor)
-    
-    form.senha.validators = [] # Senha opcional na edição
-
-    if form.validate_on_submit():
-        professor.username = form.nome.data
-        professor.email_contato = form.email.data
-        
-        if form.senha.data:
-            # Acesso seguro ao Bcrypt (CORRIGIDO: usa o objeto importado diretamente)
-            hashed_password = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
-            professor.password_hash = hashed_password
-            
-        db.session.commit()
-        flash('Professor atualizado com sucesso!', 'success')
-        # Redireciona para lista se for admin, ou home se for o próprio
-        if current_user.is_admin:
-            return redirect(url_for('core.listar_professores'))
-        return redirect(url_for('core.index'))
-        
-    return render_template('admin/usuarios/editar_professor.html', form=form, professor=professor)

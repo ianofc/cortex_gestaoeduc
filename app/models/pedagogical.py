@@ -1,32 +1,59 @@
 from app.extensions import db
 from datetime import datetime, date
 
+# Tabelas de Associação
+atividade_habilidade = db.Table('atividade_habilidade',
+    db.Column('atividade_id', db.Integer, db.ForeignKey('atividades.id'), primary_key=True),
+    db.Column('habilidade_id', db.Integer, db.ForeignKey('habilidades.id'), primary_key=True)
+)
+
+plano_habilidade = db.Table('plano_habilidade',
+    db.Column('plano_id', db.Integer, db.ForeignKey('planos_de_aula.id'), primary_key=True),
+    db.Column('habilidade_id', db.Integer, db.ForeignKey('habilidades.id'), primary_key=True)
+)
+
 class Atividade(db.Model):
     __tablename__ = 'atividades'
     id = db.Column(db.Integer, primary_key=True)
     id_turma = db.Column(db.Integer, db.ForeignKey('turmas.id'), nullable=True) 
     titulo = db.Column(db.String(100))
-    
-    # Novos campos de classificação e valor
-    tipo = db.Column(db.String(50), default='Atividade') # Ex: Prova, Trabalho, Caderno
-    peso = db.Column(db.Float) # Representa o valor total (ex: 10.0)
-    
-    # NOVO CAMPO: UNIDADE
+    tipo = db.Column(db.String(50), default='Atividade') 
+    peso = db.Column(db.Float) 
+    valor = db.Column(db.Float, nullable=True) # Valor da nota se for diferente do peso
     unidade = db.Column(db.String(20), default='3ª Unidade') 
-    
     data = db.Column(db.Date)
     descricao = db.Column(db.Text)
-    
-    # Anexos
     nome_arquivo_anexo = db.Column(db.String(255), nullable=True)
     path_arquivo_anexo = db.Column(db.String(255), nullable=True)
     
-    # Relacionamentos
     presencas = db.relationship('Presenca', backref='atividade', lazy=True, cascade='all, delete-orphan')
     habilidades = db.relationship('Habilidade', secondary=atividade_habilidade, backref='atividades')
 
     def __repr__(self):
         return f'<Atividade {self.titulo}>'
+
+
+class Presenca(db.Model):
+    __tablename__ = 'presencas'
+    id = db.Column(db.Integer, primary_key=True)
+    id_aluno = db.Column(db.Integer, db.ForeignKey('alunos.id'))
+    id_atividade = db.Column(db.Integer, db.ForeignKey('atividades.id'))
+    
+    status = db.Column(db.String(20)) 
+    participacao = db.Column(db.String(20)) 
+    nota = db.Column(db.Float) 
+    
+    acertos = db.Column(db.Integer, nullable=True) 
+    
+    # CAMPO CRÍTICO: Garantido aqui para o cálculo em core.py
+    desempenho = db.Column(db.Integer, nullable=True) # % estimada (0-100)
+    situacao = db.Column(db.String(50))
+    observacoes = db.Column(db.Text)
+
+    # Relacionamento de volta para Aluno (feito via backref no Aluno)
+    
+    def __repr__(self):
+        return f'<Presenca Aluno:{self.id_aluno} Ativ:{self.id_atividade}>'
 
 
 class PlanoDeAula(db.Model):
@@ -37,9 +64,8 @@ class PlanoDeAula(db.Model):
     titulo = db.Column(db.String(100), nullable=False)
     
     conteudo = db.Column(db.Text, nullable=True)
-    habilidades_bncc = db.Column(db.Text, nullable=True) # Mantido para texto livre/códigos simples
+    habilidades_bncc = db.Column(db.Text, nullable=True)
     
-    # Novo sistema de tags para habilidades
     habilidades_tags = db.relationship('Habilidade', secondary=plano_habilidade, backref='planos')
     
     objetivos = db.Column(db.Text, nullable=True)
@@ -51,7 +77,6 @@ class PlanoDeAula(db.Model):
     
     status = db.Column(db.String(50), nullable=False, default='Planejado')
     
-    # Ligação com a atividade criada a partir deste plano
     id_atividade_gerada = db.Column(db.Integer, db.ForeignKey('atividades.id'), nullable=True)
     atividade_gerada = db.relationship('Atividade', foreign_keys=[id_atividade_gerada])
     
@@ -81,6 +106,7 @@ class DiarioBordo(db.Model):
     id_turma = db.Column(db.Integer, db.ForeignKey('turmas.id'), nullable=True)
     data = db.Column(db.Date, nullable=False, default=date.today)
     anotacao = db.Column(db.Text, nullable=False)
+    tags = db.Column(db.String(100), nullable=True)
     
     turma_diario = db.relationship('Turma', foreign_keys=[id_turma])
     nome_arquivo_anexo = db.Column(db.String(255), nullable=True)

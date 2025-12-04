@@ -5,8 +5,9 @@ from io import BytesIO
 import docx
 from datetime import datetime
 from flask import current_app
-# ATUALIZADO: Adicionei Presenca e Atividade aos imports
-from app.models.base_legacy import db, Notificacao, Presenca, Atividade 
+
+# CORREÇÃO: Importar de app.models em vez de app.models.base_legacy
+from app.models import db, Notificacao, Presenca, Atividade 
 
 # Import condicional do PyPDF2, essencial para ler PDFs
 try:

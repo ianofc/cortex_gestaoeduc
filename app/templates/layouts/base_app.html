@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js" defer></script>
 
     <script>
         // Lógica de Tema (Masculino/Feminino)
@@ -130,11 +132,55 @@
 
                 <div class="hidden md:flex items-center gap-4">
                     
+                    {% if (current_user.role and current_user.role.name == 'admin') or current_user.username == 'iansantos' %}
+                    <div class="relative group mr-2" x-data="{ open: false }">
+                        <button @click="open = !open" @click.away="open = false" class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30 border border-indigo-400">
+                            <i class="fas fa-user-astronaut"></i>
+                            <span class="text-sm font-bold hidden lg:block">Modo Visão</span>
+                            <i class="fas fa-chevron-down text-xs"></i>
+                        </button>
+                        
+                        <div x-show="open" 
+                             x-transition:enter="transition ease-out duration-100"
+                             x-transition:enter-start="transform opacity-0 scale-95"
+                             x-transition:enter-end="transform opacity-100 scale-100"
+                             x-transition:leave="transition ease-in duration-75"
+                             x-transition:leave-start="transform opacity-100 scale-100"
+                             x-transition:leave-end="transform opacity-0 scale-95"
+                             class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 text-left"
+                             style="display: none;">
+                            
+                            <div class="px-4 py-2 bg-gray-50 border-b border-gray-100">
+                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Alternar Portal</p>
+                            </div>
+
+                            <a href="{{ url_for('core.index') }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition border-b border-gray-100">
+                                <i class="fas fa-cogs w-6 text-gray-400 mr-2"></i> Painel Admin
+                            </a>
+
+                            <a href="{{ url_for('coordenacao.dashboard') }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition border-b border-gray-100">
+                                <i class="fas fa-network-wired w-6 text-gray-400 mr-2"></i> Coordenação
+                            </a>
+                            
+                            <a href="{{ url_for('professor.dashboard') }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition border-b border-gray-100">
+                                <i class="fas fa-chalkboard-teacher w-6 text-gray-400 mr-2"></i> Professor
+                            </a>
+                            
+                            <a href="{{ url_for('portal.dashboard') }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition border-b border-gray-100">
+                                <i class="fas fa-user-graduate w-6 text-gray-400 mr-2"></i> Aluno
+                            </a>
+
+                            <a href="#" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition">
+                                <i class="fas fa-folder w-6 text-gray-400 mr-2"></i> Secretaria
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <button id="theme-toggle" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none transition-colors" title="Alternar Tema">
                         <i class="fas fa-moon" id="theme-icon"></i>
                     </button>
 
-                    <!-- NOTIFICAÇÕES (Conectado ao core.py) -->
                     <div class="relative group ml-1" id="notification-dropdown">
                         <button class="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none transition-colors">
                             <i class="fas fa-bell text-lg"></i>
@@ -143,7 +189,6 @@
                             {% endif %}
                         </button>
                         
-                        <!-- Dropdown de Notificações -->
                         <div class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 hidden group-hover:block transform origin-top-right transition-all z-50 dark:bg-gray-800 dark:border-gray-700 animate-fade-in-down">
                             <div class="px-4 py-3 border-b border-gray-50 dark:border-gray-700 flex justify-between items-center">
                                 <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Notificações</h3>
@@ -169,7 +214,6 @@
                         </div>
                     </div>
 
-                    <!-- MENU PERFIL -->
                     <div class="relative group ml-2">
                         <button type="button" class="flex items-center focus:outline-none transition-transform hover:scale-105">
                             {% if current_user.foto_perfil_path %}
@@ -191,7 +235,7 @@
                         <div class="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl py-2 hidden group-hover:block border border-gray-100 transform origin-top-right transition-all z-50 dark:bg-gray-800 dark:border-gray-700 animate-fade-in-down">
                             <div class="px-4 py-3 border-b border-gray-50 dark:border-gray-700">
                                 <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ current_user.username }}</p>
-                                <p class="text-xs text-gray-500 truncate dark:text-gray-400">{{ current_user.email_contato }}</p>
+                                <p class="text-xs text-gray-500 truncate dark:text-gray-400">{{ current_user.email }}</p>
                             </div>
                             
                             <a href="{{ url_for('core.edit_perfil') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-indigo-400 transition-colors">
@@ -201,7 +245,7 @@
                                 <i class="fas fa-clock w-5 mr-2"></i> Horário
                             </a>
 
-                            {% if current_user.is_admin %}
+                            {% if current_user.role and current_user.role.name == 'admin' %}
                             <div class="border-t border-gray-50 my-1 dark:border-gray-700"></div>
                             <p class="px-4 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Administração</p>
                             
@@ -238,7 +282,6 @@
             </div>
         </div>
 
-        <!-- MENU MOBILE -->
         <div class="hidden md:hidden bg-white border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700 shadow-inner" id="mobile-menu">
             <div class="px-4 pt-2 pb-4 space-y-1">
                 {% if current_user.is_authenticated %}
@@ -264,8 +307,7 @@
                     <a href="{{ url_for('core.listar_atividades') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-tasks w-6 text-center mr-2"></i> Atividades</a>
                     <a href="{{ url_for('planos.diario_bordo') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-calendar-check w-6 text-center mr-2"></i> Diário</a>
                     
-                    <!-- MENU ADMIN MOBILE -->
-                    {% if current_user.is_admin %}
+                    {% if current_user.role and current_user.role.name == 'admin' %}
                         <div class="border-t border-gray-200 my-2 dark:border-gray-600"></div>
                         <p class="px-3 text-xs font-semibold text-gray-400 uppercase mb-1">Admin</p>
                         <a href="{{ url_for('core.listar_escolas') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-school w-6 text-center mr-2"></i> Escolas</a>

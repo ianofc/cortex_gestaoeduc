@@ -7,22 +7,47 @@ from flask_login import login_required, current_user
 
 # --- IMPORTS DE MODELOS E FORMS ---
 try:
-    from app.models.base_legacy import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao
+    # CORREÇÃO: Adicionando Role aos imports
+    from app.models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao, Role
     from app.forms.forms_legacy import TurmaForm, LembreteForm, UserProfileForm, EscolaForm, CoordenadorForm, ProfessorForm
     try:
         from app.utils.helpers import enviar_notificacao
     except ImportError:
         def enviar_notificacao(user_id, msg, link): pass
 except ImportError:
-    from ..models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao
-    from ..forms import TurmaForm, LembreteForm, UserProfileForm, EscolaForm, CoordenadorForm, ProfessorForm
+    # CORREÇÃO: Adicionando Role aos imports
+    from ..models import db, User, Turma, Aluno, Atividade, Lembrete, Horario, BlocoAula, Presenca, DiarioBordo, Escola, Notificacao, Role
+    from ..forms.forms_legacy import TurmaForm, LembreteForm, UserProfileForm, EscolaForm, CoordenadorForm, ProfessorForm
     try:
-        from ..utils import enviar_notificacao
+        from ..utils.helpers import enviar_notificacao
     except ImportError:
         def enviar_notificacao(user_id, msg, link): pass
 
 # Definimos o Blueprint
 core_bp = Blueprint('core', __name__)
+
+# --- FUNÇÃO DE INJEÇÃO DE CONTEXTO GLOBAL ---
+def inject_notifications_logic():
+    """
+    Injeta variáveis globais como notificações em todos os templates.
+    """
+    num_notificacoes = 0
+    notificacoes_topo = []
+
+    if current_user.is_authenticated:
+        # Pega o número de notificações não lidas
+        num_notificacoes = Notificacao.query.filter_by(destinatario=current_user, lida=False).count()
+        
+        # Pega as últimas 5 notificações para o dropdown (lidas e não lidas)
+        notificacoes_topo = Notificacao.query.filter_by(destinatario=current_user).order_by(Notificacao.data_criacao.desc()).limit(5).all()
+        
+    return dict(
+        num_notificacoes=num_notificacoes,
+        notificacoes_topo=notificacoes_topo
+    )
+# Exportar a função para o __init__.py fazer o registro:
+inject_notifications_logic = inject_notifications_logic
+
 
 # ------------------- SEGURANÇA: BLOQUEIO DE ALUNOS -------------------
 @core_bp.before_request
@@ -30,8 +55,9 @@ def restrict_student_access():
     if request.endpoint and 'static' in request.endpoint:
         return
 
-    if current_user.is_authenticated and getattr(current_user, 'is_aluno', False):
-        if request.endpoint != 'portal.dashboard':
+    # CORREÇÃO: Usar a nova função has_role
+    if current_user.is_authenticated and current_user.has_role('aluno'):
+        if request.endpoint and 'portal.' not in request.endpoint and request.endpoint not in ['auth.logout', 'core.index']:
             flash('Acesso redirecionado para o Portal do Aluno.', 'info')
             return redirect(url_for('portal.dashboard'))
 
@@ -49,11 +75,9 @@ def pricing():
 
 @core_bp.route('/checkout')
 def checkout():
-    # Captura parâmetros da URL
     plan = request.args.get('plan', 'starter')
     cycle = request.args.get('cycle', 'monthly')
     
-    # Preços para exibição (Simulação)
     prices = {
         'starter': {'monthly': '39,00', 'annual': '29,00'},
         'pro': {'monthly': '199,00', 'annual': '149,00'}
@@ -68,7 +92,7 @@ def demo():
 
 @core_bp.route('/inteligencia')
 def intelligence():
-    return render_template('professor/planejamento/assistente_ia.html')
+    return render_template('public/assistente_ia.html')
 
 @core_bp.route('/seguranca')
 def security():
@@ -83,6 +107,16 @@ def contact():
 @core_bp.route('/dashboard', methods=['GET', 'POST'])
 @login_required 
 def dashboard():
+    # REDIRECIONAMENTO INTELIGENTE POR ROLE
+    if current_user.has_role('aluno'):
+        return redirect(url_for('portal.dashboard'))
+    elif current_user.has_role('professor'):
+        return redirect(url_for('professor.dashboard'))
+    elif current_user.has_role('coordenador') or current_user.has_role('diretor'):
+        return redirect(url_for('coordenacao.dashboard'))
+    elif current_user.has_role('admin'):
+        return redirect(url_for('core.dashboard_global')) 
+    
     lembrete_form = LembreteForm(prefix='lembrete')
 
     if lembrete_form.validate_on_submit() and request.form.get('submit_lembrete'):
@@ -102,14 +136,15 @@ def dashboard():
 
     q = request.args.get('q', '') 
     
-    turmas_query = Turma.query.filter_by(autor=current_user)
+    # CORREÇÃO CRÍTICA: USAR AUTOR_ID
+    turmas_query = Turma.query.filter(Turma.autor_id == current_user.id)
     if q:
         turmas_query = turmas_query.filter(Turma.nome.ilike(f'%{q}%'))
     turmas = turmas_query.order_by(Turma.nome).all()
     
     lembretes = Lembrete.query.filter_by(autor=current_user, status='Ativo').order_by(Lembrete.data_criacao.desc()).all()
     
-    horario = Horario.query.filter_by(autor=current_user, ativo=True).first()
+    horario = Horario.query.filter_by(autor_id=current_user.id, ativo=True).first()
     blocos_map = {}
     horarios_texto = []
     dias_semana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"]
@@ -129,7 +164,7 @@ def dashboard():
     else:
         horarios_texto = ["--:--"] * 5
     
-    return render_template('layouts/base_public.html', 
+    return render_template('professor/turma/visao_geral.html', 
                            turmas=turmas, 
                            lembrete_form=lembrete_form,
                            lembretes=lembretes,
@@ -142,21 +177,24 @@ def dashboard():
 @core_bp.route('/dashboard/global')
 @login_required
 def dashboard_global():
-    total_turmas = Turma.query.filter_by(autor=current_user).count()
+    # Rota administrativa / global (acessada pelo Admin ou via "Modo Visão")
+    
+    # CORREÇÃO CRÍTICA: USAR AUTOR_ID EM TODAS AS CONSULTAS DE TURMA
+    total_turmas = Turma.query.filter(Turma.autor_id == current_user.id).count()
     
     total_alunos = db.session.query(func.count(Aluno.id))\
         .join(Turma)\
-        .filter(Turma.id_user == current_user.id).scalar()
+        .filter(Turma.autor_id == current_user.id).scalar()
         
     total_atividades = db.session.query(func.count(Atividade.id))\
         .join(Turma)\
-        .filter(Turma.id_user == current_user.id).scalar()
+        .filter(Turma.autor_id == current_user.id).scalar()
 
     desempenho_turmas_raw = db.session.query(
         Turma.nome,
         func.avg(Presenca.desempenho).label('media_desempenho')
     ).select_from(Turma).join(Turma.alunos, isouter=True).join(Aluno.presencas, isouter=True)\
-     .filter(Turma.id_user == current_user.id)\
+     .filter(Turma.autor_id == current_user.id)\
      .group_by(Turma.nome)\
      .order_by(Turma.nome).all()
      
@@ -164,7 +202,7 @@ def dashboard_global():
         Turma.nome,
         func.avg(case((Presenca.status == 'Presente', 100.0), (Presenca.status == 'Justificado', 100.0), else_=0.0)).label('media_frequencia')
     ).select_from(Turma).join(Turma.alunos, isouter=True).join(Aluno.presencas, isouter=True)\
-     .filter(Turma.id_user == current_user.id)\
+     .filter(Turma.autor_id == current_user.id)\
      .group_by(Turma.nome).all()
 
     dados_combinados = {}
@@ -189,7 +227,7 @@ def dashboard_global():
         func.sum(Atividade.peso).label('pontos_max_aluno')
     ).select_from(Aluno).join(Turma)\
      .join(Presenca, isouter=True).join(Atividade, isouter=True)\
-     .filter(Turma.id_user == current_user.id)\
+     .filter(Turma.autor_id == current_user.id)\
      .group_by(Aluno.id, Aluno.nome)\
      .all()
      
@@ -259,7 +297,7 @@ def add_turma():
             nome=form.nome.data, 
             descricao=form.descricao.data, 
             turno=form.turno.data,
-            autor=current_user 
+            autor=current_user # Isto funciona via backref
         )
         db.session.add(nova_turma)
         db.session.commit()
@@ -271,7 +309,8 @@ def add_turma():
 @login_required
 def editar_turma(id):
     turma = Turma.query.get_or_404(id)
-    if turma.autor != current_user:
+    # CORREÇÃO: Usar autor_id
+    if turma.autor_id != current_user.id:
         flash('Não autorizado.', 'danger')
         return redirect(url_for('core.index'))
 
@@ -284,13 +323,14 @@ def editar_turma(id):
         flash('Turma atualizada!', 'success')
         return redirect(url_for('core.listar_turmas'))
     
-    return render_template('admin/configuracoes/editar_turma.html', form=form, turma=turma)
+    return render_template('edit/edit_turma.html', form=form, turma=turma)
 
 @core_bp.route('/turma/excluir/<int:id>')
 @login_required
 def excluir_turma(id):
     turma = Turma.query.get_or_404(id)
-    if turma.autor != current_user:
+    # CORREÇÃO: Usar autor_id
+    if turma.autor_id != current_user.id:
         flash('Não autorizado.', 'danger')
         return redirect(url_for('core.index'))
         
@@ -302,12 +342,14 @@ def excluir_turma(id):
 @core_bp.route('/turmas/listar')
 @login_required
 def listar_turmas():
+    # CORREÇÃO: Acessar turmas usando o relacionamento (funciona com backref corrigido)
     turmas = current_user.turmas 
     return render_template('admin/configuracoes/listar_turmas.html', turmas=turmas)
 
 @core_bp.route('/atividades/listar')
 @login_required
 def listar_atividades():
+    # CORREÇÃO: Turmas são acessadas por current_user.turmas
     turmas_ids = [t.id for t in current_user.turmas]
     if not turmas_ids:
         atividades = []
@@ -319,7 +361,8 @@ def listar_atividades():
 @login_required
 def excluir_atividade(id):
     atividade = Atividade.query.get_or_404(id)
-    if not atividade.turma or atividade.turma.autor != current_user:
+    # CORREÇÃO: Usar autor_id para checar propriedade
+    if not atividade.turma or atividade.turma.autor_id != current_user.id:
         flash('Não autorizado.', 'danger')
         return redirect(url_for('core.index'))
 
@@ -334,9 +377,10 @@ def excluir_atividade(id):
 @login_required
 def edit_perfil():
     form = UserProfileForm(original_username=current_user.username)
+    
     if request.method == 'GET':
         form.username.data = current_user.username
-        form.email_contato.data = current_user.email_contato
+        form.email.data = current_user.email 
         form.telefone.data = current_user.telefone
         form.genero.data = current_user.genero 
 
@@ -358,7 +402,7 @@ def edit_perfil():
             current_user.foto_perfil_path = filename_final
 
         current_user.username = form.username.data
-        current_user.email_contato = form.email_contato.data
+        current_user.email = form.email.data 
         current_user.telefone = form.telefone.data
         current_user.genero = form.genero.data 
         db.session.commit()
@@ -396,15 +440,20 @@ def deletar_lembrete(id):
 @core_bp.route('/professores')
 @login_required
 def listar_professores():
-    professores = User.query.filter_by(is_professor=True).all()
+    if not current_user.has_role('admin') and not current_user.has_role('coordenador'):
+         flash('Acesso negado.', 'danger')
+         return redirect(url_for('core.index'))
+         
+    professores = User.query.join(User.role).filter(User.role.has(name='professor')).all()
     return render_template('admin/usuarios/listar_professores.html', professores=professores)
 
 @core_bp.route('/usuario/excluir/<int:id>')
 @login_required
 def excluir_usuario(id):
-    if not getattr(current_user, 'is_admin', False):
+    if not current_user.has_role('admin'):
          flash('Acesso negado. Apenas administradores podem excluir usuários.', 'danger')
          return redirect(url_for('core.index'))
+         
     user = User.query.get_or_404(id)
     if user.id == current_user.id:
         flash('Você não pode excluir a si mesmo!', 'danger')
@@ -417,18 +466,20 @@ def excluir_usuario(id):
 @core_bp.route('/escolas/listar')
 @login_required
 def listar_escolas():
-    if not getattr(current_user, 'is_admin', False):
+    if not current_user.has_role('admin'):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
+        
     escolas = Escola.query.all()
     return render_template('admin/configuracoes/listar_escolas.html', escolas=escolas)
 
 @core_bp.route('/escola/adicionar', methods=['GET', 'POST'])
 @login_required
 def add_escola():
-    if not getattr(current_user, 'is_admin', False):
+    if not current_user.has_role('admin'):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
+        
     form = EscolaForm()
     if form.validate_on_submit():
         escola = Escola(
@@ -446,9 +497,10 @@ def add_escola():
 @core_bp.route('/escola/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_escola(id):
-    if not getattr(current_user, 'is_admin', False):
+    if not current_user.has_role('admin'):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
+        
     escola = Escola.query.get_or_404(id)
     form = EscolaForm(obj=escola)
     if form.validate_on_submit():
@@ -456,14 +508,15 @@ def editar_escola(id):
         db.session.commit()
         flash('Escola atualizada com sucesso!', 'success')
         return redirect(url_for('core.listar_escolas'))
-    return render_template('admin/configuracoes/editar_escola.html', form=form, escola=escola)
+    return render_template('edit/edit_escola.html', form=form, escola=escola)
 
 @core_bp.route('/escola/excluir/<int:id>')
 @login_required
 def excluir_escola(id):
-    if not getattr(current_user, 'is_admin', False):
+    if not current_user.has_role('admin'):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
+        
     escola = Escola.query.get_or_404(id)
     db.session.delete(escola)
     db.session.commit()
@@ -473,43 +526,47 @@ def excluir_escola(id):
 @core_bp.route('/coordenadores/listar')
 @login_required
 def listar_coordenadores():
-    if not getattr(current_user, 'is_admin', False):
+    if not current_user.has_role('admin'):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
-    coordenadores = User.query.filter_by(is_coordenador=True).all()
-    return render_template('list/listar_coordenadores.html', coordenadores=coordenadores)
+        
+    coordenadores = User.query.join(User.role).filter(User.role.has(name='coordenador')).all()
+    return render_template('admin/usuarios/listar_coordenadores.html', coordenadores=coordenadores)
 
 @core_bp.route('/coordenador/adicionar', methods=['GET', 'POST'])
 @login_required
 def add_coordenador():
-    if not getattr(current_user, 'is_admin', False):
+    if not current_user.has_role('admin'):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
+        
     form = CoordenadorForm()
     form.escola_id.choices = [(e.id, e.nome) for e in Escola.query.all()]
     if form.validate_on_submit():
         from app import bcrypt 
         hashed_pw = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
+        # Buscando a Role para evitar erro de objeto não-persistente
+        coord_role = Role.query.filter_by(name='coordenador').first() 
         novo_coord = User(
             username=form.nome.data,
-            email_contato=form.email.data,
+            email=form.email.data,
             password_hash=hashed_pw,
-            is_coordenador=True,
-            is_professor=False,
+            role=coord_role, 
             escola_id=form.escola_id.data
         )
         db.session.add(novo_coord)
         db.session.commit()
         flash('Coordenador cadastrado!', 'success')
         return redirect(url_for('core.listar_coordenadores'))
-    return render_template('add/add_coordenador.html', form=form)
+    return render_template('admin/usuarios/novo_coordenador.html', form=form)
 
 @core_bp.route('/coordenador/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_coordenador(id):
-    if not getattr(current_user, 'is_admin', False):
+    if not current_user.has_role('admin'):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
+        
     coord = User.query.get_or_404(id)
     form = CoordenadorForm(obj=coord)
     form.escola_id.choices = [(e.id, e.nome) for e in Escola.query.all()]
@@ -517,12 +574,12 @@ def editar_coordenador(id):
     
     if request.method == 'GET':
         form.nome.data = coord.username
-        form.email.data = coord.email_contato
+        form.email.data = coord.email 
         form.escola_id.data = coord.escola_id
 
     if form.validate_on_submit():
         coord.username = form.nome.data
-        coord.email_contato = form.email.data
+        coord.email = form.email.data 
         coord.escola_id = form.escola_id.data
         if form.senha.data:
             from app import bcrypt
@@ -535,19 +592,22 @@ def editar_coordenador(id):
 @core_bp.route('/professor/adicionar', methods=['GET', 'POST'])
 @login_required
 def add_professor():
-    if not (getattr(current_user, 'is_admin', False) or getattr(current_user, 'is_coordenador', False)):
+    if not (current_user.has_role('admin') or current_user.has_role('coordenador')):
         flash('Acesso restrito.', 'danger')
         return redirect(url_for('core.index'))
+        
     form = ProfessorForm()
     if form.validate_on_submit():
         from app import bcrypt
         hashed_pw = bcrypt.generate_password_hash(form.senha.data).decode('utf-8')
+        # Buscando a Role para evitar erro de objeto não-persistente
+        prof_role = Role.query.filter_by(name='professor').first()
         novo_prof = User(
             username=form.nome.data,
-            email_contato=form.email.data,
+            email=form.email.data,
             password_hash=hashed_pw,
-            is_professor=True,
-            escola_id=current_user.escola_id if getattr(current_user, 'is_coordenador', False) else None
+            role=prof_role, 
+            escola_id=current_user.escola_id if current_user.has_role('coordenador') else None
         )
         db.session.add(novo_prof)
         db.session.commit()
