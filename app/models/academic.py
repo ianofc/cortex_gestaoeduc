@@ -24,16 +24,14 @@ class Aluno(db.Model):
     matricula = db.Column(db.String(50))
     data_cadastro = db.Column(db.Date, default=date.today)
     
-    # Campos de Responsável
     email_responsavel = db.Column(db.String(120), nullable=True)
     telefone_responsavel = db.Column(db.String(20), nullable=True)
 
     id_turma = db.Column(db.Integer, db.ForeignKey('turmas.id'), nullable=True) 
     id_user_conta = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True) 
 
-    # Relação feita pelo backref em pedagogical.Presenca
-    # presencas = db.relationship('Presenca', backref='aluno', lazy=True, cascade='all, delete-orphan') 
-
+    # A relação com Presenca está correta via backref no modelo Presenca
+    
     def __repr__(self):
         return f'<Aluno {self.nome}>'
 
@@ -44,6 +42,10 @@ class Horario(db.Model):
     nome = db.Column(db.String(100), nullable=False, default="Horário Padrão")
     autor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     ativo = db.Column(db.Boolean, default=True) 
+    
+    # CORREÇÃO CRÍTICA DO ERRO: Adicionado campo 'publico'
+    publico = db.Column(db.Boolean, default=False)
+    
     blocos = db.relationship('BlocoAula', backref='horario', lazy=True, cascade='all, delete-orphan')
 
 

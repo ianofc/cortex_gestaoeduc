@@ -136,7 +136,7 @@ def dashboard():
 
     q = request.args.get('q', '') 
     
-    # CORREÇÃO CRÍTICA: USAR AUTOR_ID
+    # CORREÇÃO: USAR AUTOR_ID
     turmas_query = Turma.query.filter(Turma.autor_id == current_user.id)
     if q:
         turmas_query = turmas_query.filter(Turma.nome.ilike(f'%{q}%'))
@@ -221,6 +221,7 @@ def dashboard_global():
     
     top_alunos_data = []
     
+    # O erro está aqui: Aluno.presencas
     alunos_scores = db.session.query(
         Aluno,
         func.sum(Presenca.nota).label('pontos_obtidos'),
