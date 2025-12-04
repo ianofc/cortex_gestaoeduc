@@ -226,7 +226,7 @@ def dashboard_global():
         func.sum(Presenca.nota).label('pontos_obtidos'),
         func.sum(Atividade.peso).label('pontos_max_aluno')
     ).select_from(Aluno).join(Turma)\
-     .join(Presenca, isouter=True).join(Atividade, isouter=True)\
+     .join(Presenca, isouter=True).join(Aluno.presencas, isouter=True)\
      .filter(Turma.autor_id == current_user.id)\
      .group_by(Aluno.id, Aluno.nome)\
      .all()

@@ -77,14 +77,6 @@ def run_migration():
         map_atividades = {}
         map_alunos = {}
         map_horarios = {}
-
-        # Listas para Inserção em Massa
-        new_users_list = []
-        new_turmas_list = []
-        new_alunos_list = []
-        new_atividades_list = []
-        new_presencas_list = []
-        new_diarios_list = []
         
         # --- ETAPA 3: Migrar USERS ---
         print("\n>> Migrando Usuários e Gerando Matrículas...")
@@ -109,6 +101,9 @@ def run_migration():
                 elif role_to_assign.name == 'professor': matricula_gerada = f"PROF-{u['id']}"
                 else: matricula_gerada = f"STU-{u['id']}"
 
+            # data_nascimento para o User (pode ser None)
+            data_nasc_user = None 
+
             new_user = User(
                 username=u['username'],
                 email=email_final,
@@ -119,14 +114,15 @@ def run_migration():
                 matricula=matricula_gerada,
                 telefone=u.get('telefone'),
                 foto_perfil_path=u.get('foto_perfil_path'),
-                genero=genero
+                genero=genero,
+                data_nascimento=data_nasc_user 
             )
             db.session.add(new_user)
-            db.session.flush() # CRÍTICO: Pega o new_user.id sem comitar no banco
+            db.session.flush() 
             map_users[u['id']] = new_user.id
             print(f"   + User {new_user.username} migrado.")
 
-        db.session.commit() # Commit único para todos os usuários
+        db.session.commit()
         print("   ✅ Inserção em massa de usuários concluída.")
 
 
@@ -148,13 +144,41 @@ def run_migration():
             db.session.flush()
             map_turmas[t['id']] = new_turma.id
         
-        db.session.commit() # Commit único
+        db.session.commit()
         print(f"   + {len(map_turmas)} Turmas migrada.")
 
-        # --- ETAPA 5: Migrar HORÁRIOS (Apenas o Bloco principal) ---
+        # --- ETAPA 5: Migrar HORÁRIOS ---
         print("\n>> Migrando Horários (Apenas a estrutura)...")
-        # Esta etapa é menos crítica, mas manteremos o commit fora do loop principal
-        # ... (Mantido o código de horários anterior) ...
+        try:
+            source_cursor.execute("SELECT * FROM horarios")
+            for h in source_cursor.fetchall():
+                dono_id = map_users.get(h['id_user'])
+                if dono_id:
+                    new_horario = Horario(
+                        nome=h['nome'],
+                        ativo=bool(h.get('ativo', 1)),
+                        publico=bool(h.get('publico', 0)),
+                        autor_id=dono_id
+                    )
+                    db.session.add(new_horario)
+                    db.session.flush()
+                    map_horarios[h['id']] = new_horario.id
+
+                    # Blocos
+                    source_cursor.execute("SELECT * FROM blocos_aula WHERE id_horario = ?", (h['id'],))
+                    for b in source_cursor.fetchall():
+                        new_bloco = BlocoAula(
+                            horario=new_horario,
+                            dia_semana=b['dia_semana'],
+                            posicao_aula=b['posicao_aula'],
+                            id_turma=map_turmas.get(b['id_turma']),
+                            texto_horario=b.get('texto_horario'),
+                            texto_alternativo=b.get('texto_alternativo')
+                        )
+                        db.session.add(new_bloco)
+                    db.session.commit()
+        except sqlite3.OperationalError:
+            print("   (Tabela de horários não encontrada, pulando...)")
 
         # --- ETAPA 6: Migrar ALUNOS ---
         print("\n>> Migrando Alunos...")
@@ -163,7 +187,7 @@ def run_migration():
         
         for a in old_alunos:
             dt_nasc = None
-            if a.get('data_nascimento'):
+            if a.get('data_nascimento'): 
                 try: dt_nasc = datetime.strptime(a['data_nascimento'], '%Y-%m-%d').date()
                 except: pass
             
@@ -172,18 +196,26 @@ def run_migration():
             new_aluno = Aluno(
                 nome=a['nome'],
                 matricula=str(a.get('matricula', '')),
-                data_nascimento=dt_nasc,
+                # CORREÇÃO: data_nascimento removida do construtor Aluno
                 email_responsavel=a.get('email_responsavel'),
                 telefone_responsavel=a.get('telefone_responsavel'),
                 id_turma=map_turmas.get(a['id_turma']),
                 id_user_conta=id_user_conta_novo,
                 data_cadastro=datetime.utcnow()
             )
+            
+            # Lógica para CONSOLIDAR DATA DE NASCIMENTO (no User)
+            if dt_nasc and id_user_conta_novo:
+                user_associado = User.query.get(id_user_conta_novo)
+                if user_associado and not user_associado.data_nascimento:
+                    user_associado.data_nascimento = dt_nasc
+                    db.session.add(user_associado) 
+
             db.session.add(new_aluno)
             db.session.flush()
             map_alunos[a['id']] = new_aluno.id
         
-        db.session.commit() # Commit único
+        db.session.commit()
         print(f"   + {len(map_alunos)} alunos migrados.")
 
 
@@ -212,7 +244,7 @@ def run_migration():
                 db.session.flush()
                 map_atividades[atv['id']] = new_atv.id
         
-        db.session.commit() # Commit único
+        db.session.commit()
         print(f"   + {len(map_atividades)} atividades migrada.")
 
         # --- ETAPA 8: Migrar PRESENÇAS ---
@@ -227,16 +259,33 @@ def run_migration():
                     id_atividade=atid,
                     status=p.get('status', 'Presente'),
                     nota=p.get('nota'),
+                    # CORREÇÃO: Mapeia dados antigos para campos do novo modelo
+                    desempenho=p.get('desempenho'), # O valor é nullable=True no modelo final
                     observacoes=p.get('observacoes')
                 )
                 db.session.add(new_p)
         
-        db.session.commit() # Commit único
+        db.session.commit()
         print("   + Registros de notas/presença sincronizados.")
         
-        # ... (demais migrações) ...
+        # --- ETAPA 9: Diários ---
+        try:
+            source_cursor.execute("SELECT * FROM diario_bordo")
+            for d in source_cursor.fetchall():
+                uid = map_users.get(d['id_user'])
+                tid = map_turmas.get(d['id_turma'])
+                if uid:
+                    new_d = DiarioBordo(
+                        id_user=uid,
+                        id_turma=tid,
+                        anotacao=d['anotacao'],
+                        data=datetime.utcnow()
+                    )
+                    db.session.add(new_d)
+            db.session.commit()
+        except: pass
 
-        db.session.commit()
+
     source_conn.close()
     print("\n✅ MIGRAÇÃO FINALIZADA COM SUCESSO! (Rode o seed.py em seguida)")
 

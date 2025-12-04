@@ -2,7 +2,6 @@
 from app import create_app, db
 from app.models.users import User, Role, Escola
 from app.models.academic import Turma, Aluno
-# from werkzeug.security import generate_password_hash # REMOVIDO
 from datetime import datetime
 
 app = create_app()
@@ -41,8 +40,7 @@ def seed_database():
         db.session.commit()
         print("✅ Escolas verificadas.")
 
-        # 3. Criar Usuários de Staff
-        # GERAÇÃO DO HASH AGORA É CORRETA (FLASK-BCRYPT)
+        # 3. Criar Usuários de Staff (Senhas serão 123456)
         senha_hash = bcrypt.generate_password_hash("123456").decode('utf-8') 
 
         users_data = [
@@ -70,17 +68,31 @@ def seed_database():
         db.session.commit()
         print("✅ Staff criado/atualizado.")
 
-        # 4. Atualizar SEU Usuário (iansantos)
-        # Se você está usando login via email, este deve ser o email que você usa.
-        meu_usuario = User.query.filter((User.username == 'iansantos') | (User.email == 'iansantos@admin.com')).first()
+        # 4. Atualizar SEU Usuário (iansantos) - CORREÇÃO DE CREDENCIAIS
+        
+        # 1. Busca por username, email antigo e novo
+        meu_usuario = User.query.filter(
+            (User.username == 'iansantos') | 
+            (User.email == 'ianworktech@gmail.com') | 
+            (User.email == 'iansantos@admin.com')
+        ).first()
+
         if meu_usuario:
+            # GERA NOVO HASH PARA A SENHA 134679
+            nova_senha_hash = bcrypt.generate_password_hash("134679").decode('utf-8') 
+            
             meu_usuario.role_id = roles_db['admin'].id
-            meu_usuario.password_hash = bcrypt.generate_password_hash("123456").decode('utf-8') # Garante que sua senha seja 123456
+            meu_usuario.password_hash = nova_senha_hash 
+            meu_usuario.email = "ianworktech@gmail.com" # Define o email definitivo
+            meu_usuario.username = "iansantos" # Garante o username
+            meu_usuario.nome = "Ian Santos (Admin)"
+            
             if not meu_usuario.escola_id:
                 meu_usuario.escola_id = escola_privada.id
             db.session.add(meu_usuario)
             db.session.commit()
-            print(f"👑 Usuário {meu_usuario.nome} promovido a ADMIN supremo e senha resetada.")
+            print(f"👑 Usuário {meu_usuario.nome} promovido a ADMIN supremo.")
+            print(f"   Login: ianworktech@gmail.com | Senha: 134679")
 
         # 5. Criar Alunos de Teste
         alunos_data = [
