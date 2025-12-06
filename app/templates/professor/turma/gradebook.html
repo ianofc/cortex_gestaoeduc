@@ -5,7 +5,7 @@
 {% block content %}
 <div class="space-y-6">
 
-    <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+    <div class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
         <div>
             <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
                 <a href="{{ url_for('core.listar_turmas') }}" class="hover:text-indigo-600 transition-colors">Minhas Turmas</a>
@@ -22,9 +22,34 @@
             </h1>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+        <div class="flex flex-wrap xl:flex-nowrap gap-3 w-full xl:w-auto items-center">
             
-            <div class="relative group">
+            <div class="flex items-center gap-2 bg-gray-50 dark:bg-gray-700/50 p-1.5 rounded-lg border border-gray-200 dark:border-gray-600 mr-2">
+                <span class="text-[10px] font-bold text-gray-400 uppercase px-2 hidden sm:block">Exportar:</span>
+                
+                <a href="{{ url_for('alunos.exportar_relatorio', id_turma=turma.id) }}" 
+                   class="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-md transition-colors" 
+                   title="Excel Completo">
+                    <i class="fas fa-file-excel text-lg"></i>
+                </a>
+                
+                <div class="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
+                
+                <a href="{{ url_for('alunos.exportar_matriz_docx', id_turma=turma.id) }}" 
+                   class="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors" 
+                   title="Documento Word">
+                    <i class="fas fa-file-word text-lg"></i>
+                </a>
+                
+                <div class="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
+                
+                <a href="{{ url_for('alunos.exportar_matriz_pdf', id_turma=turma.id) }}" 
+                   class="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors" 
+                   title="PDF">
+                    <i class="fas fa-file-pdf text-lg"></i>
+                </a>
+            </div>
+            <div class="relative group flex-grow sm:flex-grow-0">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500">
                     <i class="fas fa-filter"></i>
                 </div>
@@ -43,7 +68,7 @@
                 </div>
             </div>
 
-            <a href="{{ url_for('alunos.turma', id_turma=turma.id) }}" class="px-4 py-2.5 bg-white border border-gray-300 text-gray-700 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 shadow-sm">
+            <a href="{{ url_for('alunos.turma', id_turma=turma.id) }}" class="px-4 py-2.5 bg-white border border-gray-300 text-gray-700 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 rounded-lg text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2 shadow-sm whitespace-nowrap">
                 <i class="fas fa-arrow-left"></i> Voltar
             </a>
         </div>

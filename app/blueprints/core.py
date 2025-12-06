@@ -110,12 +110,9 @@ def dashboard():
     # REDIRECIONAMENTO INTELIGENTE POR ROLE
     if current_user.has_role('aluno'):
         return redirect(url_for('portal.dashboard'))
-    elif current_user.has_role('professor'):
-        return redirect(url_for('professor.dashboard'))
-    elif current_user.has_role('coordenador') or current_user.has_role('diretor'):
+    
+    if (current_user.has_role('coordenador') or current_user.has_role('diretor')) and not current_user.has_role('professor') and not current_user.has_role('admin'):
         return redirect(url_for('coordenacao.dashboard'))
-    elif current_user.has_role('admin'):
-        return redirect(url_for('core.dashboard_global')) 
     
     lembrete_form = LembreteForm(prefix='lembrete')
 
@@ -164,7 +161,7 @@ def dashboard():
     else:
         horarios_texto = ["--:--"] * 5
     
-    return render_template('professor/turma/visao_geral.html', 
+    return render_template('professor/home.html', 
                            turmas=turmas, 
                            lembrete_form=lembrete_form,
                            lembretes=lembretes,
@@ -221,13 +218,14 @@ def dashboard_global():
     
     top_alunos_data = []
     
-    # O erro está aqui: Aluno.presencas
+    # CORREÇÃO DA QUERY PARA EVITAR ERRO DE TABELA DUPLICADA
     alunos_scores = db.session.query(
         Aluno,
         func.sum(Presenca.nota).label('pontos_obtidos'),
         func.sum(Atividade.peso).label('pontos_max_aluno')
     ).select_from(Aluno).join(Turma)\
-     .join(Presenca, isouter=True).join(Aluno.presencas, isouter=True)\
+     .join(Presenca, isouter=True)\
+     .join(Atividade, isouter=True)\
      .filter(Turma.autor_id == current_user.id)\
      .group_by(Aluno.id, Aluno.nome)\
      .all()
@@ -253,13 +251,23 @@ def dashboard_global():
     ]
     top_alunos_data.sort(key=lambda x: x['percentual'], reverse=True)
     top_alunos_data = top_alunos_data[:10]
+
+    # --- CORREÇÃO: PREPARAÇÃO DOS DADOS PARA GRÁFICOS (CHART.JS) ---
+    chart_labels = [d['turma'] for d in dados_graficos]
+    # Nomes ajustados para corresponder ao template: chart_desempenho e chart_frequencia
+    chart_desempenho = [d.get('desempenho', 0) for d in dados_graficos]
+    chart_frequencia = [d.get('frequencia', 0) for d in dados_graficos]
     
     return render_template('admin/dashboard/global.html',
                            total_turmas=total_turmas,
                            total_alunos=total_alunos,
                            total_atividades=total_atividades,
                            dados_combinados=dados_graficos, 
-                           top_alunos=top_alunos_data
+                           top_alunos=top_alunos_data,
+                           # Passando as variáveis para o template com os nomes corretos
+                           chart_labels=chart_labels,
+                           chart_desempenho=chart_desempenho,
+                           chart_frequencia=chart_frequencia
                            )
 
 # ------------------- GESTÃO DE NOTIFICAÇÕES -------------------
@@ -381,7 +389,8 @@ def edit_perfil():
     
     if request.method == 'GET':
         form.username.data = current_user.username
-        form.email.data = current_user.email 
+        # CORREÇÃO: Alterado de form.email para form.email_contato
+        form.email_contato.data = current_user.email 
         form.telefone.data = current_user.telefone
         form.genero.data = current_user.genero 
 
@@ -403,7 +412,8 @@ def edit_perfil():
             current_user.foto_perfil_path = filename_final
 
         current_user.username = form.username.data
-        current_user.email = form.email.data 
+        # CORREÇÃO: Alterado de form.email para form.email_contato
+        current_user.email = form.email_contato.data 
         current_user.telefone = form.telefone.data
         current_user.genero = form.genero.data 
         db.session.commit()

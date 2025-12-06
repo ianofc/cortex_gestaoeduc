@@ -50,7 +50,7 @@ class Presenca(db.Model):
     situacao = db.Column(db.String(50))
     observacoes = db.Column(db.Text)
 
-    # Relacionamento de volta para Aluno (feito via backref no Aluno)
+    # Nota: O relacionamento 'aluno' é criado via backref no models/academic.py
     
     def __repr__(self):
         return f'<Presenca Aluno:{self.id_aluno} Ativ:{self.id_atividade}>'
@@ -108,6 +108,11 @@ class DiarioBordo(db.Model):
     anotacao = db.Column(db.Text, nullable=False)
     tags = db.Column(db.String(100), nullable=True)
     
+    # RELACIONAMENTOS NECESSÁRIOS
     turma_diario = db.relationship('Turma', foreign_keys=[id_turma])
+    
+    # CORREÇÃO: Adicionado o relacionamento autor_diario para evitar erros no controller
+    autor_diario = db.relationship('User', foreign_keys=[id_user], backref='diarios')
+
     nome_arquivo_anexo = db.Column(db.String(255), nullable=True)
     path_arquivo_anexo = db.Column(db.String(255), nullable=True)

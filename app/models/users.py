@@ -46,11 +46,17 @@ class User(db.Model, UserMixin):
     genero = db.Column(db.String(20), default='Masculino') 
     
     lembretes = db.relationship('Lembrete', backref='autor', lazy=True, cascade='all, delete-orphan') 
-    turmas = db.relationship('Turma', backref='turma_autor_rel', lazy=True, cascade='all, delete-orphan') 
+    
+    # RELACIONAMENTO CORRIGIDO (Backref 'autor')
+    turmas = db.relationship('Turma', backref='autor', lazy=True, cascade='all, delete-orphan') 
+
     horarios = db.relationship('Horario', backref='horario_autor_rel', lazy=True, cascade='all, delete-orphan')
     
     notificacoes = db.relationship('Notificacao', backref='destinatario', lazy=True, cascade='all, delete-orphan')
-
+    
+    # REMOVIDO: diarios = db.relationship(...) 
+    # O relacionamento 'diarios' é criado automaticamente pelo backref em pedagogical.py
+    
     def __repr__(self):
         return f'<User {self.username}>'
 

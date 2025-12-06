@@ -16,24 +16,27 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import func, distinct, case
 from sqlalchemy.orm import joinedload
 
-# --- Imports para Exportação de Documentos (ReportLab e Docx) ---
+# --- Imports para Exportação de Documentos ---
+# PDF (ReportLab)
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.styles import getSampleStyleSheet
+
+# Word (Docx)
 from docx import Document
-from docx.shared import Cm, Pt
+from docx.shared import Cm, Pt, RGBColor 
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.section import WD_ORIENT
 
+# Excel (Openpyxl)
+from openpyxl.styles import Font
+
 # Imports Locais e Extensões
 from app.extensions import csrf 
-
-# CORREÇÃO: Importando diretamente de app.models (sem base_legacy)
 from app.models import (
     db, Turma, Aluno, Atividade, Presenca, DiarioBordo, Material, BlocoAula, Horario
 )
-
 from app.forms.forms_legacy import (
     AlunoForm, AtividadeForm, PresencaForm, EditarAlunoForm
 )
@@ -650,57 +653,87 @@ def gradebook(id_turma):
 @login_required
 @csrf.exempt
 def salvar_gradebook():
-    data = request.json
+    """
+    Salva notas via AJAX com tratamento robusto de erros e JSON responses.
+    """
     try:
-        id_aluno = int(data.get('id_aluno'))
-        id_atividade = int(data.get('id_atividade'))
+        data = request.json
+        if not data:
+            return jsonify({"status": "error", "message": "Dados não enviados"}), 400
+
+        # Tratamento dos IDs
+        try:
+            id_aluno = int(data.get('id_aluno'))
+            id_atividade = int(data.get('id_atividade'))
+        except (ValueError, TypeError):
+            return jsonify({"status": "error", "message": "IDs inválidos"}), 400
+
         campo = data.get('campo') 
         valor = data.get('valor')
-    except:
-        return jsonify({"status": "error", "message": "Dados inválidos."}), 400
 
-    aluno = Aluno.query.get_or_404(id_aluno)
-    if aluno.turma.autor != current_user:
-        return jsonify({"status": "error", "message": "Não autorizado"}), 403
+        # 1. Carregar Objetos do Banco (Usando .get para evitar 404 HTML)
+        aluno = Aluno.query.get(id_aluno)
+        if not aluno:
+            return jsonify({"status": "error", "message": "Aluno não encontrado"}), 404
+            
+        # Proteção Aluno Órfão
+        if not aluno.turma:
+            return jsonify({"status": "error", "message": "Este aluno não pertence a nenhuma turma"}), 400
+            
+        # Proteção Autorização
+        if not aluno.turma.autor or aluno.turma.autor.id != current_user.id:
+            return jsonify({"status": "error", "message": "Não autorizado"}), 403
+            
+        atividade = Atividade.query.get(id_atividade)
+        if not atividade:
+            return jsonify({"status": "error", "message": "Atividade não encontrada"}), 404
+
+        # 2. Buscar ou Criar Presença
+        presenca = Presenca.query.filter_by(id_aluno=id_aluno, id_atividade=id_atividade).first()
         
-    atividade = Atividade.query.get_or_404(id_atividade)
+        if not presenca:
+            presenca = Presenca(id_aluno=id_aluno, id_atividade=id_atividade,
+                                status='Presente', participacao='Sim', situacao='Bom',
+                                nota=0.0, desempenho=0)
+            db.session.add(presenca)
 
-    presenca = Presenca.query.filter_by(id_aluno=id_aluno, id_atividade=id_atividade).first()
-    
-    if not presenca:
-        presenca = Presenca(id_aluno=id_aluno, id_atividade=id_atividade,
-                            status='Presente', participacao='Sim', situacao='Bom',
-                            nota=0.0, desempenho=0)
-        db.session.add(presenca)
-
-    try:
+        # 3. Atualizar Dados
         if campo == 'nota':
             if valor is not None and str(valor).strip() != '':
-                valor_str = str(valor).replace(',', '.')
-                valor_float = float(valor_str)
-                
-                if atividade.peso is not None and valor_float > atividade.peso: 
-                    return jsonify({"status": "error", "message": f"Nota excede o máximo permitido ({atividade.peso})"}), 400
-                presenca.nota = valor_float
+                try:
+                    valor_str = str(valor).replace(',', '.')
+                    valor_float = float(valor_str)
+                    
+                    if atividade.peso is not None and valor_float > atividade.peso: 
+                        return jsonify({"status": "error", "message": f"Nota excede o máximo ({atividade.peso})"}), 400
+                    
+                    presenca.nota = valor_float
+                except ValueError:
+                    return jsonify({"status": "error", "message": "Valor de nota inválido"}), 400
             else:
                 presenca.nota = 0.0
                 
         elif campo == 'desempenho':
-            presenca.desempenho = int(valor) if valor else 0
+            try:
+                presenca.desempenho = int(valor) if valor else 0
+            except ValueError:
+                return jsonify({"status": "error", "message": "Desempenho deve ser número inteiro"}), 400
+                
         elif campo == 'status':
             presenca.status = valor
         elif campo == 'situacao':
             presenca.situacao = valor
         else:
-            return jsonify({"status": "error", "message": "Campo desconhecido"}), 400
+            return jsonify({"status": "error", "message": f"Campo '{campo}' desconhecido"}), 400
             
         db.session.commit()
         return jsonify({"status": "success", "message": "Salvo"}), 200
-    except ValueError:
-        return jsonify({"status": "error", "message": "Valor inválido (use números)"}), 400
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({"status": "error", "message": str(e)}), 500
+        # Log do erro no terminal para debug
+        print(f"ERRO AO SALVAR NOTA: {str(e)}")
+        return jsonify({"status": "error", "message": f"Erro interno: {str(e)}"}), 500
 
 @alunos_bp.route('/dashboard/<int:id_turma>')
 @login_required 
@@ -953,39 +986,74 @@ def exportar_relatorio(id_turma):
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
-# ------------------- NOVAS ROTAS DE EXPORTAÇÃO TIPO MATRIZ -------------------
+# ------------------- FUNÇÃO PARA AGRUPAR DADOS POR UNIDADE -------------------
 
-def _gerar_dados_matriz(turma):
+def _gerar_dados_por_unidade(turma):
     alunos = Aluno.query.filter_by(id_turma=turma.id).order_by(Aluno.nome).all()
-    atividades = Atividade.query.filter_by(id_turma=turma.id).order_by(Atividade.data).all()
+    atividades_geral = Atividade.query.filter_by(id_turma=turma.id).order_by(Atividade.data).all()
     
-    presencas = Presenca.query.join(Atividade).filter(Atividade.id_turma == turma.id).all()
-    presencas_map = {(p.id_aluno, p.id_atividade): p for p in presencas}
+    presencas_geral = Presenca.query.join(Atividade).filter(Atividade.id_turma == turma.id).all()
+    presencas_map = {(p.id_aluno, p.id_atividade): p for p in presencas_geral}
+    
+    # Determina quais unidades têm atividades
+    unidades_presentes = sorted(list(set([a.unidade for a in atividades_geral if a.unidade])))
+    
+    # Garante uma ordem lógica se possível
+    ordem_padrao = ['1ª Unidade', '2ª Unidade', '3ª Unidade', '4ª Unidade', 'Recuperação', 'Exame Final']
+    unidades_ordenadas = [u for u in ordem_padrao if u in unidades_presentes]
+    # Adiciona qualquer outra unidade que não esteja na lista padrão
+    for u in unidades_presentes:
+        if u not in unidades_ordenadas:
+            unidades_ordenadas.append(u)
 
-    cabecalhos = ["ALUNO"]
-    for ativ in atividades:
-        header = ativ.data.strftime('%d/%m') if ativ.data else ativ.titulo[:5]
-        cabecalhos.append(header)
-    cabecalhos.append("TOTAL")
+    dados_unidades = {}
+    tipo_map = {
+        'Prova': 'PROVA', 'Atividade': 'ATIV', 'Trabalho': 'TRAB',
+        'Seminario': 'SEM', 'Visto': 'VISTO', 'Participacao': 'PART'
+    }
 
-    linhas = []
-    for aluno in alunos:
-        linha = [aluno.nome]
-        total_aluno = 0.0
+    for unidade in unidades_ordenadas:
+        # Filtra atividades desta unidade
+        atividades_unidade = [a for a in atividades_geral if a.unidade == unidade]
         
-        for ativ in atividades:
-            presenca = presencas_map.get((aluno.id, ativ.id))
-            nota = 0.0
-            if presenca and presenca.nota is not None:
-                nota = presenca.nota
+        cabecalhos = ["ALUNO"]
+        for ativ in atividades_unidade:
+            prefixo = tipo_map.get(ativ.tipo, ativ.tipo[:4].upper() if ativ.tipo else 'ATIV')
+            data_str = ativ.data.strftime('%d/%m') if ativ.data else "S/D"
+            cabecalhos.append(f"{prefixo} {data_str}")
+        
+        cabecalhos.append("TOTAL")
+        cabecalhos.append("SITUAÇÃO")
+
+        linhas = []
+        for aluno in alunos:
+            linha = [aluno.nome]
+            total_aluno = 0.0
             
-            linha.append(nota)
-            total_aluno += nota
+            for ativ in atividades_unidade:
+                presenca = presencas_map.get((aluno.id, ativ.id))
+                nota = 0.0
+                if presenca and presenca.nota is not None:
+                    nota = presenca.nota
+                
+                linha.append(nota)
+                total_aluno += nota
+            
+            linha.append(total_aluno)
+            
+            # Situação por Unidade
+            situacao = "APROVADO" if total_aluno >= 5.0 else "REPROVADO"
+            linha.append(situacao)
+            
+            linhas.append(linha)
         
-        linha.append(total_aluno)
-        linhas.append(linha)
+        dados_unidades[unidade] = {
+            'atividades': atividades_unidade,
+            'cabecalhos': cabecalhos,
+            'linhas': linhas
+        }
     
-    return atividades, cabecalhos, linhas
+    return dados_unidades
 
 @alunos_bp.route('/turma/<int:id_turma>/exportar_matriz_xlsx')
 @login_required
@@ -995,19 +1063,36 @@ def exportar_matriz_xlsx(id_turma):
         flash('Não autorizado.', 'danger')
         return redirect(url_for('core.index'))
 
-    atividades, cabecalhos, linhas = _gerar_dados_matriz(turma)
-
-    df = pd.DataFrame(linhas, columns=cabecalhos)
-
+    dados_por_unidade = _gerar_dados_por_unidade(turma)
     output = BytesIO()
+
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Notas')
-        worksheet = writer.sheets['Notas']
-        worksheet.column_dimensions['A'].width = 40
-        for i in range(len(atividades) + 1):
-            col_letter = chr(66 + i)
-            if col_letter <= 'Z':
-                worksheet.column_dimensions[col_letter].width = 10
+        for unidade, dados in dados_por_unidade.items():
+            # Limpar nome da aba (Excel limita a 31 chars)
+            sheet_name = unidade[:30]
+            
+            df = pd.DataFrame(dados['linhas'], columns=dados['cabecalhos'])
+            df.to_excel(writer, index=False, sheet_name=sheet_name)
+            
+            # Formatação
+            ws = writer.sheets[sheet_name]
+            ws.column_dimensions['A'].width = 40
+            num_cols = len(dados['cabecalhos'])
+            
+            # Loop para largura e cores
+            for i in range(2, num_cols + 1):
+                col_letter = chr(64 + i) if i <= 26 else 'AA' # Simplificado para até 26 colunas, ajustar se necessário
+                if i <= 26:
+                     ws.column_dimensions[col_letter].width = 15
+
+            # Cor na Situacao (Última Coluna)
+            situacao_col_idx = num_cols
+            for row_idx in range(2, len(dados['linhas']) + 2):
+                cell = ws.cell(row=row_idx, column=situacao_col_idx)
+                if cell.value == 'APROVADO':
+                    cell.font = Font(color="008000", bold=True)
+                elif cell.value == 'REPROVADO':
+                    cell.font = Font(color="FF0000", bold=True)
 
     output.seek(0)
     return send_file(
@@ -1025,9 +1110,10 @@ def exportar_matriz_docx(id_turma):
         flash('Não autorizado.', 'danger')
         return redirect(url_for('core.index'))
 
-    atividades, cabecalhos, linhas = _gerar_dados_matriz(turma)
+    dados_por_unidade = _gerar_dados_por_unidade(turma)
 
     document = Document()
+    # Configuração Paisagem
     section = document.sections[0]
     section.orientation = WD_ORIENT.LANDSCAPE
     new_width, new_height = section.page_height, section.page_width
@@ -1039,24 +1125,43 @@ def exportar_matriz_docx(id_turma):
     titulo = document.add_heading(f'TURMA {turma.nome}', 0)
     titulo.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    table = document.add_table(rows=1, cols=len(cabecalhos))
-    table.style = 'Table Grid'
+    for unidade, dados in dados_por_unidade.items():
+        document.add_heading(unidade, level=2)
+        
+        table = document.add_table(rows=1, cols=len(dados['cabecalhos']))
+        table.style = 'Table Grid'
 
-    hdr_cells = table.rows[0].cells
-    for i, header_text in enumerate(cabecalhos):
-        hdr_cells[i].text = str(header_text)
-        paragraph = hdr_cells[i].paragraphs[0]
-        paragraph.runs[0].bold = True
-        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        # Cabeçalhos
+        hdr_cells = table.rows[0].cells
+        for i, header_text in enumerate(dados['cabecalhos']):
+            hdr_cells[i].text = str(header_text)
+            paragraph = hdr_cells[i].paragraphs[0]
+            paragraph.runs[0].bold = True
+            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
 
-    for linha_dados in linhas:
-        row_cells = table.add_row().cells
-        for i, item in enumerate(linha_dados):
-            if isinstance(item, float):
-                row_cells[i].text = f"{item:.1f}".replace('.', ',')
-                row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            else:
-                row_cells[i].text = str(item)
+        # Linhas
+        situacao_idx = len(dados['cabecalhos']) - 1
+
+        for linha_dados in dados['linhas']:
+            row_cells = table.add_row().cells
+            for i, item in enumerate(linha_dados):
+                if i == situacao_idx: # Coluna Situação
+                    p = row_cells[i].paragraphs[0]
+                    p.clear()
+                    run = p.add_run(str(item))
+                    run.bold = True
+                    if item == 'APROVADO':
+                        run.font.color.rgb = RGBColor(0, 128, 0)
+                    elif item == 'REPROVADO':
+                        run.font.color.rgb = RGBColor(255, 0, 0)
+                    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                elif isinstance(item, float):
+                    row_cells[i].text = f"{item:.1f}".replace('.', ',')
+                    row_cells[i].paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                else:
+                    row_cells[i].text = str(item)
+        
+        document.add_page_break() # Quebra de página entre unidades
 
     f = BytesIO()
     document.save(f)
@@ -1077,7 +1182,7 @@ def exportar_matriz_pdf(id_turma):
         flash('Não autorizado.', 'danger')
         return redirect(url_for('core.index'))
 
-    atividades, cabecalhos, linhas = _gerar_dados_matriz(turma)
+    dados_por_unidade = _gerar_dados_por_unidade(turma)
 
     f = BytesIO()
     doc = SimpleDocTemplate(f, pagesize=landscape(A4), rightMargin=30, leftMargin=30, topMargin=30, bottomMargin=30)
@@ -1088,37 +1193,65 @@ def exportar_matriz_pdf(id_turma):
     elements.append(title)
     elements.append(Spacer(1, 20))
 
-    data = [cabecalhos]
-    for linha in linhas:
-        nova_linha = []
-        for item in linha:
-            if isinstance(item, float):
-                nova_linha.append(f"{item:.1f}".replace('.', ','))
-            else:
-                nova_linha.append(str(item))
-        data.append(nova_linha)
+    for unidade, dados in dados_por_unidade.items():
+        # Título da Unidade
+        elements.append(Paragraph(f"<b>{unidade}</b>", styles['Heading2']))
+        elements.append(Spacer(1, 10))
 
-    page_width = landscape(A4)[0] - 60
-    col_width_aluno = 200
-    rest_width = page_width - col_width_aluno
-    num_cols_notas = len(cabecalhos) - 1
-    col_width_nota = rest_width / num_cols_notas if num_cols_notas > 0 else 50
+        data_table = [dados['cabecalhos']]
+        for linha in dados['linhas']:
+            nova_linha = []
+            for item in linha:
+                if isinstance(item, float):
+                    nova_linha.append(f"{item:.1f}".replace('.', ','))
+                else:
+                    nova_linha.append(str(item))
+            data_table.append(nova_linha)
 
-    col_widths = [col_width_aluno] + [col_width_nota] * num_cols_notas
+        # Larguras das colunas
+        page_width = landscape(A4)[0] - 60
+        col_width_aluno = 150 
+        num_cols_notas = len(dados['cabecalhos']) - 1
+        
+        if num_cols_notas > 0:
+            col_width_nota = (page_width - col_width_aluno) / num_cols_notas
+            col_widths = [col_width_aluno] + [col_width_nota] * num_cols_notas
+        else:
+            col_widths = [col_width_aluno]
 
-    t = Table(data, colWidths=col_widths)
-    t.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-    ]))
-    elements.append(t)
+        t = Table(data_table, colWidths=col_widths)
+        
+        # Estilos Base
+        table_styles = [
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('FONTSIZE', (0, 0), (-1, -1), 8), 
+        ]
+
+        # Estilos Condicionais (Cores)
+        col_situacao_idx = len(dados['cabecalhos']) - 1
+        for row_idx, row_data in enumerate(dados['linhas']):
+            actual_row_idx = row_idx + 1 # +1 por causa do cabeçalho
+            situacao = row_data[-1] # Último item é a situação
+            
+            if situacao == 'APROVADO':
+                table_styles.append(('TEXTCOLOR', (col_situacao_idx, actual_row_idx), (col_situacao_idx, actual_row_idx), colors.green))
+                table_styles.append(('FONTNAME', (col_situacao_idx, actual_row_idx), (col_situacao_idx, actual_row_idx), 'Helvetica-Bold'))
+            elif situacao == 'REPROVADO':
+                table_styles.append(('TEXTCOLOR', (col_situacao_idx, actual_row_idx), (col_situacao_idx, actual_row_idx), colors.red))
+                table_styles.append(('FONTNAME', (col_situacao_idx, actual_row_idx), (col_situacao_idx, actual_row_idx), 'Helvetica-Bold'))
+
+        t.setStyle(TableStyle(table_styles))
+        elements.append(t)
+        
+        # Quebra de página após cada unidade
+        elements.append(PageBreak())
 
     doc.build(elements)
     f.seek(0)
