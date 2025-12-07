@@ -1,228 +1,180 @@
-{% extends "layouts/base_app.html" %}
+{% extends 'layouts/base_app.html' %}
 
-{% block title %}Dashboard - {{ turma.nome if turma else 'Turma' }} | Cortex{% endblock %}
+{# Bloco de Título da Página #}
+{% block title %}
+    {{ turma.nome }} | Detalhes da Turma
+{% endblock %}
 
+{# Bloco de Conteúdo Principal #}
 {% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-down">
 
-<!-- Bibliotecas para Gráficos e Exportação -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<script src="https://unpkg.com/html-docx-js/dist/html-docx.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <div class="relative h-72 md:h-96 w-full bg-gray-900 rounded-3xl overflow-hidden mb-10 shadow-2xl group">
+        {% if turma.foto_path %}
+            <img src="{{ url_for('alunos.download_material', filename=turma.foto_path) }}"
+                 alt="Foto da turma {{ turma.nome }}"
+                 class="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-700">
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
+        {% else %}
+            <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-800">
+                <i class="fas fa-users text-white/20 text-8xl"></i>
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent"></div>
+        {% endif %}
 
-<!-- 
-    CORREÇÃO CRÍTICA:
-    Adicionado '| default(...)' antes de '| tojson' para evitar o erro "Undefined is not JSON serializable".
--->
-<div id="dashboard-data" 
-     data-desempenho='{{ dados_desempenho | default([]) | tojson | safe }}'
-     data-frequencia='{{ dados_frequencia | default({}) | tojson | safe }}'
-     data-situacao='{{ dados_situacao | default({}) | tojson | safe }}'
-     style="display: none;">
-</div>
-
-<div id="dashboard-content" class="container mx-auto px-4 py-6">
-
-    <!-- CABEÇALHO -->
-    <div class="flex flex-col lg:flex-row justify-between items-center mb-8 gap-4">
-        <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                <span class="bg-indigo-100 text-indigo-600 p-2 rounded-xl dark:bg-indigo-900/30 dark:text-indigo-400">
-                    <i class="fas fa-brain"></i>
-                </span>
-                Dashboard: <span class="text-indigo-600 dark:text-indigo-400">{{ turma.nome if turma else 'N/A' }}</span>
-            </h1>
-            <p class="text-gray-500 dark:text-gray-400 mt-1 ml-14">Visão detalhada de desempenho e engajamento</p>
-        </div>
-        
-        <!-- Botões de Exportação -->
-        <div class="flex flex-wrap gap-2 no-export" data-html2canvas-ignore="true">
-            <button onclick="window.print()" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">
-                <i class="fas fa-print mr-1"></i> Print
-            </button>
-            <button onclick="exportToPDF()" class="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition text-sm font-medium">
-                <i class="fas fa-file-pdf mr-1"></i> PDF
-            </button>
-            <button onclick="exportToExcel()" class="px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition text-sm font-medium">
-                <i class="fas fa-file-excel mr-1"></i> Excel
-            </button>
-            <button onclick="exportToDocx()" class="px-3 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition text-sm font-medium">
-                <i class="fas fa-file-word mr-1"></i> Docx
-            </button>
-            <a href="{{ url_for('core.listar_turmas') }}" class="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium ml-2">
-                <i class="fas fa-arrow-left mr-1"></i> Voltar
-            </a>
+        <div class="absolute bottom-0 left-0 p-8 md:p-12 z-10 w-full">
+            <div class="flex items-center justify-between">
+                <div>
+                    <div class="flex items-center space-x-2 text-indigo-300 text-xs font-bold uppercase tracking-wider mb-3">
+                        <span class="bg-indigo-500/30 px-3 py-1 rounded-full backdrop-blur-md border border-indigo-400/30">
+                            <i class="fas fa-graduation-cap mr-2"></i> Área da Turma
+                        </span>
+                        {% if turma.turno %}
+                        <span class="bg-purple-500/30 px-3 py-1 rounded-full backdrop-blur-md border border-purple-400/30">
+                            <i class="far fa-clock mr-2"></i> {{ turma.turno }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight mb-2 drop-shadow-lg">
+                        {{ turma.nome }}
+                    </h1>
+                    
+                    {% if turma.descricao_curta %}
+                        <p class="text-lg text-gray-200 max-w-2xl leading-relaxed drop-shadow-md">
+                            {{ turma.descricao_curta }}
+                        </p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- CARDS DE KPI -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <!-- Total Alunos -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Total de Alunos</p>
-                    <h3 class="text-3xl font-extrabold text-gray-800 dark:text-white">{{ total_alunos | default(0) }}</h3>
-                </div>
-                <div class="p-3 bg-blue-50 rounded-xl text-blue-600 dark:bg-blue-900/20 dark:text-blue-400">
-                    <i class="fas fa-users fa-lg"></i>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Atividades -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Atividades</p>
-                    <h3 class="text-3xl font-extrabold text-gray-800 dark:text-white">{{ total_atividades | default(0) }}</h3>
-                </div>
-                <div class="p-3 bg-yellow-50 rounded-xl text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400">
-                    <i class="fas fa-clipboard-list fa-lg"></i>
-                </div>
-            </div>
-        </div>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
-        <!-- Média Turma -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Média da Turma</p>
-                    <h3 class="text-3xl font-extrabold text-gray-800 dark:text-white">
-                        {{ "%.1f"|format(desempenho_medio_turma | default(0)) }}<span class="text-lg text-gray-500 font-medium">%</span>
-                    </h3>
+        <div class="lg:col-span-8 space-y-8">
+            
+            <section class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg border border-gray-100 dark:border-gray-700/50 relative overflow-hidden">
+                <div class="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-indigo-50 dark:bg-indigo-900/30 rounded-full blur-3xl opacity-70 z-0"></div>
+                
+                <div class="relative z-10">
+                    <h2 class="flex items-center text-2xl font-bold text-gray-800 dark:text-white mb-6">
+                        <span class="bg-indigo-100 dark:bg-indigo-900/50 p-2 rounded-xl text-indigo-600 dark:text-indigo-400 mr-4">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                        Sobre a Turma
+                    </h2>
+                    <div class="prose prose-lg prose-indigo text-gray-600 dark:text-gray-300 leading-relaxed">
+                        {{ turma.descricao_longa | default('Nenhuma descrição detalhada foi adicionada para esta turma ainda.', true) | safe }}
+                    </div>
                 </div>
-                <div class="p-3 bg-green-50 rounded-xl text-green-600 dark:bg-green-900/20 dark:text-green-400">
-                    <i class="fas fa-chart-line fa-lg"></i>
-                </div>
-            </div>
-            <div class="mt-4 w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                <div class="bg-green-500 h-1.5 rounded-full" style="width: {{ desempenho_medio_turma | default(0) }}%"></div>
-            </div>
-        </div>
-        
-        <!-- Frequência -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700">
-            <div class="flex justify-between items-start">
-                <div>
-                    <p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Frequência Média</p>
-                    <h3 class="text-3xl font-extrabold text-gray-800 dark:text-white">
-                        {{ "%.1f"|format(frequencia_media | default(0)) }}<span class="text-lg text-gray-500 font-medium">%</span>
-                    </h3>
-                </div>
-                <div class="p-3 bg-indigo-50 rounded-xl text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400">
-                    <i class="fas fa-user-check fa-lg"></i>
-                </div>
-            </div>
-            <div class="mt-4 w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
-                <div class="bg-indigo-500 h-1.5 rounded-full" style="width: {{ frequencia_media | default(0) }}%"></div>
-            </div>
-        </div>
-    </section>
+            </section>
 
-    <!-- GRÁFICOS CHART.JS -->
-    <section class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8 break-inside-avoid">
-        
-        <!-- Gráfico Desempenho (Canvas ID corresponde ao Lógica 1 no chart.js) -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 flex flex-col">
-            <h2 class="font-bold text-lg text-gray-800 dark:text-gray-100 mb-6 flex items-center border-b pb-2">
-                <i class="fas fa-chart-bar text-indigo-500 mr-2"></i>
-                Desempenho por Aluno
-            </h2>
-            <div class="flex-grow relative h-80 w-full">
-                <canvas id="desempenhoChart"></canvas>
-            </div>
-        </div>
+            <section class="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg border border-gray-100 dark:border-gray-700/50">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="flex items-center text-2xl font-bold text-gray-800 dark:text-white">
+                        <span class="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-xl text-amber-600 dark:text-amber-400 mr-4">
+                            <i class="fas fa-clipboard-list"></i>
+                        </span>
+                        Atividades Recentes
+                    </h2>
+                    <a href="{{ url_for('alunos.add_atividade', id_turma=turma.id) }}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">
+                        <i class="fas fa-plus mr-1"></i> Nova
+                    </a>
+                </div>
 
-        <!-- Gráfico Situação (Canvas ID corresponde ao Lógica 1 no chart.js) -->
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 dark:bg-gray-800 dark:border-gray-700 flex flex-col">
-            <h2 class="font-bold text-lg text-gray-800 dark:text-gray-100 mb-6 flex items-center border-b pb-2">
-                <i class="fas fa-chart-pie text-blue-500 mr-2"></i>
-                Situação Acadêmica
-            </h2>
-            <div class="flex-grow relative h-80 w-full flex justify-center">
-                <canvas id="situacaoChart"></canvas>
-            </div>
-        </div>
-    </section>
-
-    <!-- TABELA DE CLASSIFICAÇÃO -->
-    <section class="bg-white rounded-2xl shadow-lg border border-gray-100 dark:bg-gray-800 dark:border-gray-700 overflow-hidden break-inside-avoid" id="tabela-container">
-        <div class="p-6 border-b border-gray-100 dark:border-gray-700">
-            <h2 class="font-bold text-lg text-gray-800 dark:text-white">Classificação da Turma</h2>
-        </div>
-        
-        <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" id="tableAlunos">
-                <thead class="bg-gray-50 dark:bg-gray-900/50">
-                    <tr>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Aluno</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Progresso Visual</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Nota Média</th>
-                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider dark:text-gray-400">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
-                {% for item in dados_desempenho | default([]) %}
-                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 h-10 w-10">
-                                    <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold shadow-sm">
-                                        {{ item.aluno[:2].upper() }}
-                                    </div>
+                {% if total_atividades and total_atividades > 0 %}
+                    <div class="space-y-4">
+                        <div class="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-600 flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                                    <i class="fas fa-file-alt"></i>
                                 </div>
-                                <div class="ml-4">
-                                    <div class="text-sm font-medium text-gray-900 dark:text-white">{{ item.aluno }}</div>
+                                <div>
+                                    <p class="font-bold text-gray-800 dark:text-gray-200">{{ total_atividades }} atividades cadastradas</p>
+                                    <p class="text-xs text-gray-500">Acesse o gradebook para ver notas.</p>
                                 </div>
                             </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap align-middle">
-                            <div class="w-full max-w-xs bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
-                                <div class="h-2.5 rounded-full {% if item.desempenho >= 80 %}bg-green-500{% elif item.desempenho >= 60 %}bg-blue-500{% elif item.desempenho >= 40 %}bg-yellow-500{% else %}bg-red-500{% endif %}" 
-                                     style="width: {{ item.desempenho }}%"></div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="text-lg font-bold text-gray-800 dark:text-gray-200">{{ "%.1f"|format(item.desempenho) }}%</span>
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            {% if item.desempenho >= 80 %}
-                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 border border-green-200">Excelente</span>
-                            {% elif item.desempenho >= 60 %}
-                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">Bom</span>
-                            {% elif item.desempenho >= 40 %}
-                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 border border-yellow-200">Reforço</span>
-                            {% else %}
-                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 border border-red-200">Crítico</span>
-                            {% endif %}
-                        </td>
-                    </tr>
+                            <a href="{{ url_for('alunos.gradebook', id_turma=turma.id) }}" class="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-bold rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 hover:bg-gray-50">
+                                Ver Notas
+                            </a>
+                        </div>
+                    </div>
                 {% else %}
-                    <tr>
-                        <td colspan="4" class="px-6 py-12 text-center text-gray-500">
-                            Nenhum aluno registrado ou sem dados de desempenho.
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+                    <div class="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-50 dark:bg-gray-800/50">
+                        <i class="fas fa-box-open text-gray-300 dark:text-gray-600 text-5xl mb-4"></i>
+                        <p class="text-gray-500 dark:text-gray-400 font-medium">Nenhuma atividade registrada.</p>
+                        <a href="{{ url_for('alunos.add_atividade', id_turma=turma.id) }}" class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition">
+                            Criar Primeira Atividade
+                        </a>
+                    </div>
+                {% endif %}
+            </section>
+
         </div>
-    </section>
 
+        <div class="lg:col-span-4 space-y-8 lg:sticky lg:top-8 h-fit">
+            
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-6 border border-indigo-100 dark:border-indigo-900/30 ring-1 ring-indigo-50 dark:ring-indigo-900/20">
+                <h3 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4 flex items-center">
+                    <i class="fas fa-bolt mr-2 text-yellow-400"></i> Gestão
+                </h3>
+                <div class="flex flex-col gap-3">
+                    <a href="{{ url_for('alunos.add_aluno', id_turma=turma.id) }}" class="group relative w-full flex items-center justify-center px-6 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-base transition-all duration-300 shadow-md hover:shadow-indigo-500/30 hover:-translate-y-1 overflow-hidden">
+                        <span class="absolute inset-0 w-full h-full bg-gradient-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></span>
+                        <i class="fas fa-user-plus mr-3 text-indigo-200 group-hover:text-white transition-colors"></i>
+                        Matricular Aluno
+                    </a>
+                    
+                    <a href="{{ url_for('alunos.editar_turma', id_turma=turma.id) }}" class="w-full flex items-center justify-center px-6 py-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-indigo-500 dark:hover:border-indigo-400 text-gray-700 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-2xl font-bold text-base transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
+                        <i class="fas fa-cog mr-3 text-gray-400 group-hover:text-indigo-500 transition-colors"></i>
+                        Configurações
+                    </a>
+
+                    <a href="{{ url_for('alunos.gradebook', id_turma=turma.id) }}" class="w-full flex items-center justify-center px-6 py-4 bg-emerald-50 dark:bg-emerald-900/10 border-2 border-emerald-100 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-2xl font-bold text-base transition-all duration-300">
+                        <i class="fas fa-th mr-3"></i>
+                        Grade de Notas
+                    </a>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-6 border border-gray-100 dark:border-gray-700/50">
+                <h3 class="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-6 flex items-center">
+                    <i class="fas fa-chart-pie mr-2"></i> Estatísticas
+                </h3>
+                
+                <ul class="space-y-5">
+                    <li class="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/30">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <span class="text-sm font-bold text-gray-600 dark:text-gray-300">Alunos</span>
+                        </div>
+                        <span class="text-xl font-black text-gray-800 dark:text-white">{{ total_alunos | default(0) }}</span>
+                    </li>
+
+                    <li class="flex items-center justify-between p-3 rounded-2xl bg-gray-50 dark:bg-gray-700/30">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <span class="text-sm font-bold text-gray-600 dark:text-gray-300">Média Geral</span>
+                        </div>
+                        <span class="text-xl font-black text-gray-800 dark:text-white">{{ "%.1f"|format(desempenho_medio_turma | default(0)) }}</span>
+                    </li>
+                </ul>
+                
+                <div class="mt-6 pt-6 border-t border-gray-100 dark:border-gray-700 text-center">
+                    <p class="text-xs text-gray-400 mb-2">Professor Responsável</p>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 rounded-full text-indigo-700 dark:text-indigo-300 text-sm font-bold">
+                        <i class="fas fa-user-tie"></i>
+                        {{ turma.autor.username if turma.autor else 'Você' }}
+                    </div>
+                </div>
+            </div>
+
+        </div> 
+    </div> 
 </div>
-
-<!-- Importação Única do JS -->
-<script src="{{ url_for('static', filename='js/chart.js') }}"></script>
-
-<style>
-    @media print {
-        aside, nav, .no-export, footer { display: none !important; }
-        body, .container { width: 100% !important; margin: 0 !important; padding: 0 !important; background: white; }
-        .break-inside-avoid { page-break-inside: avoid; }
-        canvas { max-width: 100% !important; }
-    }
-</style>
-
 {% endblock %}
