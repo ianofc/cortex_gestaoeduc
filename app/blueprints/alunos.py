@@ -733,7 +733,128 @@ def salvar_gradebook():
         db.session.rollback()
         # Log do erro no terminal para debug
         print(f"ERRO AO SALVAR NOTA: {str(e)}")
-        return jsonify({"status": "error", "message": f"Erro interno: {str(e)}"}), 500
+        # Retorna erro genérico, pois o frontend já foi ajustado para ignorar o bloco .catch
+        return jsonify({"status": "error", "message": f"Erro interno."}), 500
+
+@alunos_bp.route('/gradebook/salvar_massa', methods=['POST'])
+@login_required
+@csrf.exempt
+def salvar_gradebook_massa():
+    """
+    Salva uma nota para todos os alunos de uma turma em uma atividade específica (requisitado pelo usuário).
+    """
+    try:
+        data = request.json
+        id_atividade = int(data.get('id_atividade'))
+        valor_nota = data.get('valor_nota')
+        
+        # 1. Validações iniciais e parse de nota
+        try:
+            # Garante que . seja usado como separador decimal
+            valor_nota = float(str(valor_nota).replace(',', '.'))
+        except (ValueError, TypeError):
+            return jsonify({"status": "error", "message": "Nota inválida."}), 400
+
+        # 2. Busca atividade e verifica autorização
+        atividade = Atividade.query.get(id_atividade)
+        if not atividade:
+            return jsonify({"status": "error", "message": "Atividade não encontrada."}), 404
+        if atividade.turma.autor != current_user:
+            return jsonify({"status": "error", "message": "Não autorizado."}), 403
+
+        # 3. Validação do peso
+        if atividade.peso is not None and valor_nota > atividade.peso: 
+            return jsonify({"status": "error", "message": f"Nota excede o máximo ({atividade.peso})"}), 400
+            
+        # 4. Busca todos os alunos da turma
+        alunos = Aluno.query.filter_by(id_turma=atividade.id_turma).all()
+        
+        if not alunos:
+            return jsonify({"status": "error", "message": "Turma sem alunos."}), 400
+
+        alunos_afetados = 0
+        
+        # 5. Itera e atualiza/cria presenças
+        for aluno in alunos:
+            presenca = Presenca.query.filter_by(id_aluno=aluno.id, id_atividade=id_atividade).first()
+            
+            if not presenca:
+                presenca = Presenca(id_aluno=aluno.id, id_atividade=id_atividade,
+                                    status='Presente', participacao='Sim', situacao='Bom',
+                                    desempenho=0)
+                db.session.add(presenca)
+                
+            presenca.nota = valor_nota
+            alunos_afetados += 1
+
+        db.session.commit()
+        return jsonify({"status": "success", "message": f"{alunos_afetados} notas salvas em massa."}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"ERRO AO SALVAR NOTAS EM MASSA: {str(e)}")
+        return jsonify({"status": "error", "message": "Erro interno do servidor."}), 500
+
+@alunos_bp.route('/turma/<int:id_turma>/editar_alunos_massa', methods=['GET'])
+@login_required
+def editar_alunos_massa_view(id_turma):
+    """
+    View para exibir o formulário de edição de alunos em massa (requisitado pelo usuário).
+    """
+    turma = Turma.query.get_or_404(id_turma)
+    if turma.autor != current_user:
+        flash('Não autorizado.', 'danger')
+        return redirect(url_for('core.index'))
+    
+    alunos = Aluno.query.filter_by(id_turma=id_turma).order_by(Aluno.nome).all()
+    
+    return render_template('professor/turma/editar_alunos_massa.html', turma=turma, alunos=alunos)
+
+@alunos_bp.route('/turma/<int:id_turma>/salvar_alunos_massa', methods=['POST'])
+@login_required
+@csrf.exempt 
+def salvar_alunos_massa(id_turma):
+    """
+    Salva a edição em massa de alunos (requisitado pelo usuário).
+    """
+    turma = Turma.query.get_or_404(id_turma)
+    if turma.autor != current_user:
+        return jsonify({"status": "error", "message": "Não autorizado"}), 403
+
+    try:
+        data = request.json
+        alunos_data = data.get('alunos', [])
+        
+        # Otimiza: Busca todos os alunos da turma
+        alunos_map = {a.id: a for a in Aluno.query.filter_by(id_turma=id_turma).all()}
+        
+        alunos_atualizados = 0
+        for aluno_data in alunos_data:
+            # Garante que os IDs sejam inteiros
+            try:
+                aluno_id = int(aluno_data.get('id'))
+            except (ValueError, TypeError):
+                continue
+
+            novo_nome = aluno_data.get('nome')
+            
+            if aluno_id in alunos_map and novo_nome:
+                aluno = alunos_map[aluno_id]
+                novo_nome_limpo = novo_nome.strip()
+                
+                if aluno.nome != novo_nome_limpo:
+                    aluno.nome = novo_nome_limpo
+                    alunos_atualizados += 1
+                    
+        db.session.commit()
+        flash(f'{alunos_atualizados} alunos atualizados com sucesso!', 'success')
+        return jsonify({"status": "success", "message": f'{alunos_atualizados} alunos atualizados.'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"ERRO AO SALVAR ALUNOS EM MASSA: {str(e)}")
+        return jsonify({"status": "error", "message": "Erro interno do servidor."}), 500
+
 
 @alunos_bp.route('/dashboard/<int:id_turma>')
 @login_required 

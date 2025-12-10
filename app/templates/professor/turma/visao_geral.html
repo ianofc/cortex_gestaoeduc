@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="space-y-8 animate-fade-in-down">
-
+    
     <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 pb-2">
         <div class="flex-1">
             <nav class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
@@ -29,7 +29,7 @@
                             <i class="fas fa-users"></i> {{ alunos_com_media|length }} Alunos
                         </span>
                         <span class="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded text-xs">
-                             Max Pontos: {{ total_max_score }}
+                            Max Pontos: {{ total_max_score }}
                         </span>
                     </div>
                 </div>
@@ -37,6 +37,13 @@
         </div>
 
         <div class="flex items-center gap-2">
+            
+            <a href="{{ url_for('alunos.editar_alunos_massa_view', id_turma=turma.id) }}" 
+               class="flex items-center justify-center w-10 h-10 text-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:text-indigo-600 hover:border-indigo-200 hover:shadow-md transition-all duration-200" 
+               title="Editar Alunos em Massa">
+                <i class="fas fa-users-cog text-lg"></i>
+            </a>
+
             <a href="{{ url_for('alunos.editar_turma', id_turma=turma.id) }}" 
                class="flex items-center justify-center w-10 h-10 text-gray-500 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:text-indigo-600 hover:border-indigo-200 hover:shadow-md transition-all duration-200" 
                title="Configurações da Turma">
@@ -118,8 +125,8 @@
                 <form method="GET" action="{{ url_for('alunos.turma', id_turma=turma.id) }}" class="relative group">
                     <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
                     <input type="text" name="q" placeholder="Pesquisar aluno..." 
-                           class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
-                           value="{{ q | default('', true) }}">
+                            class="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-900/50 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                            value="{{ q | default('', true) }}">
                 </form>
             </div>
             
