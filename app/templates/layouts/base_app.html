@@ -7,23 +7,27 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js" defer></script>
 
     <script>
-        // Lógica de Tema (Masculino/Feminino)
+        // Lógica de Tema (Masculino/Feminino) + Configuração Glass-Aurora
         const isFeminino = "{{ 'true' if current_user.is_authenticated and current_user.genero == 'Feminino' else 'false' }}" === "true";
         
-        let customColors = {};
+        // Cores padrão (Roxo Royal IO)
+        let primaryBrand = {
+            50: '#f3e8ff', 100: '#e9d5ff', 200: '#d8b4fe', 300: '#c084fc',
+            400: '#a855f7', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6200EA', // <- Main Brand Color
+            800: '#5b21b6', 900: '#4c1d95', 950: '#2e1065'
+        };
+
+        // Se for feminino, ajusta para tons de rosa/magenta mas mantém a estrutura premium
         if (isFeminino) {
-            customColors = {
-                indigo: {
-                    50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 300: '#f9a8d4',
-                    400: '#f472b6', 500: '#ec4899', 600: '#db2777', 700: '#be185d',
-                    800: '#9d174d', 900: '#831843', 950: '#500724'
-                }
+            primaryBrand = {
+                50: '#fdf2f8', 100: '#fce7f3', 200: '#fbcfe8', 300: '#f9a8d4',
+                400: '#f472b6', 500: '#ec4899', 600: '#db2777', 700: '#be185d',
+                800: '#9d174d', 900: '#831843', 950: '#500724'
             };
         }
 
@@ -31,15 +35,30 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    colors: customColors,
+                    colors: {
+                        indigo: primaryBrand, // Substitui o indigo padrão pela nossa marca
+                        brand: {
+                            purple: '#6200EA',
+                            gold: '#FFD700',
+                            platinum: '#F8FAFC'
+                        }
+                    },
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     animation: {
-                        'fade-in-down': 'fadeInDown 0.3s ease-out'
+                        'fade-in-down': 'fadeInDown 0.4s ease-out',
+                        'blob': 'blob 10s infinite',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
                         fadeInDown: {
-                            '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                            '0%': { opacity: '0', transform: 'translateY(-20px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' }
                         }
                     }
                 }
@@ -50,299 +69,258 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         
-        /* Tooltip personalizado */
+        /* Scrollbar Premium */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(98, 0, 234, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(98, 0, 234, 0.6); }
+
+        /* Tooltip */
         .nav-item { position: relative; display: flex; align-items: center; justify-content: center; }
         .nav-label {
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(31, 41, 55, 0.9);
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            white-space: nowrap;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
-            pointer-events: none;
-            z-index: 20;
+            position: absolute; bottom: -35px; left: 50%; transform: translateX(-50%);
+            background-color: rgba(98, 0, 234, 0.9); color: white;
+            padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 600;
+            white-space: nowrap; opacity: 0; visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            pointer-events: none; z-index: 50; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        .nav-item:hover .nav-label {
-            opacity: 1;
-            visibility: visible;
-            bottom: -40px;
+        .nav-item:hover .nav-label { opacity: 1; visibility: visible; bottom: -45px; }
+
+        /* Glassmorphism Utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }
-        /* CKEditor Dark Mode Fixes */
-        html.dark .cke_top { background: #374151 !important; border-bottom: 1px solid #4b5563 !important; }
-        html.dark .cke_bottom { background: #374151 !important; border-top: 1px solid #4b5563 !important; }
+        .dark .glass {
+            background: rgba(17, 24, 39, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        /* CKEditor Fixes */
+        html.dark .cke_top { background: #1f2937 !important; border-bottom: 1px solid #374151 !important; }
+        html.dark .cke_bottom { background: #1f2937 !important; border-top: 1px solid #374151 !important; }
+        html.dark .cke_contents { background-color: #111827 !important; color: white !important; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
+<body class="bg-slate-50 text-slate-800 flex flex-col min-h-screen dark:bg-[#0f111a] dark:text-slate-100 transition-colors duration-500 selection:bg-[#6200EA] selection:text-white">
 
-    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm dark:bg-gray-800 dark:border-gray-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
+    <div class="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div class="absolute inset-0 bg-gradient-to-b from-indigo-50/50 via-white to-slate-100/50 dark:from-slate-900 dark:via-[#0f111a] dark:to-black"></div>
+        <div class="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-purple-400/20 dark:bg-purple-900/20 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-blob"></div>
+        <div class="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-400/20 dark:bg-indigo-900/20 rounded-full mix-blend-multiply filter blur-[100px] opacity-40 animate-blob animation-delay-2000"></div>
+    </div>
+
+    <nav class="sticky top-4 z-50 mx-4 lg:mx-8 rounded-2xl glass shadow-sm transition-all duration-300">
+        <div class="px-4 sm:px-6">
+            <div class="flex justify-between h-16 items-center">
                 
                 <div class="flex items-center">
-                    <a href="{{ url_for('core.index') }}" class="flex items-center gap-2 group">
-                        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg transform group-hover:scale-105 transition-transform">
-                            <i class="fas fa-brain text-lg"></i>
+                    <a href="{{ url_for('core.index') }}" class="flex items-center gap-3 group">
+                        <div class="relative w-9 h-9 flex items-center justify-center">
+                            <div class="absolute inset-0 bg-[#6200EA] rounded-xl rotate-6 group-hover:rotate-12 transition-transform duration-300 opacity-20"></div>
+                            <div class="absolute inset-0 bg-[#6200EA] rounded-xl -rotate-3 group-hover:-rotate-6 transition-transform duration-300"></div>
+                            <i class="fas fa-brain text-white relative z-10 text-sm"></i>
                         </div>
-                        <span class="font-bold text-xl text-gray-900 tracking-tight hidden sm:block group-hover:text-indigo-600 transition-colors dark:text-white dark:group-hover:text-indigo-400">Cortex</span>
+                        <span class="font-black text-xl tracking-tight text-slate-800 dark:text-white group-hover:text-[#6200EA] transition-colors">
+                            Cortex<span class="text-[#6200EA] text-2xl leading-none">.</span>
+                        </span>
                     </a>
                 </div>
 
                 {% if current_user.is_authenticated %}
-                <div class="hidden md:flex items-center justify-center space-x-1">
+                <div class="hidden md:flex items-center justify-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-white/20 dark:border-white/5 backdrop-blur-sm">
                     
-                    <a href="{{ url_for('core.dashboard') }}" class="nav-item p-3 rounded-xl text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-indigo-400 group">
-                        <i class="fas fa-chart-pie text-xl"></i>
+                    <a href="{{ url_for('core.dashboard') }}" class="nav-item w-10 h-10 rounded-lg text-slate-500 hover:bg-white hover:text-[#6200EA] hover:shadow-md transition-all duration-300 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white">
+                        <i class="fas fa-chart-pie"></i>
                         <span class="nav-label">Dashboard</span>
                     </a>
 
-                    <a href="{{ url_for('core.listar_turmas') }}" class="nav-item p-3 rounded-xl text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-indigo-400 group">
-                        <i class="fas fa-chalkboard text-xl"></i>
+                    <a href="{{ url_for('core.listar_turmas') }}" class="nav-item w-10 h-10 rounded-lg text-slate-500 hover:bg-white hover:text-[#6200EA] hover:shadow-md transition-all duration-300 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white">
+                        <i class="fas fa-chalkboard"></i>
                         <span class="nav-label">Turmas</span>
                     </a>
 
-                    <a href="{{ url_for('planos.listar_planos') }}" class="nav-item p-3 rounded-xl text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-indigo-400 group">
-                        <i class="fas fa-book-open text-xl"></i>
+                    <a href="{{ url_for('planos.listar_planos') }}" class="nav-item w-10 h-10 rounded-lg text-slate-500 hover:bg-white hover:text-[#6200EA] hover:shadow-md transition-all duration-300 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white">
+                        <i class="fas fa-layer-group"></i>
                         <span class="nav-label">Planejamento</span>
                     </a>
 
-                    <a href="{{ url_for('core.listar_atividades') }}" class="nav-item p-3 rounded-xl text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-indigo-400 group">
-                        <i class="fas fa-tasks text-xl"></i>
+                    <a href="{{ url_for('core.listar_atividades') }}" class="nav-item w-10 h-10 rounded-lg text-slate-500 hover:bg-white hover:text-[#6200EA] hover:shadow-md transition-all duration-300 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white">
+                        <i class="fas fa-tasks"></i>
                         <span class="nav-label">Atividades</span>
                     </a>
 
-                    <a href="{{ url_for('planos.diario_bordo') }}" class="nav-item p-3 rounded-xl text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all duration-200 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-indigo-400 group">
-                        <i class="fas fa-calendar-check text-xl"></i>
+                    <a href="{{ url_for('planos.diario_bordo') }}" class="nav-item w-10 h-10 rounded-lg text-slate-500 hover:bg-white hover:text-[#6200EA] hover:shadow-md transition-all duration-300 dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-white">
+                        <i class="fas fa-book"></i>
                         <span class="nav-label">Diário</span>
                     </a>
 
-                    <div class="h-8 w-px bg-gray-200 mx-2 dark:bg-gray-700"></div>
+                    <div class="h-6 w-px bg-slate-200 mx-1 dark:bg-slate-700"></div>
 
-                    <a href="{{ url_for('planos.gerar_prova') }}" class="nav-item p-3 rounded-xl text-purple-500 hover:bg-purple-50 hover:text-purple-600 transition-all duration-200 dark:text-purple-400 dark:hover:bg-gray-700 group" title="IA Generator">
-                        <i class="fas fa-wand-magic-sparkles text-xl"></i>
-                        <span class="nav-label">IA Criativa</span>
+                    <a href="{{ url_for('planos.gerar_prova') }}" class="nav-item w-10 h-10 rounded-lg text-purple-600 bg-purple-50 hover:bg-[#6200EA] hover:text-white hover:shadow-lg hover:shadow-purple-500/30 transition-all duration-300 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-600">
+                        <i class="fas fa-bolt"></i>
+                        <span class="nav-label">Cortex AI</span>
                     </a>
                 </div>
 
-                <div class="hidden md:flex items-center gap-4">
+                <div class="hidden md:flex items-center gap-3">
                     
                     {% if (current_user.role and current_user.role.name == 'admin') or current_user.username == 'iansantos' %}
-                    <div class="relative group mr-2" x-data="{ open: false }">
-                        <button @click="open = !open" @click.away="open = false" class="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30 border border-indigo-400">
-                            <i class="fas fa-user-astronaut"></i>
-                            <span class="text-sm font-bold hidden lg:block">Modo Visão</span>
-                            <i class="fas fa-chevron-down text-xs"></i>
+                    <div class="relative group" x-data="{ open: false }">
+                        <button @click="open = !open" @click.away="open = false" class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 text-white rounded-lg hover:bg-black transition shadow-lg border border-slate-700 text-xs font-bold uppercase tracking-wide">
+                            <i class="fas fa-eye text-[#FFD700]"></i>
+                            <span>Visão</span>
                         </button>
                         
                         <div x-show="open" 
-                             x-transition:enter="transition ease-out duration-100"
-                             x-transition:enter-start="transform opacity-0 scale-95"
-                             x-transition:enter-end="transform opacity-100 scale-100"
-                             x-transition:leave="transition ease-in duration-75"
-                             x-transition:leave-start="transform opacity-100 scale-100"
-                             x-transition:leave-end="transform opacity-0 scale-95"
-                             class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 text-left"
+                             class="absolute right-0 mt-3 w-56 glass rounded-xl shadow-2xl overflow-hidden z-50 animate-fade-in-down"
                              style="display: none;">
-                            
-                            <div class="px-4 py-2 bg-gray-50 border-b border-gray-100">
-                                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Alternar Portal</p>
+                            <div class="p-1">
+                                <a href="{{ url_for('core.index') }}" class="block px-3 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-[#6200EA] hover:text-white transition-colors">Admin</a>
+                                <a href="{{ url_for('coordenacao.dashboard') }}" class="block px-3 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-[#6200EA] hover:text-white transition-colors">Coordenação</a>
+                                <a href="{{ url_for('professor.dashboard') }}" class="block px-3 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-[#6200EA] hover:text-white transition-colors">Professor</a>
+                                <a href="{{ url_for('portal.dashboard') }}" class="block px-3 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-[#6200EA] hover:text-white transition-colors">Aluno</a>
                             </div>
-
-                            <a href="{{ url_for('core.index') }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition border-b border-gray-100">
-                                <i class="fas fa-cogs w-6 text-gray-400 mr-2"></i> Painel Admin
-                            </a>
-
-                            <a href="{{ url_for('coordenacao.dashboard') }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition border-b border-gray-100">
-                                <i class="fas fa-network-wired w-6 text-gray-400 mr-2"></i> Coordenação
-                            </a>
-                            
-                            <a href="{{ url_for('professor.dashboard') }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition border-b border-gray-100">
-                                <i class="fas fa-chalkboard-teacher w-6 text-gray-400 mr-2"></i> Professor
-                            </a>
-                            
-                            <a href="{{ url_for('portal.dashboard') }}" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition border-b border-gray-100">
-                                <i class="fas fa-user-graduate w-6 text-gray-400 mr-2"></i> Aluno
-                            </a>
-
-                            <a href="#" class="block px-4 py-3 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition">
-                                <i class="fas fa-folder w-6 text-gray-400 mr-2"></i> Secretaria
-                            </a>
                         </div>
                     </div>
                     {% endif %}
 
-                    <button id="theme-toggle" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none transition-colors" title="Alternar Tema">
+                    <button id="theme-toggle" class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#FFD700] dark:hover:bg-slate-800 transition-all" title="Alternar Tema">
                         <i class="fas fa-moon" id="theme-icon"></i>
                     </button>
 
-                    <div class="relative group ml-1" id="notification-dropdown">
-                        <button class="relative p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none transition-colors">
-                            <i class="fas fa-bell text-lg"></i>
+                    <div class="relative group" id="notification-dropdown">
+                        <button class="relative w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+                            <i class="fas fa-bell"></i>
                             {% if num_notificacoes > 0 %}
-                                <span class="absolute top-1 right-1 h-2.5 w-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse"></span>
+                                <span class="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full animate-ping"></span>
+                                <span class="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full border-2 border-white dark:border-slate-900"></span>
                             {% endif %}
                         </button>
                         
-                        <div class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-gray-100 hidden group-hover:block transform origin-top-right transition-all z-50 dark:bg-gray-800 dark:border-gray-700 animate-fade-in-down">
-                            <div class="px-4 py-3 border-b border-gray-50 dark:border-gray-700 flex justify-between items-center">
-                                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Notificações</h3>
+                        <div class="absolute right-0 mt-3 w-80 glass rounded-2xl shadow-2xl hidden group-hover:block z-50 animate-fade-in-down">
+                            <div class="px-4 py-3 border-b border-gray-100/50 dark:border-gray-700/50 flex justify-between items-center bg-white/50 dark:bg-slate-800/50 rounded-t-2xl">
+                                <h3 class="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wide">Notificações</h3>
                                 {% if num_notificacoes > 0 %}
-                                    <a href="{{ url_for('core.ler_todas_notificacoes') }}" class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300">Marcar lidas</a>
+                                    <a href="{{ url_for('core.ler_todas_notificacoes') }}" class="text-[10px] font-bold text-[#6200EA] hover:underline">Marcar lidas</a>
                                 {% endif %}
                             </div>
-                            
-                            <div class="max-h-64 overflow-y-auto">
+                            <div class="max-h-64 overflow-y-auto p-1 custom-scrollbar">
                                 {% if notificacoes_topo %}
                                     {% for notif in notificacoes_topo %}
-                                        <a href="{{ url_for('core.ler_notificacao', id=notif.id) }}" class="block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors {% if not notif.lida %}bg-indigo-50/50 dark:bg-indigo-900/10 border-l-2 border-indigo-500{% endif %}">
-                                            <p class="text-sm text-gray-800 dark:text-gray-200 {{ 'font-semibold' if not notif.lida else '' }}">{{ notif.texto }}</p>
-                                            <p class="text-xs text-gray-400 mt-1">{{ notif.data_criacao.strftime('%d/%m %H:%M') }}</p>
+                                        <a href="{{ url_for('core.ler_notificacao', id=notif.id) }}" class="block p-3 mb-1 rounded-xl hover:bg-white/60 dark:hover:bg-slate-700/50 transition-colors {% if not notif.lida %}bg-indigo-50/50 dark:bg-indigo-900/20 border-l-4 border-[#6200EA]{% endif %}">
+                                            <p class="text-xs text-slate-700 dark:text-slate-200 leading-snug">{{ notif.texto }}</p>
+                                            <p class="text-[10px] text-slate-400 mt-1 font-mono">{{ notif.data_criacao.strftime('%H:%M') }}</p>
                                         </a>
                                     {% endfor %}
                                 {% else %}
-                                    <div class="px-4 py-6 text-center text-gray-500 dark:text-gray-400 text-sm">
-                                        Nenhuma notificação recente.
+                                    <div class="py-6 text-center text-slate-400 text-xs">
+                                        Nada por aqui.
                                     </div>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
 
-                    <div class="relative group ml-2">
+                    <div class="relative group ml-1">
                         <button type="button" class="flex items-center focus:outline-none transition-transform hover:scale-105">
                             {% if current_user.foto_perfil_path %}
-                                <img class="h-10 w-10 rounded-full object-cover border-2 border-indigo-100 shadow-sm hover:border-indigo-300 transition-colors" 
+                                <img class="h-9 w-9 rounded-xl object-cover border-2 border-white shadow-md" 
                                      src="{{ url_for('alunos.download_material', filename=current_user.foto_perfil_path) }}" 
                                      alt="Perfil"
                                      onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                
-                                <div class="h-10 w-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm border-2 border-indigo-50 shadow-sm" style="display:none;">
+                                <div class="h-9 w-9 rounded-xl bg-[#6200EA] text-white flex items-center justify-center font-bold text-xs shadow-md" style="display:none;">
                                     {{ current_user.username[:2].upper() }}
                                 </div>
                             {% else %}
-                                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-bold text-sm shadow-md border-2 border-white dark:border-gray-800">
+                                <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-[#6200EA] to-purple-800 text-white flex items-center justify-center font-bold text-xs shadow-md ring-2 ring-white/50">
                                     {{ current_user.username[:2].upper() }}
                                 </div>
                             {% endif %}
                         </button>
 
-                        <div class="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl py-2 hidden group-hover:block border border-gray-100 transform origin-top-right transition-all z-50 dark:bg-gray-800 dark:border-gray-700 animate-fade-in-down">
-                            <div class="px-4 py-3 border-b border-gray-50 dark:border-gray-700">
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ current_user.username }}</p>
-                                <p class="text-xs text-gray-500 truncate dark:text-gray-400">{{ current_user.email }}</p>
+                        <div class="absolute right-0 mt-3 w-60 glass rounded-2xl shadow-2xl py-2 hidden group-hover:block z-50 animate-fade-in-down">
+                            <div class="px-4 py-3 border-b border-gray-100/50 dark:border-gray-700/50">
+                                <p class="text-sm font-bold text-slate-800 dark:text-white truncate">{{ current_user.username }}</p>
+                                <p class="text-[10px] text-slate-500 uppercase tracking-wide">{{ current_user.email }}</p>
                             </div>
                             
-                            <a href="{{ url_for('core.edit_perfil') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-indigo-400 transition-colors">
-                                <i class="fas fa-user-cog w-5 mr-2"></i> Meu Perfil
-                            </a>
-                            <a href="{{ url_for('planos.gerenciar_horario') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-indigo-400 transition-colors">
-                                <i class="fas fa-clock w-5 mr-2"></i> Horário
-                            </a>
-
-                            {% if current_user.role and current_user.role.name == 'admin' %}
-                            <div class="border-t border-gray-50 my-1 dark:border-gray-700"></div>
-                            <p class="px-4 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Administração</p>
-                            
-                            <a href="{{ url_for('core.listar_escolas') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-indigo-400 transition-colors">
-                                <i class="fas fa-school w-5 mr-2"></i> Escolas
-                            </a>
-                            <a href="{{ url_for('core.listar_coordenadores') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-indigo-400 transition-colors">
-                                <i class="fas fa-user-tie w-5 mr-2"></i> Coordenadores
-                            </a>
-                            <a href="{{ url_for('core.listar_professores') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-indigo-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-indigo-400 transition-colors">
-                                <i class="fas fa-chalkboard-teacher w-5 mr-2"></i> Professores
-                            </a>
-                            {% endif %}
-
-                            <div class="border-t border-gray-50 my-1 dark:border-gray-700"></div>
-                            <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors">
-                                <i class="fas fa-sign-out-alt w-5 mr-2"></i> Sair
-                            </a>
+                            <div class="p-1">
+                                <a href="{{ url_for('core.edit_perfil') }}" class="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-[#6200EA] hover:text-white rounded-lg transition-colors">
+                                    <i class="fas fa-user-cog"></i> Configurar Perfil
+                                </a>
+                                <a href="{{ url_for('planos.gerenciar_horario') }}" class="flex items-center gap-3 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-[#6200EA] hover:text-white rounded-lg transition-colors">
+                                    <i class="fas fa-clock"></i> Grade Horária
+                                </a>
+                                <div class="border-t border-gray-100/50 my-1 dark:border-gray-700/50"></div>
+                                <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-3 px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors">
+                                    <i class="fas fa-sign-out-alt"></i> Encerrar Sessão
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
                 {% else %}
-                <div class="flex items-center gap-4">
-                    <a href="{{ url_for('auth.login') }}" class="text-sm font-medium text-gray-700 hover:text-indigo-600 dark:text-gray-300 dark:hover:text-indigo-400 transition-colors">Entrar</a>
-                    <a href="{{ url_for('auth.register') }}" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 shadow-md transition-transform hover:scale-105">Criar Conta</a>
+                <div class="flex items-center gap-3">
+                    <a href="{{ url_for('auth.login') }}" class="text-sm font-bold text-slate-600 hover:text-[#6200EA] transition-colors">Entrar</a>
+                    <a href="{{ url_for('auth.register') }}" class="px-5 py-2 text-sm font-bold text-white bg-[#6200EA] rounded-xl shadow-lg shadow-purple-500/30 hover:bg-[#5000BF] transition-all transform hover:-translate-y-0.5">Começar</a>
                 </div>
                 {% endif %}
 
                 <div class="flex items-center md:hidden">
-                    <button id="mobile-menu-button" type="button" class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none dark:hover:bg-gray-700 transition-colors">
+                    <button id="mobile-menu-button" type="button" class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors">
                         <i class="fas fa-bars text-xl"></i>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="hidden md:hidden bg-white border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700 shadow-inner" id="mobile-menu">
-            <div class="px-4 pt-2 pb-4 space-y-1">
+        <div class="hidden md:hidden border-t border-white/20 dark:border-gray-700/50" id="mobile-menu">
+            <div class="px-4 pt-4 pb-6 space-y-2">
                 {% if current_user.is_authenticated %}
-                    <div class="flex items-center px-3 py-3 mb-2 border-b border-gray-100 dark:border-gray-700">
+                    <div class="flex items-center gap-3 mb-6 bg-white/40 p-3 rounded-xl border border-white/40">
                         {% if current_user.foto_perfil_path %}
-                            <img class="h-10 w-10 rounded-full object-cover mr-3" 
-                                 src="{{ url_for('alunos.download_material', filename=current_user.foto_perfil_path) }}" 
-                                 alt="Perfil">
+                            <img class="h-10 w-10 rounded-lg object-cover" src="{{ url_for('alunos.download_material', filename=current_user.foto_perfil_path) }}">
                         {% else %}
-                            <div class="h-10 w-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-sm mr-3">
+                            <div class="h-10 w-10 rounded-lg bg-[#6200EA] text-white flex items-center justify-center font-bold text-sm">
                                 {{ current_user.username[:2].upper() }}
                             </div>
                         {% endif %}
                         <div>
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">{{ current_user.username }}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Logado</p>
+                            <p class="text-sm font-bold text-slate-800 dark:text-white">{{ current_user.username }}</p>
+                            <p class="text-xs text-green-600 font-bold uppercase tracking-wider">Online</p>
                         </div>
                     </div>
 
-                    <a href="{{ url_for('core.dashboard') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-chart-pie w-6 text-center mr-2"></i> Dashboard</a>
-                    <a href="{{ url_for('core.listar_turmas') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-chalkboard w-6 text-center mr-2"></i> Turmas</a>
-                    <a href="{{ url_for('planos.listar_planos') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-book-open w-6 text-center mr-2"></i> Planejamento</a>
-                    <a href="{{ url_for('core.listar_atividades') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-tasks w-6 text-center mr-2"></i> Atividades</a>
-                    <a href="{{ url_for('planos.diario_bordo') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-calendar-check w-6 text-center mr-2"></i> Diário</a>
+                    <a href="{{ url_for('core.dashboard') }}" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-slate-600 hover:bg-white/60 hover:text-[#6200EA] transition-colors"><i class="fas fa-chart-pie w-6"></i> Dashboard</a>
+                    <a href="{{ url_for('core.listar_turmas') }}" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-slate-600 hover:bg-white/60 hover:text-[#6200EA] transition-colors"><i class="fas fa-chalkboard w-6"></i> Turmas</a>
+                    <a href="{{ url_for('planos.listar_planos') }}" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-slate-600 hover:bg-white/60 hover:text-[#6200EA] transition-colors"><i class="fas fa-layer-group w-6"></i> Planejamento</a>
                     
-                    {% if current_user.role and current_user.role.name == 'admin' %}
-                        <div class="border-t border-gray-200 my-2 dark:border-gray-600"></div>
-                        <p class="px-3 text-xs font-semibold text-gray-400 uppercase mb-1">Admin</p>
-                        <a href="{{ url_for('core.listar_escolas') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-school w-6 text-center mr-2"></i> Escolas</a>
-                        <a href="{{ url_for('core.listar_coordenadores') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-user-tie w-6 text-center mr-2"></i> Coordenadores</a>
-                        <a href="{{ url_for('core.listar_professores') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-chalkboard-teacher w-6 text-center mr-2"></i> Professores</a>
-                    {% endif %}
-
-                    <div class="border-t border-gray-200 my-2 dark:border-gray-600"></div>
+                    <div class="border-t border-slate-200/50 my-2"></div>
                     
-                    <a href="{{ url_for('core.edit_perfil') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-indigo-600 hover:bg-indigo-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors"><i class="fas fa-user-cog w-6 text-center mr-2"></i> Perfil</a>
-                    <a href="{{ url_for('auth.logout') }}" class="block px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors"><i class="fas fa-sign-out-alt w-6 text-center mr-2"></i> Sair</a>
-                {% else %}
-                    <a href="{{ url_for('auth.login') }}" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 dark:text-gray-200 dark:hover:bg-gray-700 transition-colors">Login</a>
-                    <a href="{{ url_for('auth.register') }}" class="block px-3 py-2 rounded-md text-base font-medium text-indigo-600 hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-gray-700 transition-colors">Criar Conta</a>
+                    <a href="{{ url_for('auth.logout') }}" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-50 transition-colors"><i class="fas fa-sign-out-alt w-6"></i> Sair</a>
                 {% endif %}
             </div>
         </div>
     </nav>
 
-    <main class="flex-grow py-8 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
+    <main class="flex-grow py-8 relative z-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
-                    <div class="mb-6 space-y-3">
+                    <div class="mb-8 space-y-4">
                         {% for category, message in messages %}
-                            <div class="flex items-center p-4 rounded-xl shadow-sm border-l-4 animate-fade-in-down
-                                {% if category == 'success' %} bg-white border-green-500 text-green-700 dark:bg-gray-800 dark:text-green-400
-                                {% elif category == 'danger' %} bg-white border-red-500 text-red-700 dark:bg-gray-800 dark:text-red-400
-                                {% else %} bg-white border-blue-500 text-blue-700 dark:bg-gray-800 dark:text-blue-400 {% endif %}">
-                                <div class="flex-shrink-0 mr-3">
-                                    <i class="fas fa-info-circle text-lg"></i>
-                                </div>
-                                <div class="text-sm font-medium">{{ message }}</div>
-                                <button onclick="this.parentElement.remove()" class="ml-auto text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                            <div class="flex items-center p-4 rounded-2xl shadow-lg backdrop-blur-md border animate-fade-in-down
+                                {% if category == 'success' %} bg-emerald-50/90 border-emerald-200 text-emerald-800
+                                {% elif category == 'danger' %} bg-red-50/90 border-red-200 text-red-800
+                                {% else %} bg-blue-50/90 border-blue-200 text-blue-800 {% endif %}">
+                                <i class="fas fa-info-circle text-lg mr-3 opacity-80"></i>
+                                <div class="text-sm font-bold">{{ message }}</div>
+                                <button onclick="this.parentElement.remove()" class="ml-auto opacity-50 hover:opacity-100 transition-opacity">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
@@ -355,17 +333,15 @@
         </div>
     </main>
 
-    <footer class="bg-white border-t border-gray-200 mt-auto dark:bg-gray-800 dark:border-gray-700">
-        <div class="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-brain text-gray-400"></i>
-                    <span class="text-sm font-semibold text-gray-500 dark:text-gray-400">Cortex Educational</span>
-                </div>
-                <p class="text-center text-xs text-gray-400 dark:text-gray-500">
-                    &copy; 2025 Todos os direitos reservados.
-                </p>
+    <footer class="mt-auto glass border-t border-white/20 py-8 relative z-10">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <div class="flex items-center justify-center gap-2 mb-2 opacity-50">
+                <i class="fas fa-brain"></i>
+                <span class="text-xs font-bold uppercase tracking-widest">Cortex Educational System</span>
             </div>
+            <p class="text-[10px] text-slate-400 font-medium">
+                &copy; 2025 • Design Glass-Aurora v2.0
+            </p>
         </div>
     </footer>
 
@@ -382,7 +358,7 @@
             });
         }
 
-        // Dark Mode
+        // Dark Mode Logic
         const themeToggle = document.getElementById('theme-toggle');
         const themeIcon = document.getElementById('theme-icon');
         
